@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bias in Complete-Data Log-Likelihood Under Imputation: Derivation</title>
+    
+    <!-- MathJax Configuration -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #333;
+            background-color: #fafafa;
+        }
+        
+        h1 {
+            color: #1a1a1a;
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 15px;
+            margin-top: 40px;
+            margin-bottom: 30px;
+            font-size: 1.9em;
+        }
+        
+        h2 {
+            color: #2c5aa0;
+            margin-top: 45px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        h3 {
+            color: #4a4a4a;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .equation {
+            margin: 25px 0;
+            padding: 15px 20px;
+            background-color: #f5f7fa;
+            border-left: 4px solid #2c5aa0;
+            overflow-x: auto;
+        }
+        
+        .result-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 25px 0;
+            font-weight: 500;
+        }
+        
+        .note-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 25px 0;
+        }
+        
+        .warning-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px 20px;
+            margin: 25px 0;
+        }
+        
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        
+        .step-header {
+            font-weight: bold;
+            color: #2c5aa0;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 10px 0;
+        }
+        
+        .section-divider {
+            margin: 60px 0 50px 0;
+            border-top: 2px solid #ddd;
+        }
+        
+        .toc {
+            background-color: #f5f7fa;
+            padding: 20px 30px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+        
+        .toc-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #2c5aa0;
+        }
+        
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: #2c5aa0;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Bias in Complete-Data Log-Likelihood Under Imputation</h1>
+
+<div class="toc">
+    <div class="toc-title">Contents</div>
+    <ul>
+        <li><a href="#sketch">1. Proof Sketch (16 Steps)</a></li>
+        <li><a href="#detailed">2. Detailed Derivation</a></li>
+        <li><a href="#consequences">3. Consequences for Model Comparison</a></li>
+        <li><a href="#pdio">4. Relationship to Shimodaira's PDIO</a></li>
+        <li><a href="#aiccd">5. Cavanaugh & Shumway's AICcd Underpenalizes</a></li>
+        <li><a href="#miaic">6. MI-AIC: Corrected AIC for Proper Multiple Imputation</a></li>
+        <li><a href="#general">7. Generalization to Missing Covariates</a></li>
+        <li><a href="#cc">8. Comparison to Claeskens & Consentino (2008)</a></li>
+        <li><a href="#mibic">9. MI-BIC: Corrected BIC for Proper Multiple Imputation</a></li>
+    </ul>
+</div>
+
+<div class="section-divider"></div>
+
+<h2 id="sketch">1. Proof Sketch</h2>
+
+<p>We derive the bias that arises when estimating the complete-data log-likelihood using imputation. The key result is that this bias is <strong>unavoidable</strong> when the imputation parameter is estimated from data. While the bias can in principle be corrected by estimating $\mathcal{I}_{mis|obs}(\theta^*)$, existing methods such as AICcd do not include this correction.</p>
+
+<div class="step">
+    <div class="step-header">Step 1: Setup and Definitions</div>
+    
+    <p>Let $Y = (Y^{obs}, Y^{mis})$ denote the complete data. The complete-data log-likelihood decomposes as:</p>
+    
+    <div class="equation">
+    $$\ell_{com}(\theta) = \ell_{obs}(\theta) + \ell_{mis|obs}(\theta)$$
+    </div>
+    
+    <p>The Q-function is defined as:</p>
+    
+    <div class="equation">
+    $$Q(\theta|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{com}(\theta)]$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 2: Decomposing the Q-function</div>
+    
+    <p>Since $\ell_{obs}(\theta)$ does not depend on $Y^{mis}$:</p>
+    
+    <div class="equation">
+    $$Q(\theta|\tilde{\theta}) = \ell_{obs}(\theta) + \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta)]$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 3: The Bias We Want to Compute</div>
+    
+    <div class="equation">
+    $$\text{Bias} = \mathbb{E}[Q(\hat{\theta}|\tilde{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})]$$
+    </div>
+    
+    <div class="note-box">
+    <strong>Key observation:</strong> If $\tilde{\theta} = \theta^*$ (the true parameter), then $\text{Bias} = 0$ by the law of iterated expectations. The bias arises precisely because $\tilde{\theta}$ is estimated from data.
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 4: Taylor Expansion of $\ell_{com}(\hat{\theta})$</div>
+    
+    <div class="equation">
+    $$\ell_{com}(\hat{\theta}) = \ell_{com}(\theta^*) + (\hat{\theta}-\theta^*)^T S_{com}(\theta^*) - \frac{1}{2}(\hat{\theta}-\theta^*)^T \mathcal{J}_{com}(\theta^*)(\hat{\theta}-\theta^*) + R_3$$
+    </div>
+    
+    <p>where $S_{com}(\theta^*) = \partial_\theta \ell_{com}(\theta^*)$ is the score, $\mathcal{J}_{com}(\theta^*) = -\partial_\theta^2 \ell_{com}(\theta^*)$ is the observed information, and $R_3 = O_p(N^{-3/2})$.</p>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 5: Taylor Expansion of $Q(\hat{\theta}|\tilde{\theta})$</div>
+    
+    <div class="equation">
+    $$Q(\hat{\theta}|\tilde{\theta}) = Q(\theta^*|\tilde{\theta}) + (\hat{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{com}(\theta^*)]$$
+    $$- \frac{1}{2}(\hat{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{com}(\theta^*)](\hat{\theta}-\theta^*) + R_3$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 6: Taking the Difference</div>
+    
+    <div class="equation">
+    $$Q(\hat{\theta}|\tilde{\theta}) - \ell_{com}(\hat{\theta}) = \underbrace{\left[Q(\theta^*|\tilde{\theta}) - \ell_{com}(\theta^*)\right]}_{\text{Term 1}}$$
+    $$+ \underbrace{(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{com}(\theta^*)] - S_{com}(\theta^*)\right]}_{\text{Term 2}}$$
+    $$- \underbrace{\frac{1}{2}(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{com}(\theta^*)] - \mathcal{J}_{com}(\theta^*)\right](\hat{\theta}-\theta^*)}_{\text{Term 3}} + O_p(N^{-3/2})$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 7: Applying the Missing Information Principle</div>
+    
+    <p>Using the decompositions:</p>
+    <ul>
+        <li>$S_{com} = S_{obs} + S_{mis|obs}$</li>
+        <li>$\mathcal{J}_{com} = \mathcal{J}_{obs} + \mathcal{J}_{mis|obs}$</li>
+    </ul>
+    
+    <p>The "obs" components pass through the conditional expectation $\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\cdot]$ unchanged and cancel in the differences, leaving only the "mis|obs" components.</p>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 8: Substituting into the Difference</div>
+    
+    <p>All three terms now involve only the missing-data components:</p>
+    
+    <div class="equation">
+    $$Q(\hat{\theta}|\tilde{\theta}) - \ell_{com}(\hat{\theta}) = \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \ell_{mis|obs,\theta^*}(\theta^*)\right]$$
+    $$+ (\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - S_{mis|obs,\theta^*}(\theta^*)\right]$$
+    $$- \frac{1}{2}(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathcal{J}_{mis|obs,\theta^*}(\theta^*)\right](\hat{\theta}-\theta^*) + O_p(N^{-3/2})$$
+    </div>
+    
+    <p>where $\ell_{mis|obs,\theta^*}$ denotes $\ell_{mis|obs}$ evaluated at the true $Y^{mis}$ (drawn from $p(Y^{mis}|Y^{obs},\theta^*)$).</p>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 9: Taking the Full Expectation</div>
+    
+    <div class="equation">
+    $$\text{Bias} = \underbrace{\mathbb{E}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \ell_{mis|obs,\theta^*}(\theta^*)\right]}_{\text{Term 1}}$$
+    $$+ \underbrace{\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - S_{mis|obs,\theta^*}(\theta^*)\right]\right]}_{\text{Term 2}}$$
+    $$- \underbrace{\frac{1}{2}\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathcal{J}_{mis|obs,\theta^*}(\theta^*)\right](\hat{\theta}-\theta^*)\right]}_{\text{Term 3}} + O(N^{-3/2})$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 10: Analyzing Term 1</div>
+    
+    <p>Term 1 becomes:</p>
+    
+    <div class="equation">
+    $$\mathbb{E}_{Y^{obs}}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*)]\right]$$
+    </div>
+    
+    <p>This is the difference in expected log-likelihood when imputing under $\tilde{\theta}$ versus the true $\theta^*$.</p>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 11: Evaluating the Difference in Conditional Expectations</div>
+    
+    <p>Taylor expanding $p(Y^{mis}|Y^{obs},\tilde{\theta})$ around $\tilde{\theta} = \theta^*$ and using $\partial_{\tilde{\theta}}p = p \cdot S_{mis|obs}$:</p>
+    
+    <div class="equation">
+    $$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*)]$$
+    $$\approx (\tilde{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)]$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 12: Term 1 is Zero (to first order)</div>
+    
+    <p>By integration by parts (or the score identity):</p>
+    
+    <div class="equation">
+    $$\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)] = -\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)] = 0$$
+    </div>
+    
+    <p>So Term 1 contributes only $O(N^{-1})$ from higher-order terms.</p>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 13: Analyzing Term 2</div>
+    
+    <p>We need:</p>
+    
+    <div class="equation">
+    $$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)]$$
+    </div>
+    
+    <p>Since $\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)] = 0$, Taylor expanding gives:</p>
+    
+    <div class="equation">
+    $$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] \approx \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)^T](\tilde{\theta}-\theta^*)$$
+    $$= \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 14: Substituting Back into Term 2</div>
+    
+    <p>Term 2 becomes:</p>
+    
+    <div class="equation">
+    $$\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right]$$
+    </div>
+    
+    <p>The $S_{mis|obs,\theta^*}(\theta^*)$ component vanishes because $\mathbb{E}[S_{mis|obs,\theta^*}(\theta^*)|Y^{obs}] = 0$.</p>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 15: Term 3 is Higher Order</div>
+    
+    <p>Term 3 involves:</p>
+    <ul>
+        <li>$(\hat{\theta}-\theta^*)^T[\cdot](\hat{\theta}-\theta^*) = O_p(N^{-1})$</li>
+        <li>multiplied by a difference that is $O(\tilde{\theta}-\theta^*) = O_p(N^{-1/2})$</li>
+    </ul>
+    
+    <p>Therefore Term 3 contributes $O(N^{-3/2})$.</p>
+    
+    <div class="result-box">
+    <strong>Leading-order bias:</strong>
+    $$\text{Bias} = \mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right] + O(N^{-3/2})$$
+    </div>
+</div>
+
+<div class="step">
+    <div class="step-header">Step 16: Converting to Trace Form</div>
+    
+    <p>Using the identity $a^T B c = \text{tr}(B c a^T)$ and taking expectations:</p>
+    
+    <div class="equation">
+    $$\text{Bias} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathbb{E}[(\tilde{\theta}-\theta^*)(\hat{\theta}-\theta^*)^T]\right) + O(N^{-3/2})$$
+    </div>
+    
+    <p>Assuming $\tilde{\theta}$ and $\hat{\theta}$ are both asymptotically unbiased for $\theta^*$:</p>
+    
+    <div class="result-box">
+    <strong>Final Result:</strong>
+    $$\boxed{\text{Bias} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\theta}, \hat{\theta})\right) + O(N^{-3/2})}$$
+    </div>
+</div>
+
+<h3>Special Case: MLE Imputation ($\tilde{\theta} = \hat{\theta}$)</h3>
+
+<p>When imputation uses the same MLE that is being evaluated:</p>
+
+<div class="equation">
+$$\text{Bias} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs})\right) + O(N^{-3/2})$$
+</div>
+
+<div class="note-box">
+<strong>Important:</strong> Here $\text{Var}(\hat{\theta}_{obs})$ is the variance of the MLE from the <em>observed-data likelihood</em>:
+$$\hat{\theta}_{obs} = \arg\max_\theta \ell_{obs}(\theta | Y^{obs})$$
+
+Under standard regularity conditions:
+$$\text{Var}(\hat{\theta}_{obs}) \approx \mathcal{I}_{obs}(\theta^*)^{-1}/N$$
+
+This is <strong>not</strong> the variance we would have from maximizing the complete-data likelihood.
+</div>
+
+<p>Substituting:</p>
+
+<div class="result-box">
+<strong>MLE Imputation Bias:</strong>
+$$\text{Bias} = \frac{1}{N}\text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(N^{-3/2})$$
+</div>
+
+<h3>Why the Bias is Positive</h3>
+
+<ul>
+    <li>$\mathcal{I}_{mis|obs}(\theta^*)$ is positive semi-definite (it's a Fisher information matrix)</li>
+    <li>$\text{Cov}(\tilde{\theta}, \hat{\theta})$ is positive semi-definite (it's a covariance matrix)</li>
+    <li>For positive semi-definite matrices $A$ and $B$: $\text{tr}(AB) \geq 0$</li>
+    <li>Strictly positive when parameters have both nonzero uncertainty and information from missing data</li>
+</ul>
+
+<h3>Why Correction is Impossible</h3>
+
+<div class="warning-box">
+<strong>The correction formula requires $\mathcal{I}_{mis|obs}(\theta^*)$—the missing-data information matrix evaluated at the true parameter.</strong>
+
+<p>This quantity is <strong>fundamentally unobservable</strong>:</p>
+<ul>
+    <li>$\theta^*$ is unknown (that's why we're estimating it)</li>
+    <li>$\mathcal{I}_{mis|obs}$ characterizes information from unobserved data</li>
+    <li>Estimating it from imputed data creates circular dependence on $\tilde{\theta}$</li>
+</ul>
+
+<p>This is why complete-data model selection cannot be replicated under missing data—the bias correction requires quantities that cannot be known.</p>
+</div>
+
+<div class="section-divider"></div>
+
+<h2 id="detailed">2. Detailed Derivation</h2>
+
+<p>We now provide the complete derivation with all intermediate calculations.</p>
+
+<h3>Step 1: Setup and Definitions</h3>
+
+<p>Let $Y = (Y^{obs}, Y^{mis})$ denote the complete data, where $Y^{obs}$ is observed and $Y^{mis}$ is missing. The complete-data log-likelihood can be decomposed as:</p>
+
+<div class="equation">
+$$\ell_{com}(\theta) = \ell_{obs}(\theta) + \ell_{mis|obs}(\theta)$$
+</div>
+
+<p>where:</p>
+<ul>
+    <li>$\ell_{obs}(\theta) = \log p(Y^{obs}|\theta)$ is the observed-data log-likelihood</li>
+    <li>$\ell_{mis|obs}(\theta) = \log p(Y^{mis}|Y^{obs},\theta)$ is the conditional log-likelihood of the missing data given the observed data</li>
+</ul>
+
+<p>This decomposition follows from the factorization $p(Y|\theta) = p(Y^{obs}|\theta) \cdot p(Y^{mis}|Y^{obs},\theta)$.</p>
+
+<p>Define the Q-function as the expected complete-data log-likelihood, where the expectation is over the conditional distribution of $Y^{mis}$ given $Y^{obs}$ and a conditioning parameter $\tilde{\theta}$:</p>
+
+<div class="equation">
+$$Q(\theta|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{com}(\theta)]$$
+</div>
+
+<p>We also define:</p>
+<ul>
+    <li>$\theta^*$ = the true (population) parameter value</li>
+    <li>$\hat{\theta} = \arg\max_\theta \ell_{obs}(\theta|Y^{obs})$ = the MLE from the observed-data likelihood</li>
+    <li>$\tilde{\theta}$ = the parameter used for imputation (may equal $\hat{\theta}$ or be a draw from a posterior)</li>
+</ul>
+
+<h3>Step 2: Decomposing the Q-function</h3>
+
+<p>Substituting the decomposition of $\ell_{com}$ into the Q-function:</p>
+
+<div class="equation">
+$$Q(\theta|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{obs}(\theta) + \ell_{mis|obs}(\theta)]$$
+</div>
+
+<p>Since $\ell_{obs}(\theta) = \log p(Y^{obs}|\theta)$ depends only on $Y^{obs}$ and not on $Y^{mis}$, it passes through the conditional expectation:</p>
+
+<div class="equation">
+$$Q(\theta|\tilde{\theta}) = \ell_{obs}(\theta) + \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta)]$$
+</div>
+
+<p>This decomposition is crucial: the observed-data component is unchanged, while only the missing-data component involves the imputation distribution.</p>
+
+<h3>Step 3: The Bias We Want to Compute</h3>
+
+<p>The bias in using the Q-function to estimate the complete-data log-likelihood is:</p>
+
+<div class="equation">
+$$\text{Bias} = \mathbb{E}[Q(\hat{\theta}|\tilde{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})]$$
+</div>
+
+<p>where the outer expectation is over the joint distribution of $(Y^{obs}, Y^{mis})$ from the true data-generating process $p(Y|\theta^*)$.</p>
+
+<div class="note-box">
+<strong>Key observation:</strong> If $\tilde{\theta} = \theta^*$ (the true parameter), then by the law of iterated expectations:
+$$\mathbb{E}[Q(\hat{\theta}|\theta^*)] = \mathbb{E}[\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{com}(\hat{\theta})]] = \mathbb{E}[\ell_{com}(\hat{\theta})]$$
+so the bias would be exactly zero. The bias arises precisely because $\tilde{\theta}$ is estimated from data and therefore $\tilde{\theta} \neq \theta^*$.
+</div>
+
+<h3>Step 4: Taylor Expansion of $\ell_{com}(\hat{\theta})$</h3>
+
+<p>We expand $\ell_{com}(\hat{\theta})$ around the true parameter $\theta^*$ using a second-order Taylor expansion:</p>
+
+<div class="equation">
+$$\ell_{com}(\hat{\theta}) = \ell_{com}(\theta^*) + (\hat{\theta}-\theta^*)^T \partial_\theta \ell_{com}(\theta^*) + \frac{1}{2}(\hat{\theta}-\theta^*)^T \partial_\theta^2 \ell_{com}(\theta^*)(\hat{\theta}-\theta^*) + R_3$$
+</div>
+
+<p>Define the score and observed information:</p>
+<ul>
+    <li>Score: $S_{com}(\theta) = \partial_\theta \ell_{com}(\theta)$</li>
+    <li>Observed information: $\mathcal{J}_{com}(\theta) = -\partial_\theta^2 \ell_{com}(\theta)$</li>
+</ul>
+
+<p>Then:</p>
+
+<div class="equation">
+$$\ell_{com}(\hat{\theta}) = \ell_{com}(\theta^*) + (\hat{\theta}-\theta^*)^T S_{com}(\theta^*) - \frac{1}{2}(\hat{\theta}-\theta^*)^T \mathcal{J}_{com}(\theta^*)(\hat{\theta}-\theta^*) + R_3$$
+</div>
+
+<p>The remainder term $R_3$ involves third derivatives:</p>
+<div class="equation">
+$$R_3 = \frac{1}{6}\sum_{j,k,l} \frac{\partial^3 \ell_{com}}{\partial\theta_j\partial\theta_k\partial\theta_l}\bigg|_{\bar{\theta}} (\hat{\theta}_j-\theta^*_j)(\hat{\theta}_k-\theta^*_k)(\hat{\theta}_l-\theta^*_l)$$
+</div>
+
+<p>Since $\|\hat{\theta}-\theta^*\| = O_p(N^{-1/2})$, we have $R_3 = O_p(N^{-3/2})$.</p>
+
+<h3>Step 5: Taylor Expansion of $Q(\hat{\theta}|\tilde{\theta})$</h3>
+
+<p>Similarly, we expand $Q(\hat{\theta}|\tilde{\theta})$ around $\theta^*$. Since $Q(\theta|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{com}(\theta)]$, we have:</p>
+
+<div class="equation">
+$$\partial_\theta Q(\theta|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\partial_\theta \ell_{com}(\theta)] = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{com}(\theta)]$$
+</div>
+
+<div class="equation">
+$$\partial_\theta^2 Q(\theta|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\partial_\theta^2 \ell_{com}(\theta)] = -\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{com}(\theta)]$$
+</div>
+
+<p>Therefore:</p>
+
+<div class="equation">
+$$Q(\hat{\theta}|\tilde{\theta}) = Q(\theta^*|\tilde{\theta}) + (\hat{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{com}(\theta^*)]$$
+$$- \frac{1}{2}(\hat{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{com}(\theta^*)](\hat{\theta}-\theta^*) + R_3$$
+</div>
+
+<h3>Step 6: Taking the Difference</h3>
+
+<p>Subtracting the expansion from Step 4 from the expansion in Step 5:</p>
+
+<div class="equation">
+$$Q(\hat{\theta}|\tilde{\theta}) - \ell_{com}(\hat{\theta}) = \underbrace{\left[Q(\theta^*|\tilde{\theta}) - \ell_{com}(\theta^*)\right]}_{\text{Term 1: Zeroth-order}}$$
+</div>
+<div class="equation">
+$$+ \underbrace{(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{com}(\theta^*)] - S_{com}(\theta^*)\right]}_{\text{Term 2: First-order}}$$
+</div>
+<div class="equation">
+$$- \underbrace{\frac{1}{2}(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{com}(\theta^*)] - \mathcal{J}_{com}(\theta^*)\right](\hat{\theta}-\theta^*)}_{\text{Term 3: Second-order}} + O_p(N^{-3/2})$$
+</div>
+
+<h3>Step 7: Applying the Missing Information Principle</h3>
+
+<p>The score and observed information decompose according to the missing information principle:</p>
+
+<div class="equation">
+$$S_{com}(\theta) = S_{obs}(\theta) + S_{mis|obs}(\theta)$$
+</div>
+
+<div class="equation">
+$$\mathcal{J}_{com}(\theta) = \mathcal{J}_{obs}(\theta) + \mathcal{J}_{mis|obs}(\theta)$$
+</div>
+
+<p>where:</p>
+<ul>
+    <li>$S_{obs}(\theta) = \partial_\theta \ell_{obs}(\theta)$ depends only on $Y^{obs}$</li>
+    <li>$S_{mis|obs}(\theta) = \partial_\theta \ell_{mis|obs}(\theta)$ depends on both $Y^{obs}$ and $Y^{mis}$</li>
+</ul>
+
+<p>Since $S_{obs}(\theta)$ and $\mathcal{J}_{obs}(\theta)$ depend only on $Y^{obs}$, they pass through the conditional expectation unchanged:</p>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{obs}(\theta^*)] = S_{obs}(\theta^*)$$
+</div>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{obs}(\theta^*)] = \mathcal{J}_{obs}(\theta^*)$$
+</div>
+
+<p>Therefore, in the differences appearing in Terms 1, 2, and 3, the "obs" components cancel.</p>
+
+<h3>Step 8: Substituting into the Difference</h3>
+
+<p>After cancellation of the "obs" components, all three terms involve only the "mis|obs" components:</p>
+
+<p><strong>Term 1:</strong></p>
+<div class="equation">
+$$Q(\theta^*|\tilde{\theta}) - \ell_{com}(\theta^*) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \ell_{mis|obs}(\theta^*)$$
+</div>
+
+<p>Here $\ell_{mis|obs}(\theta^*)$ on the right-hand side is evaluated at the actual $Y^{mis}$ (drawn from the true distribution $p(Y^{mis}|Y^{obs},\theta^*)$).</p>
+
+<p><strong>Term 2:</strong></p>
+<div class="equation">
+$$(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - S_{mis|obs}(\theta^*)\right]$$
+</div>
+
+<p><strong>Term 3:</strong></p>
+<div class="equation">
+$$-\frac{1}{2}(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathcal{J}_{mis|obs}(\theta^*)\right](\hat{\theta}-\theta^*)$$
+</div>
+
+<p>The full difference is:</p>
+
+<div class="equation">
+$$Q(\hat{\theta}|\tilde{\theta}) - \ell_{com}(\hat{\theta}) = \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \ell_{mis|obs}(\theta^*)\right]$$
+$$+ (\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - S_{mis|obs}(\theta^*)\right]$$
+$$- \frac{1}{2}(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathcal{J}_{mis|obs}(\theta^*)\right](\hat{\theta}-\theta^*) + O_p(N^{-3/2})$$
+</div>
+
+<h3>Step 9: Taking the Full Expectation</h3>
+
+<p>Taking expectations over the joint distribution of $(Y^{obs}, Y^{mis})$ from $p(Y|\theta^*)$:</p>
+
+<div class="equation">
+$$\text{Bias} = \mathbb{E}[Q(\hat{\theta}|\tilde{\theta}) - \ell_{com}(\hat{\theta})]$$
+</div>
+
+<p>This involves expectations of all three terms. We will analyze each term separately.</p>
+
+<p>For Term 1, the expectation is:</p>
+<div class="equation">
+$$\mathbb{E}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \ell_{mis|obs}(\theta^*)\right]$$
+</div>
+
+<p>Note that $\ell_{mis|obs}(\theta^*)$ on the right is a random variable depending on the true $Y^{mis} \sim p(Y^{mis}|Y^{obs},\theta^*)$.</p>
+
+<p>For Term 2:</p>
+<div class="equation">
+$$\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - S_{mis|obs}(\theta^*)\right]\right]$$
+</div>
+
+<p>For Term 3:</p>
+<div class="equation">
+$$-\frac{1}{2}\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathcal{J}_{mis|obs}(\theta^*)\right](\hat{\theta}-\theta^*)\right]$$
+</div>
+
+<h3>Step 10: Analyzing Term 1</h3>
+
+<p>We can rewrite Term 1 by introducing the expectation under the true distribution:</p>
+
+<div class="equation">
+$$\mathbb{E}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \ell_{mis|obs}(\theta^*)\right]$$
+</div>
+
+<p>The outer expectation is over $(Y^{obs}, Y^{mis}) \sim p(Y|\theta^*)$. We can write this as:</p>
+
+<div class="equation">
+$$= \mathbb{E}_{Y^{obs}}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*)]\right]$$
+</div>
+
+<p>This is the difference in the expected log-likelihood of the missing data when imputing under $\tilde{\theta}$ versus under the true $\theta^*$.</p>
+
+<h3>Step 11: Evaluating the Difference in Conditional Expectations</h3>
+
+<p>We need to evaluate:</p>
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*)]$$
+</div>
+
+<p>Taylor expand the first term as a function of the conditioning parameter $\tilde{\theta}$ around $\theta^*$:</p>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] \approx \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*)] + (\tilde{\theta}-\theta^*)^T \frac{\partial}{\partial\tilde{\theta}}\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)]\bigg|_{\tilde{\theta}=\theta^*}$$
+</div>
+
+<p>For the derivative, we use the score function identity. If $g(Y^{mis})$ is any function:</p>
+
+<div class="equation">
+$$\frac{\partial}{\partial\tilde{\theta}}\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[g(Y^{mis})] = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}\left[g(Y^{mis}) \cdot \frac{\partial}{\partial\tilde{\theta}}\log p(Y^{mis}|Y^{obs},\tilde{\theta})\right]$$
+</div>
+
+<p>Since $\frac{\partial}{\partial\tilde{\theta}}\log p(Y^{mis}|Y^{obs},\tilde{\theta}) = S_{mis|obs}(\tilde{\theta})$, we have:</p>
+
+<div class="equation">
+$$\frac{\partial}{\partial\tilde{\theta}}\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)]\bigg|_{\tilde{\theta}=\theta^*} = \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)\right]$$
+</div>
+
+<p>Therefore:</p>
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*)]$$
+$$\approx (\tilde{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)\right]$$
+</div>
+
+<h3>Step 12: Term 1 is Zero (to first order)</h3>
+
+<p>We now show that $\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)\right] = 0$.</p>
+
+<p>Using integration by parts (or the product rule for differentiation under the integral sign):</p>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)\right] = \int \ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*) \cdot p(Y^{mis}|Y^{obs},\theta^*) \, dY^{mis}$$
+</div>
+
+<p>Note that $S_{mis|obs}(\theta^*) = \partial_\theta \log p(Y^{mis}|Y^{obs},\theta^*) = \frac{\partial_\theta p(Y^{mis}|Y^{obs},\theta^*)}{p(Y^{mis}|Y^{obs},\theta^*)}$.</p>
+
+<p>So:</p>
+<div class="equation">
+$$= \int \ell_{mis|obs}(\theta^*) \cdot \partial_\theta p(Y^{mis}|Y^{obs},\theta^*) \, dY^{mis}$$
+</div>
+
+<p>Integrating by parts (with boundary terms vanishing under regularity conditions):</p>
+<div class="equation">
+$$= -\int \partial_{Y^{mis}}\ell_{mis|obs}(\theta^*) \cdot p(Y^{mis}|Y^{obs},\theta^*) \, dY^{mis} \cdot (\text{something})$$
+</div>
+
+<p>Actually, a more direct approach: Note that $\ell_{mis|obs}(\theta^*) = \log p(Y^{mis}|Y^{obs},\theta^*)$, so:</p>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)\right] = \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\log p \cdot \frac{\partial_\theta p}{p}\right]$$
+$$= \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\frac{\partial_\theta p \cdot \log p}{p}\right]$$
+</div>
+
+<p>By the identity $\partial_\theta \mathbb{E}[g] = \mathbb{E}[g \cdot S]$, and setting $g = \ell_{mis|obs}$:</p>
+
+<div class="equation">
+$$\partial_\theta \mathbb{E}_{Y^{mis}|Y^{obs},\theta}[\ell_{mis|obs}(\theta^*)]\bigg|_{\theta=\theta^*} = \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)]$$
+</div>
+
+<p>But $\mathbb{E}_{Y^{mis}|Y^{obs},\theta}[\ell_{mis|obs}(\theta^*)]$ is the cross-entropy between $p(Y^{mis}|Y^{obs},\theta)$ and $p(Y^{mis}|Y^{obs},\theta^*)$. This is minimized when $\theta = \theta^*$ (where it equals the negative entropy), so its derivative at $\theta = \theta^*$ is zero:</p>
+
+<div class="equation">
+$$\partial_\theta \mathbb{E}_{Y^{mis}|Y^{obs},\theta}[\ell_{mis|obs}(\theta^*)]\bigg|_{\theta=\theta^*} = 0$$
+</div>
+
+<p>Therefore:</p>
+
+<div class="result-box">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)\right] = 0$$
+</div>
+
+<p>This means Term 1 contributes only $O((\tilde{\theta}-\theta^*)^2) = O(N^{-1})$ from higher-order terms in the Taylor expansion.</p>
+
+<h3>Step 13: Analyzing Term 2</h3>
+
+<p>Term 2 is:</p>
+<div class="equation">
+$$\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] - S_{mis|obs}(\theta^*)\right]\right]$$
+</div>
+
+<p>We analyze the inner bracket. First, note that:</p>
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)] = 0$$
+</div>
+<p>This is the standard result that the expected score is zero at the true parameter.</p>
+
+<p>Taylor expand $\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)]$ around $\tilde{\theta} = \theta^*$:</p>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] \approx \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)] + (\tilde{\theta}-\theta^*)^T \frac{\partial}{\partial\tilde{\theta}}\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)]\bigg|_{\tilde{\theta}=\theta^*}$$
+</div>
+
+<p>The first term is zero. For the derivative, using the score function identity:</p>
+
+<div class="equation">
+$$\frac{\partial}{\partial\tilde{\theta}}\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)]\bigg|_{\tilde{\theta}=\theta^*} = \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[S_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)^T\right]$$
+</div>
+
+<p>This is the Fisher information for the missing data conditional on observed data:</p>
+
+<div class="equation">
+$$\mathcal{I}_{mis|obs}(\theta^*) = \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[S_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)^T\right]$$
+</div>
+
+<p>Therefore:</p>
+
+<div class="result-box">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[S_{mis|obs}(\theta^*)] \approx \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)$$
+</div>
+
+<h3>Step 14: Substituting Back into Term 2</h3>
+
+<p>Substituting the result from Step 13 into Term 2:</p>
+
+<div class="equation">
+$$\text{Term 2} = \mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*) - S_{mis|obs}(\theta^*)\right]\right]$$
+</div>
+
+<p>Split this into two parts:</p>
+
+<div class="equation">
+$$= \mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right] - \mathbb{E}\left[(\hat{\theta}-\theta^*)^T S_{mis|obs}(\theta^*)\right]$$
+</div>
+
+<p>For the second part, we use iterated expectations:</p>
+<div class="equation">
+$$\mathbb{E}\left[(\hat{\theta}-\theta^*)^T S_{mis|obs}(\theta^*)\right] = \mathbb{E}_{Y^{obs}}\left[(\hat{\theta}-\theta^*)^T \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)]\right]$$
+</div>
+
+<p>Since $\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[S_{mis|obs}(\theta^*)] = 0$, this term vanishes:</p>
+
+<div class="equation">
+$$\mathbb{E}\left[(\hat{\theta}-\theta^*)^T S_{mis|obs}(\theta^*)\right] = 0$$
+</div>
+
+<p>Therefore:</p>
+
+<div class="result-box">
+$$\text{Term 2} = \mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right]$$
+</div>
+
+<h3>Step 15: Term 3 is Higher Order</h3>
+
+<p>Term 3 is:</p>
+<div class="equation">
+$$-\frac{1}{2}\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathcal{J}_{mis|obs}(\theta^*)\right](\hat{\theta}-\theta^*)\right]$$
+</div>
+
+<p>The bracket $[\cdots]$ involves the difference between the expected observed information under the imputation distribution and the actual observed information. Taylor expanding:</p>
+
+<div class="equation">
+$$\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\mathcal{J}_{mis|obs}(\theta^*)] - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\mathcal{J}_{mis|obs}(\theta^*)] = O(\tilde{\theta}-\theta^*) = O_p(N^{-1/2})$$
+</div>
+
+<p>And:</p>
+<div class="equation">
+$$\mathcal{J}_{mis|obs}(\theta^*) - \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\mathcal{J}_{mis|obs}(\theta^*)] = O_p(N^{-1/2})$$
+</div>
+
+<p>So the bracket is $O_p(N^{-1/2})$.</p>
+
+<p>This is multiplied by $(\hat{\theta}-\theta^*)^T[\cdot](\hat{\theta}-\theta^*)$, which is $O_p(N^{-1})$.</p>
+
+<p>Therefore:</p>
+
+<div class="result-box">
+$$\text{Term 3} = O_p(N^{-3/2})$$
+</div>
+
+<p>Combining all terms:</p>
+
+<div class="equation">
+$$\text{Bias} = \underbrace{O(N^{-1})}_{\text{Term 1}} + \underbrace{\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right]}_{\text{Term 2}} + \underbrace{O(N^{-3/2})}_{\text{Term 3}}$$
+</div>
+
+<p>The leading-order bias is from Term 2:</p>
+
+<div class="result-box">
+<strong>Leading-order bias:</strong>
+$$\text{Bias} = \mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right] + O(N^{-1})$$
+</div>
+
+<h3>Step 16: Converting to Trace Form</h3>
+
+<p>For any vectors $a, c$ and matrix $B$, we have the identity:</p>
+<div class="equation">
+$$a^T B c = \text{tr}(B c a^T)$$
+</div>
+
+<p>Applying this with $a = \hat{\theta}-\theta^*$, $c = \tilde{\theta}-\theta^*$, and $B = \mathcal{I}_{mis|obs}(\theta^*)$:</p>
+
+<div class="equation">
+$$(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*) = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)(\hat{\theta}-\theta^*)^T\right)$$
+</div>
+
+<p>Taking expectations and using linearity of trace and expectation:</p>
+
+<div class="equation">
+$$\mathbb{E}\left[(\hat{\theta}-\theta^*)^T \mathcal{I}_{mis|obs}(\theta^*)(\tilde{\theta}-\theta^*)\right] = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathbb{E}\left[(\tilde{\theta}-\theta^*)(\hat{\theta}-\theta^*)^T\right]\right)$$
+</div>
+
+<p>Assuming both $\tilde{\theta}$ and $\hat{\theta}$ are asymptotically unbiased for $\theta^*$ (i.e., $\mathbb{E}[\tilde{\theta}] = \theta^* + o(1)$ and $\mathbb{E}[\hat{\theta}] = \theta^* + o(1)$), we have:</p>
+
+<div class="equation">
+$$\mathbb{E}\left[(\tilde{\theta}-\theta^*)(\hat{\theta}-\theta^*)^T\right] = \text{Cov}(\tilde{\theta}, \hat{\theta}) + o(N^{-1})$$
+</div>
+
+<p>Therefore:</p>
+
+<div class="result-box">
+<strong>Final Result:</strong>
+$$\boxed{\text{Bias} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\theta}, \hat{\theta})\right) + O(N^{-1})}$$
+</div>
+
+<h3>Special Case: MLE Imputation ($\tilde{\theta} = \hat{\theta}$)</h3>
+
+<p>When the same MLE is used for both imputation and evaluation, $\tilde{\theta} = \hat{\theta}$, so:</p>
+
+<div class="equation">
+$$\text{Cov}(\tilde{\theta}, \hat{\theta}) = \text{Cov}(\hat{\theta}, \hat{\theta}) = \text{Var}(\hat{\theta})$$
+</div>
+
+<p>where $\hat{\theta} = \hat{\theta}_{obs} = \arg\max_\theta \ell_{obs}(\theta|Y^{obs})$ is the MLE from the <strong>observed-data likelihood</strong>.</p>
+
+<div class="note-box">
+<strong>Important distinction:</strong> $\text{Var}(\hat{\theta}_{obs})$ is the variance of the MLE from the observed-data likelihood, <strong>not</strong> the variance we would have from maximizing the complete-data likelihood. Under standard regularity conditions:
+$$\text{Var}(\hat{\theta}_{obs}) = \mathcal{I}_{obs}(\theta^*)^{-1}/N + o(N^{-1})$$
+where $\mathcal{I}_{obs}(\theta^*) = \mathbb{E}[-\partial_\theta^2 \ell_{obs}(\theta^*)]$ is the observed-data Fisher information.
+</div>
+
+<p>Substituting:</p>
+
+<div class="equation">
+$$\text{Bias} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs})\right) + O(N^{-1})$$
+</div>
+
+<div class="equation">
+$$= \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right)/N + O(N^{-1})$$
+</div>
+
+<div class="result-box">
+<strong>MLE Imputation Bias:</strong>
+$$\boxed{\text{Bias} = \frac{1}{N}\text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(N^{-1})}$$
+</div>
+
+<h3>Why the Bias is Positive</h3>
+
+<p>The bias $\text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\theta}, \hat{\theta})\right)$ is non-negative because:</p>
+
+<ol>
+    <li><strong>$\mathcal{I}_{mis|obs}(\theta^*)$ is positive semi-definite:</strong> It is a Fisher information matrix, defined as $\mathbb{E}[S_{mis|obs} S_{mis|obs}^T]$, which is always p.s.d.</li>
+    
+    <li><strong>$\text{Cov}(\tilde{\theta}, \hat{\theta})$ is positive semi-definite:</strong> For the MLE case, this is $\text{Var}(\hat{\theta})$, which is a covariance matrix and hence p.s.d. More generally, $\text{Cov}(\tilde{\theta}, \hat{\theta})$ can be shown to be p.s.d. when $\tilde{\theta}$ and $\hat{\theta}$ are both functions of the same data $Y^{obs}$.</li>
+    
+    <li><strong>Trace of product of p.s.d. matrices is non-negative:</strong> For any p.s.d. matrices $A$ and $B$, $\text{tr}(AB) \geq 0$.</li>
+</ol>
+
+<p>The bias is <strong>strictly positive</strong> when:</p>
+<ul>
+    <li>There is genuine parameter uncertainty: $\text{Var}(\hat{\theta}) \neq 0$</li>
+    <li>There is missing information: $\mathcal{I}_{mis|obs}(\theta^*) \neq 0$</li>
+    <li>The uncertainty is in directions that have missing information (the matrices share non-trivial intersection of their column spaces)</li>
+</ul>
+
+<h3>Can the Bias Be Corrected?</h3>
+
+<div class="note-box">
+<strong>The bias formula requires $\mathcal{I}_{mis|obs}(\theta^*)$—the missing-data Fisher information matrix evaluated at the true parameter $\theta^*$.</strong>
+
+<p>Since $\theta^*$ is unknown, we must estimate this quantity. Using $\hat{\mathcal{I}}_{mis|obs}(\hat{\theta})$ computed from imputations at $\hat{\theta}$:</p>
+
+$$\mathbb{E}[\hat{\mathcal{I}}_{mis|obs}(\hat{\theta})] = \mathcal{I}_{mis|obs}(\theta^*) + O(N^{-1})$$
+
+<p>This is <strong>unbiased to leading order</strong>. Therefore, the bias can in principle be corrected.</p>
+</div>
+
+<p><strong>However, practical challenges remain:</strong></p>
+<ul>
+    <li>Computing $\hat{\mathcal{I}}_{mis|obs}(\hat{\theta})$ requires generating imputations and estimating the information matrix—additional computational burden</li>
+    <li>Existing methods (AICcd, standard MI) do not include this correction</li>
+    <li>The correction must be applied twice (once for imputation bias, once for optimism), which current methods do not do</li>
+</ul>
+
+<p><strong>Conclusion:</strong> Targeting complete-data divergence is possible but requires more complex corrections than existing methods provide. This motivates observed-data targets as a simpler alternative.</p>
+
+<div class="section-divider"></div>
+
+<h3>Summary</h3>
+
+<p>We have shown that when imputation is used to estimate the complete-data log-likelihood:</p>
+
+<div class="equation">
+$$Q(\hat{\theta}|\tilde{\theta}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{com}(\hat{\theta})]$$
+</div>
+
+<p>the bias relative to the true complete-data log-likelihood is:</p>
+
+<div class="equation">
+$$\text{Bias} = \mathbb{E}[Q(\hat{\theta}|\tilde{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})] = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\theta}, \hat{\theta})\right) + O(N^{-1})$$
+</div>
+
+<p>For MLE imputation ($\tilde{\theta} = \hat{\theta}$):</p>
+
+<div class="equation">
+$$\text{Bias} = \frac{1}{N}\text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(N^{-1})$$
+</div>
+
+<p>This bias is:</p>
+<ul>
+    <li><strong>Positive:</strong> Models appear to fit better than they truly do</li>
+    <li><strong>Unavoidable:</strong> Arises whenever $\tilde{\theta}$ is estimated from data</li>
+    <li><strong>Correctable in principle:</strong> $\mathcal{I}_{mis|obs}(\theta^*)$ can be estimated to leading order, but existing methods do not include this correction</li>
+</ul>
+
+<p>This result shows that existing imputation-based criteria (such as AICcd) underpenalize, motivating either corrected penalties for complete-data targets or—more simply—observed-data targets with entropy-equivalent evaluation.</p>
+
+<div class="section-divider"></div>
+
+<h2 id="consequences">3. Consequences for Model Comparison</h2>
+
+<p>We now examine how the bias affects comparisons between models of different complexity, showing that the bias scales linearly with the number of parameters and systematically favors more complex models.</p>
+
+<h3>Setup for Model Comparison</h3>
+
+<p>Consider comparing two nested or non-nested models:</p>
+<ul>
+    <li><strong>Model A:</strong> $Q_A$ parameters</li>
+    <li><strong>Model B:</strong> $Q_B > Q_A$ parameters (more complex)</li>
+</ul>
+
+<p>For each model, the bias in using the Q-function to estimate the complete-data log-likelihood is (for the MLE imputation case):</p>
+
+<div class="equation">
+$$\text{Bias}_A = \frac{1}{N}\text{tr}\left(\mathcal{I}_{mis|obs}^{(A)}(\theta^*_A) \cdot \mathcal{I}_{obs}^{(A)}(\theta^*_A)^{-1}\right)$$
+</div>
+
+<div class="equation">
+$$\text{Bias}_B = \frac{1}{N}\text{tr}\left(\mathcal{I}_{mis|obs}^{(B)}(\theta^*_B) \cdot \mathcal{I}_{obs}^{(B)}(\theta^*_B)^{-1}\right)$$
+</div>
+
+<h3>How the Trace Scales with Model Complexity</h3>
+
+<p>The trace $\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$ can be understood in terms of eigenvalues. Working in an appropriate basis:</p>
+
+<div class="equation">
+$$\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1}) = \sum_{j=1}^{Q} \frac{\lambda_j^{(mis)}}{\lambda_j^{(obs)}}$$
+</div>
+
+<p>where $\lambda_j^{(mis)}$ and $\lambda_j^{(obs)}$ are the eigenvalues of the missing-data and observed-data information matrices in the $j$-th parameter direction.</p>
+
+<h3>The Missing Information Fraction</h3>
+
+<p>Each ratio $\frac{\lambda_j^{(mis)}}{\lambda_j^{(obs)}}$ has a natural interpretation. Define the <strong>fraction of missing information</strong> for parameter direction $j$:</p>
+
+<div class="equation">
+$$\rho_j = \frac{\lambda_j^{(mis)}}{\lambda_j^{(obs)} + \lambda_j^{(mis)}} = \frac{\lambda_j^{(mis)}}{\lambda_j^{(com)}}$$
+</div>
+
+<p>This is the proportion of total (complete-data) information that is lost due to missingness. Then:</p>
+
+<div class="equation">
+$$\frac{\lambda_j^{(mis)}}{\lambda_j^{(obs)}} = \frac{\rho_j}{1 - \rho_j}$$
+</div>
+
+<p>When $\rho_j = 0$ (no missing information), the ratio is 0. When $\rho_j \to 1$ (nearly all information missing), the ratio diverges.</p>
+
+<h3>Linear Scaling with Model Complexity</h3>
+
+<p>For a model with $Q$ parameters, the bias is:</p>
+
+<div class="equation">
+$$\text{Bias} = \frac{1}{N} \sum_{j=1}^{Q} \frac{\lambda_j^{(mis)}}{\lambda_j^{(obs)}} = \frac{1}{N} \sum_{j=1}^{Q} \frac{\rho_j}{1 - \rho_j}$$
+</div>
+
+<p>If on average each parameter direction has missing information fraction $\bar{\rho}$, then:</p>
+
+<div class="result-box">
+$$\text{Bias} \approx \frac{Q}{N} \cdot \frac{\bar{\rho}}{1 - \bar{\rho}}$$
+<p><strong>The bias scales linearly with $Q$</strong> (model complexity).</p>
+</div>
+
+<h3>Differential Bias Between Models</h3>
+
+<p>When comparing Model B (complex, $Q_B$ parameters) to Model A (simple, $Q_A$ parameters):</p>
+
+<div class="equation">
+$$\text{Bias}_B - \text{Bias}_A \approx \frac{Q_B - Q_A}{N} \cdot \frac{\bar{\rho}}{1 - \bar{\rho}}$$
+</div>
+
+<p>This differential bias is <strong>positive</strong>, meaning:</p>
+
+<div class="warning-box">
+<strong>The more complex model receives a larger artificial boost.</strong>
+
+<ul>
+    <li>Both models have positive bias (both appear to fit better than they truly do)</li>
+    <li>The complex model has <em>more</em> positive bias because it has more parameters</li>
+    <li>When comparing $Q(\hat{\theta}_B|\hat{\theta}_B) - Q(\hat{\theta}_A|\hat{\theta}_A)$, the complex model gets an artificial advantage of approximately $\frac{Q_B - Q_A}{N} \cdot \frac{\bar{\rho}}{1 - \bar{\rho}}$</li>
+</ul>
+</div>
+
+<h3>Effect of Missing Data Rate</h3>
+
+<p>The factor $\frac{\bar{\rho}}{1 - \bar{\rho}}$ amplifies the bias as missing data increases:</p>
+
+<table>
+    <tr>
+        <th>Missing Info Fraction ($\bar{\rho}$)</th>
+        <th>Multiplier $\frac{\bar{\rho}}{1-\bar{\rho}}$</th>
+        <th>Interpretation</th>
+    </tr>
+    <tr>
+        <td>10%</td>
+        <td>0.11</td>
+        <td>Modest bias</td>
+    </tr>
+    <tr>
+        <td>25%</td>
+        <td>0.33</td>
+        <td>Moderate bias</td>
+    </tr>
+    <tr>
+        <td>50%</td>
+        <td>1.00</td>
+        <td>Bias equals $Q/N$</td>
+    </tr>
+    <tr>
+        <td>75%</td>
+        <td>3.00</td>
+        <td>Severe bias</td>
+    </tr>
+    <tr>
+        <td>90%</td>
+        <td>9.00</td>
+        <td>Extreme bias</td>
+    </tr>
+</table>
+
+<p>With substantial missing data ($\bar{\rho} \geq 0.5$), the bias per parameter can equal or exceed the standard AIC penalty of $2/N$ per parameter.</p>
+
+<h3>Consequences for Model Selection</h3>
+
+<p>If researchers use Q-function estimates or MI-averaged complete-data log-likelihoods for model selection:</p>
+
+<ol>
+    <li><strong>All models appear to fit better than they do:</strong> The positive bias inflates the apparent fit of every model.</li>
+    
+    <li><strong>Complex models get a larger artificial boost:</strong> Since bias $\propto Q$, adding parameters artificially improves apparent fit beyond the true improvement.</li>
+    
+    <li><strong>Net effect:</strong> Systematic preference for overly complex models (overfitting).</li>
+</ol>
+
+<div class="note-box">
+<strong>Contrast with FIML + Standard Penalties:</strong>
+
+<p>This is the <em>opposite</em> of the problem with FIML estimation using standard AIC/BIC penalties:</p>
+
+<table>
+    <tr>
+        <th>Approach</th>
+        <th>Problem</th>
+        <th>Direction of Error</th>
+    </tr>
+    <tr>
+        <td>FIML + standard penalty</td>
+        <td>Overpenalization (penalty assumes all $N$ observations inform all $Q$ parameters)</td>
+        <td>Favors parsimony (underfitting)</td>
+    </tr>
+    <tr>
+        <td>Imputation-based</td>
+        <td>Positive bias in deviance scaling with $Q$</td>
+        <td>Favors complexity (overfitting)</td>
+    </tr>
+</table>
+
+<p>Both approaches are <strong>incongruous</strong>—they fail to properly account for the information structure of incomplete data—but they err in opposite directions.</p>
+</div>
+
+<h3>Summary: Scaling of Bias</h3>
+
+<div class="result-box">
+<table>
+    <tr>
+        <th>Quantity</th>
+        <th>Scaling</th>
+        <th>Effect on Model Selection</th>
+    </tr>
+    <tr>
+        <td>Bias per model</td>
+        <td>$\propto Q/N$</td>
+        <td>All models appear to fit better</td>
+    </tr>
+    <tr>
+        <td>Differential bias (B vs A)</td>
+        <td>$\propto (Q_B - Q_A)/N$</td>
+        <td>Complex model artificially favored</td>
+    </tr>
+    <tr>
+        <td>Missing data effect</td>
+        <td>$\propto \bar{\rho}/(1-\bar{\rho})$</td>
+        <td>More missing data → larger bias</td>
+    </tr>
+</table>
+</div>
+
+<p>This analysis demonstrates that imputation-based approaches to model selection not only have unavoidable bias (Section 2), but that this bias systematically distorts model comparisons in favor of complexity. Combined with the impossibility of correcting the bias (which requires the unobservable $\mathcal{I}_{mis|obs}(\theta^*)$), this motivates abandoning complete-data targets entirely in favor of observed-data targets that respect entropy conservation.</p>
+
+<div class="section-divider"></div>
+
+<h2 id="pdio">4. Relationship to Shimodaira's PDIO</h2>
+
+<p>The trace term $\text{tr}(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1})$ appears in both our derivation and in Shimodaira's (1994) Predictive Divergence for Incomplete Observations (PDIO). This section clarifies how these results relate and why they address different problems.</p>
+
+<h3>Shimodaira's Setup</h3>
+
+<p>Shimodaira asked: <em>If I use the observed-data deviance $-2\ell_{obs}(\hat{\theta})$, what penalty do I need to target complete-data KL divergence?</em></p>
+
+<p>The target is complete-data divergence:</p>
+<div class="equation">
+$$\text{KL}_{com} = \mathbb{E}_{Y^{com}}\left[\log f_{true}(Y^{com}) - \log f(Y^{com}|\theta)\right]$$
+</div>
+
+<p>The estimator uses the observed-data log-likelihood $\ell_{obs}(\hat{\theta})$ as the measure of fit.</p>
+
+<h3>Shimodaira's Derivation</h3>
+
+<p>The standard AIC derivation shows that the bias in using the empirical log-likelihood to estimate expected log-likelihood is:</p>
+
+<div class="equation">
+$$\text{Bias} \approx \frac{1}{N}\text{tr}\left(\mathcal{I}_{target} \cdot \text{Var}(\hat{\theta})\right)$$
+</div>
+
+<p>where $\mathcal{I}_{target}$ is the Fisher information for the target likelihood.</p>
+
+<p>In Shimodaira's situation:</p>
+<ul>
+    <li><strong>Target:</strong> Complete-data likelihood, with curvature $\mathcal{I}_{com}$</li>
+    <li><strong>Estimator variance:</strong> From observed-data likelihood, $\text{Var}(\hat{\theta}_{obs}) = \mathcal{I}_{obs}^{-1}/N$</li>
+</ul>
+
+<p>Therefore:</p>
+<div class="equation">
+$$\text{Bias} \approx \frac{1}{N}\text{tr}\left(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}\right)$$
+</div>
+
+<p>This gives the PDIO criterion:</p>
+<div class="equation">
+$$\text{PDIO} = -2\ell_{obs}(\hat{\theta}) + 2\text{tr}\left(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}\right)$$
+</div>
+
+<h3>Decomposing the PDIO Penalty</h3>
+
+<p>Using $\mathcal{I}_{com} = \mathcal{I}_{obs} + \mathcal{I}_{mis}$:</p>
+
+<div class="equation">
+$$\text{tr}\left(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}\right) = \text{tr}\left((\mathcal{I}_{obs} + \mathcal{I}_{mis}) \cdot \mathcal{I}_{obs}^{-1}\right) = \text{tr}(I_Q) + \text{tr}\left(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1}\right)$$
+</div>
+
+<div class="equation">
+$$= Q + \text{tr}\left(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1}\right)$$
+</div>
+
+<p>So the PDIO penalty is:</p>
+<div class="equation">
+$$2\text{tr}\left(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}\right) = 2Q + 2\text{tr}\left(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1}\right)$$
+</div>
+
+<p>This consists of:</p>
+<ul>
+    <li>$2Q$: The standard AIC penalty</li>
+    <li>$2\text{tr}(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1})$: An adjustment for the mismatch between complete-data target and observed-data estimation</li>
+</ul>
+
+<h3>Our Derivation vs. Shimodaira's</h3>
+
+<p>The key distinction is <em>what deviance term is being used</em>:</p>
+
+<table>
+    <tr>
+        <th>Approach</th>
+        <th>Deviance Term</th>
+        <th>Target</th>
+        <th>What Needs Correction</th>
+    </tr>
+    <tr>
+        <td><strong>Shimodaira (PDIO)</strong></td>
+        <td>$-2\ell_{obs}(\hat{\theta})$ (observed-data)</td>
+        <td>$\text{KL}_{com}$</td>
+        <td>Penalty term (to bridge obs→com)</td>
+    </tr>
+    <tr>
+        <td><strong>Our derivation</strong></td>
+        <td>$-2Q(\hat{\theta}|\hat{\theta})$ (imputed complete-data)</td>
+        <td>$\text{KL}_{com}$</td>
+        <td>Bias in deviance itself</td>
+    </tr>
+</table>
+
+<div class="note-box">
+<strong>Shimodaira's deviance is unbiased.</strong> The observed-data log-likelihood $\ell_{obs}(\hat{\theta})$ evaluated at the MLE is a valid (though optimistic) measure of fit to the observed data. The PDIO penalty corrects for optimism and bridges to the complete-data target.
+
+<strong>The Q-function deviance is biased.</strong> Using $Q(\hat{\theta}|\hat{\theta})$ as a proxy for $\ell_{com}(\hat{\theta})$ introduces bias because imputation conditions on $\hat{\theta}$ rather than $\theta^*$. This bias exists <em>before</em> any penalty is applied.
+</div>
+
+<h3>Why the Same Trace Appears</h3>
+
+<p>The trace $\text{tr}(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1})$ appears in both derivations, but for different reasons:</p>
+
+<p><strong>In Shimodaira's derivation:</strong></p>
+<ul>
+    <li>It captures the <em>mismatch</em> between target (complete-data) and estimation (observed-data)</li>
+    <li>The penalty accounts for predicting complete-data fit using parameters estimated from observed data</li>
+    <li>It's a <em>penalty correction</em> for targeting $\text{KL}_{com}$ with $\ell_{obs}$</li>
+</ul>
+
+<p><strong>In our derivation:</strong></p>
+<ul>
+    <li>It captures the <em>artificial coherence</em> from imputing at $\hat{\theta}$ instead of $\theta^*$</li>
+    <li>The bias arises because $\hat{\theta}$ is correlated with $Y^{obs}$, and imputation propagates this correlation</li>
+    <li>It's a <em>deviance bias</em> in using $Q(\hat{\theta}|\hat{\theta})$ to estimate $\ell_{com}(\hat{\theta})$</li>
+</ul>
+
+<p>The mathematical coincidence arises because both phenomena involve the interaction between missing-data information structure ($\mathcal{I}_{mis}$) and observed-data estimation uncertainty ($\mathcal{I}_{obs}^{-1}$).</p>
+
+<h3>Implications for Practice</h3>
+
+<div class="warning-box">
+<strong>PDIO uses the correct deviance but requires estimating $\mathcal{I}_{com}$.</strong>
+
+<p>Shimodaira's approach uses $\ell_{obs}(\hat{\theta})$ (unbiased) but requires computing $\text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1})$. Estimating $\mathcal{I}_{com}$ adds computational complexity and is not implemented in standard software.</p>
+
+<strong>Imputation-based approaches have biased deviance and incomplete penalties.</strong>
+
+<p>If one uses $Q(\hat{\theta}|\hat{\theta})$ as the deviance:</p>
+<ol>
+    <li>The deviance is biased by $\text{tr}(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1})$ (our result)</li>
+    <li>Existing penalties (e.g., AICcd) correct for optimism but not for imputation bias</li>
+    <li>The correct penalty requires twice the $\mathcal{I}_{mis}$ adjustment of current methods</li>
+</ol>
+</div>
+
+<h3>Summary: Two Routes, Same Challenge</h3>
+
+<div class="result-box">
+<p>Both Shimodaira's PDIO and imputation-based approaches attempt to target complete-data divergence. Both require estimating or correcting for terms involving $\mathcal{I}_{mis}(\theta^*)$.</p>
+
+<ul>
+    <li><strong>PDIO:</strong> Correct deviance ($\ell_{obs}$), but penalty requires estimating $\mathcal{I}_{com}(\theta^*)$</li>
+    <li><strong>Imputation:</strong> Biased deviance ($Q(\hat{\theta}|\hat{\theta})$), requiring additional correction for imputation bias</li>
+</ul>
+
+<p>While $\mathcal{I}_{mis|obs}(\theta^*)$ can be estimated to leading order, existing methods do not include the full correction. The appearance of $\text{tr}(\mathcal{I}_{mis} \cdot \mathcal{I}_{obs}^{-1})$ in both derivations reflects the additional complexity of targeting complete-data quantities with incomplete data. Observed-data targets sidestep this complexity entirely.</p>
+</div>
+
+<div class="section-divider"></div>
+
+<h2 id="aiccd">5. Cavanaugh & Shumway's AICcd Underpenalizes</h2>
+
+<p>Cavanaugh and Shumway (1998) proposed AICcd, which uses the Q-function as its deviance term. We show that their criterion underpenalizes because it does not account for the imputation bias derived in Section 2.</p>
+
+<h3>Step 1: The Target</h3>
+
+<p>AIC-type criteria target expected predictive performance on <strong>new data</strong>. For complete-data model selection, the target is:</p>
+
+<div class="equation">
+$$\mathbb{E}[\bar{\ell}_{com}(\hat{\theta})]$$
+</div>
+
+<p>where $\bar{\ell}_{com}(\hat{\theta})$ is the expected complete-data log-likelihood under a new independent sample from $p(\cdot|\theta^*)$.</p>
+
+<h3>Step 2: The Total Bias</h3>
+
+<p>The total bias in using $Q(\hat{\theta}|\hat{\theta})$ to estimate the target is:</p>
+
+<div class="equation">
+$$\text{Total Bias} = \mathbb{E}[Q(\hat{\theta}|\hat{\theta})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta})]$$
+</div>
+
+<p>We decompose this by inserting $\mathbb{E}[\ell_{com}(\hat{\theta})]$:</p>
+
+<div class="equation">
+$$\text{Total Bias} = \underbrace{\mathbb{E}[Q(\hat{\theta}|\hat{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})]}_{\text{Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{com}(\hat{\theta})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta})]}_{\text{Optimism}}$$
+</div>
+
+<h3>Step 3: Evaluating Each Term</h3>
+
+<p><strong>Imputation Bias</strong> (from Section 2):</p>
+<div class="equation">
+$$\mathbb{E}[Q(\hat{\theta}|\hat{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})] = \text{tr}(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs}))$$
+</div>
+
+<p><strong>Optimism</strong> (standard AIC-type result):</p>
+<div class="equation">
+$$\mathbb{E}[\ell_{com}(\hat{\theta})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta})] = \text{tr}(\mathcal{I}_{com}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs}))$$
+</div>
+
+<p><strong>Total Bias:</strong></p>
+<div class="equation">
+$$\text{Total Bias} = \text{tr}(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs})) + \text{tr}(\mathcal{I}_{com}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs}))$$
+</div>
+
+<div class="equation">
+$$= \text{tr}\left((\mathcal{I}_{mis|obs} + \mathcal{I}_{com}) \cdot \text{Var}(\hat{\theta}_{obs})\right)$$
+</div>
+
+<p>Using $\mathcal{I}_{com} = \mathcal{I}_{obs} + \mathcal{I}_{mis|obs}$:</p>
+
+<div class="equation">
+$$\mathcal{I}_{mis|obs} + \mathcal{I}_{com} = \mathcal{I}_{mis|obs} + \mathcal{I}_{obs} + \mathcal{I}_{mis|obs} = \mathcal{I}_{obs} + 2\mathcal{I}_{mis|obs}$$
+</div>
+
+<p>And since $\text{Var}(\hat{\theta}_{obs}) = \mathcal{I}_{obs}^{-1}$:</p>
+
+<div class="equation">
+$$\text{Total Bias} = \text{tr}\left((\mathcal{I}_{obs} + 2\mathcal{I}_{mis|obs}) \cdot \mathcal{I}_{obs}^{-1}\right)$$
+</div>
+
+<div class="equation">
+$$= \text{tr}(I_Q) + 2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<div class="result-box">
+$$\text{Total Bias} = Q + 2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<h3>Step 4: What Cavanaugh & Shumway's Penalty Corrects</h3>
+
+<p>Their AICcd is:</p>
+<div class="equation">
+$$\text{AICcd} = -2Q(\hat{\theta}|\hat{\theta}) + 2\text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<p>Their penalty is $2\text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1})$. Using $\mathcal{I}_{com} = \mathcal{I}_{obs} + \mathcal{I}_{mis|obs}$:</p>
+
+<div class="equation">
+$$2\text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}) = 2\text{tr}((\mathcal{I}_{obs} + \mathcal{I}_{mis|obs}) \cdot \mathcal{I}_{obs}^{-1}) = 2Q + 2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<p><strong>The correct penalty should be:</strong></p>
+<div class="equation">
+$$2 \times \text{Total Bias} = 2Q + 4\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<h3>Step 5: The Discrepancy</h3>
+
+<div class="warning-box">
+<strong>Cavanaugh & Shumway underpenalize by $2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$.</strong>
+
+<p>Their penalty corrects for the optimism bias but not the imputation bias. The missing penalty term scales with both model complexity and missing information.</p>
+</div>
+
+<h3>Summary</h3>
+
+<div class="result-box">
+<table>
+    <tr>
+        <th>Criterion</th>
+        <th>Penalty</th>
+        <th>What it corrects</th>
+    </tr>
+    <tr>
+        <td>Cavanaugh & Shumway AICcd</td>
+        <td>$2Q + 2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$</td>
+        <td>Optimism only</td>
+    </tr>
+    <tr>
+        <td>Correct penalty (targeting complete-data)</td>
+        <td>$2Q + 4\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$</td>
+        <td>Optimism + Imputation bias</td>
+    </tr>
+</table>
+</div>
+
+<p><strong>Consequence:</strong> AICcd underpenalizes by $2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$, which scales with the number of parameters and the missing information fraction. This causes AICcd to favor overly complex models.</p>
+
+<p>While the correct penalty ($2Q + 4\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$) can in principle be estimated, existing methods do not implement this correction. This motivates either developing corrected complete-data criteria or—more simply—targeting observed-data divergence, which avoids the need for these corrections entirely.</p>
+
+<div class="section-divider"></div>
+
+<h2 id="miaic">6. MI-AIC: Corrected AIC for Proper Multiple Imputation</h2>
+
+<p>We derive a corrected AIC for model selection when using proper multiple imputation. Unlike AICcd (which uses the EM Q-function), this approach uses precomputed proper imputations and expresses the correction in terms of standard MI output.</p>
+
+<h3>Step 1: Setup</h3>
+
+<p>We have precomputed proper imputations:</p>
+<ul>
+    <li>For $m = 1, \ldots, M$: draw $\tilde{\theta}^{(m)} \sim p(\theta | Y^{obs})$</li>
+    <li>For each $m$: impute $\tilde{Y}^{mis,(m)} \sim p(Y^{mis} | Y^{obs}, \tilde{\theta}^{(m)})$</li>
+</ul>
+
+<p>For a candidate model, compute the MLE on observed data:</p>
+<div class="equation">
+$$\hat{\theta}_{obs} = \arg\max_\theta \ell_{obs}(\theta | Y^{obs})$$
+</div>
+
+<p>Evaluate the average complete-data log-likelihood:</p>
+<div class="equation">
+$$\bar{Q}_{MI}(\hat{\theta}_{obs}) = \frac{1}{M} \sum_{m=1}^{M} \ell_{com}(\hat{\theta}_{obs} | Y^{obs}, \tilde{Y}^{mis,(m)})$$
+</div>
+
+<p>As $M \to \infty$:</p>
+<div class="equation">
+$$\bar{Q}_{MI}(\hat{\theta}_{obs}) \to \mathbb{E}_{\tilde{\theta} \sim p(\theta|Y^{obs})}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\theta}}[\ell_{com}(\hat{\theta}_{obs})]\right]$$
+</div>
+
+<p><strong>Target:</strong> $\mathbb{E}[\bar{\ell}_{com}(\hat{\theta}_{obs})]$ (expected complete-data log-likelihood on new data)</p>
+
+<h3>Step 2: The Total Bias</h3>
+
+<div class="equation">
+$$\text{Total Bias} = \mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{obs})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta}_{obs})]$$
+</div>
+
+<p>Decomposing:</p>
+
+<div class="equation">
+$$\text{Total Bias} = \underbrace{\mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})]}_{\text{Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta}_{obs})]}_{\text{Optimism}}$$
+</div>
+
+<h3>Step 3: Evaluating the Imputation Bias</h3>
+
+<p>From our earlier derivation (Section 2):</p>
+
+<div class="equation">
+$$\text{Imputation Bias} = \text{tr}(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathbb{E}[(\tilde{\theta}-\theta^*)(\hat{\theta}_{obs}-\theta^*)^T])$$
+</div>
+
+<p>Write $\tilde{\theta} = \bar{\theta}(Y^{obs}) + \epsilon$ where $\bar{\theta}$ is the posterior mean and $\mathbb{E}[\epsilon|Y^{obs}] = 0$.</p>
+
+<p>Then:</p>
+<div class="equation">
+$$\mathbb{E}[(\tilde{\theta}-\theta^*)(\hat{\theta}_{obs}-\theta^*)^T] = \mathbb{E}[(\bar{\theta}-\theta^*)(\hat{\theta}_{obs}-\theta^*)^T] + \mathbb{E}[\epsilon(\hat{\theta}_{obs}-\theta^*)^T]$$
+</div>
+
+<p>The second term vanishes by iterated expectations:</p>
+<div class="equation">
+$$\mathbb{E}[\epsilon(\hat{\theta}_{obs}-\theta^*)^T] = \mathbb{E}\left[\mathbb{E}[\epsilon|Y^{obs}](\hat{\theta}_{obs}-\theta^*)^T\right] = 0$$
+</div>
+
+<p>Asymptotically, $\bar{\theta} \approx \hat{\theta}_{obs}$, so:</p>
+<div class="equation">
+$$\mathbb{E}[(\tilde{\theta}-\theta^*)(\hat{\theta}_{obs}-\theta^*)^T] \approx \text{Var}(\hat{\theta}_{obs}) = \mathcal{I}_{obs}^{-1}$$
+</div>
+
+<p>Therefore:</p>
+<div class="result-box">
+$$\text{Imputation Bias} = \text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<h3>Step 4: Evaluating the Optimism</h3>
+
+<p>The optimism is:</p>
+<div class="equation">
+$$\text{Optimism} = \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta}_{obs})]$$
+</div>
+
+<p>The standard result is:</p>
+<div class="equation">
+$$\text{Optimism} = \text{tr}(\mathcal{I}_{target} \cdot \text{Var}(\hat{\theta}))$$
+</div>
+
+<p>Here:</p>
+<ul>
+    <li>Target is complete-data likelihood: $\mathcal{I}_{target} = \mathcal{I}_{com}$</li>
+    <li>Estimator is $\hat{\theta}_{obs}$: $\text{Var}(\hat{\theta}_{obs}) = \mathcal{I}_{obs}^{-1}$</li>
+</ul>
+
+<p>Therefore:</p>
+<div class="result-box">
+$$\text{Optimism} = \text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<h3>Step 5: Total Bias</h3>
+
+<p>Combining the imputation bias and optimism:</p>
+
+<div class="equation">
+$$\text{Total Bias} = \text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1}) + \text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<div class="equation">
+$$= \text{tr}((\mathcal{I}_{mis|obs} + \mathcal{I}_{com}) \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<p>Using $\mathcal{I}_{com} = \mathcal{I}_{obs} + \mathcal{I}_{mis|obs}$:</p>
+
+<div class="equation">
+$$= \text{tr}((\mathcal{I}_{obs} + 2\mathcal{I}_{mis|obs}) \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<div class="result-box">
+$$\text{Total Bias} = Q + 2\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<h3>Step 6: Expressing in Estimable Quantities</h3>
+
+<p>Starting from:</p>
+<div class="equation">
+$$\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1} = (\mathcal{I}_{com} - \mathcal{I}_{obs}) \cdot \mathcal{I}_{obs}^{-1} = \mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1} - I_Q$$
+</div>
+
+<p>Using the variance relationships from Rubin's rules:</p>
+<ul>
+    <li>$\mathcal{I}_{com}^{-1} \approx W$ (within-imputation variance)</li>
+    <li>$\mathcal{I}_{obs}^{-1} \approx T = W + (1 + 1/M)B$ (total variance)</li>
+</ul>
+
+<p>So:</p>
+<div class="equation">
+$$\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1} = W^{-1}T = W^{-1}(W + (1 + 1/M)B) = I_Q + (1 + 1/M)W^{-1}B$$
+</div>
+
+<p>Therefore:</p>
+<div class="equation">
+$$\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1} = (1 + 1/M)W^{-1}B = \text{RIV}$$
+</div>
+
+<p>where $\text{RIV} = (1 + 1/M)W^{-1}B$ is the <strong>relative increase in variance</strong> matrix, directly computable from standard MI output. The factor $(1 + 1/M)$ accounts for finite $M$; as $M \to \infty$, it converges to 1.</p>
+
+<p>And:</p>
+<div class="equation">
+$$\text{Total Bias} = Q + 2\text{tr}(\text{RIV})$$
+</div>
+
+<p>The correct penalty is:</p>
+<div class="equation">
+$$2 \times \text{Total Bias} = 2Q + 4\text{tr}(\text{RIV})$$
+</div>
+
+<h3>MI-AIC Formula</h3>
+
+<div class="result-box">
+<strong>MI-AIC (Corrected AIC for Proper Multiple Imputation):</strong>
+$$\boxed{\text{MI-AIC} = -2\bar{Q}_{MI}(\hat{\theta}_{obs}) + 2Q + 4\text{tr}(\text{RIV})}$$
+
+<p>where:</p>
+<ul>
+    <li>$\bar{Q}_{MI}(\hat{\theta}_{obs}) = \frac{1}{M} \sum_{m=1}^{M} \ell_{com}(\hat{\theta}_{obs} | Y^{obs}, \tilde{Y}^{mis,(m)})$</li>
+    <li>$Q$ = number of parameters</li>
+    <li>$\text{RIV} = (1 + 1/M)W^{-1}B$ is the relative increase in variance matrix</li>
+    <li>$W$ = within-imputation variance, $B$ = between-imputation variance, $M$ = number of imputations</li>
+</ul>
+</div>
+
+<h3>Comparison to Standard AIC</h3>
+
+<div class="result-box">
+<table>
+    <tr>
+        <th>Criterion</th>
+        <th>Penalty</th>
+    </tr>
+    <tr>
+        <td>Standard AIC (complete data)</td>
+        <td>$2Q$</td>
+    </tr>
+    <tr>
+        <td>MI-AIC (proper MI, targeting complete-data divergence)</td>
+        <td>$2Q + 4\text{tr}(\text{RIV})$</td>
+    </tr>
+</table>
+</div>
+
+<h3>Practical Notes</h3>
+
+<div class="note-box">
+<strong>Computing MI-AIC:</strong>
+<ol>
+    <li>Generate proper imputations $\tilde{Y}^{mis,(m)}$ for $m = 1, \ldots, M$</li>
+    <li>Fit the candidate model to observed data to obtain $\hat{\theta}_{obs}$</li>
+    <li>Evaluate $\ell_{com}(\hat{\theta}_{obs})$ on each completed dataset and average</li>
+    <li>Compute $W$ (average of complete-data variance estimates) and $B$ (variance of point estimates across imputations)</li>
+    <li>Calculate $\text{tr}(\text{RIV}) = \text{tr}((1 + 1/M)W^{-1}B)$</li>
+    <li>Apply the formula: $\text{MI-AIC} = -2\bar{Q}_{MI} + 2Q + 4\text{tr}(\text{RIV})$</li>
+</ol>
+</div>
+
+<p>The key advantage of MI-AIC is that the correction term $\text{tr}(\text{RIV})$ is directly available from standard MI output, making it straightforward to implement in practice.</p>
+
+<div class="section-divider"></div>
+
+<h2 id="general">7. Generalization to Missing Covariates</h2>
+
+<p>The derivations in Sections 1–6 used $Y = (Y^{obs}, Y^{mis})$ notation, which is natural for missing responses. Here we generalize to handle any pattern of missingness in both responses and covariates.</p>
+
+<h3>Step 1: General Setup</h3>
+
+<p><strong>Complete data:</strong> $Z = (Y, X)$ where $Y$ is the response vector and $X$ is the covariate matrix.</p>
+
+<p><strong>Partition by observability:</strong> $Z = (Z^{obs}, Z^{mis})$, where $Z^{mis}$ may include components of $Y$, $X$, or both.</p>
+
+<p><strong>Factorization:</strong> Assume the joint density factors as:</p>
+<div class="equation">
+$$f(Z; \theta) = f(Y|X; \beta) \cdot f(X; \alpha)$$
+</div>
+
+<p>with $\theta = (\beta, \alpha)$.</p>
+
+<div class="note-box">
+<strong>Assumption (Distinct parameters):</strong> $\beta$ and $\alpha$ are a priori independent, meaning:
+<ul>
+    <li>$\beta \in \mathcal{B}$, $\alpha \in \mathcal{A}$, with $\theta \in \mathcal{B} \times \mathcal{A}$</li>
+    <li>No functional constraints linking $\beta$ and $\alpha$</li>
+</ul>
+This is a standard assumption in missing data problems (e.g., Claeskens & Consentino, 2008).
+</div>
+
+<h3>Step 2: Decomposition of Complete-Data Log-Likelihood</h3>
+
+<p>The complete-data log-likelihood decomposes:</p>
+<div class="equation">
+$$\ell_{com}(\theta) = \underbrace{\sum_i \log f(y_i | x_i; \beta)}_{\ell_{Y|X}(\beta)} + \underbrace{\sum_i \log f(x_i; \alpha)}_{\ell_X(\alpha)}$$
+</div>
+
+<h3>Step 3: Q-Function Decomposition</h3>
+
+<p>The Q-function is:</p>
+<div class="equation">
+$$Q(\theta|\tilde{\theta}) = \mathbb{E}_{Z^{mis}|Z^{obs}, \tilde{\theta}}[\ell_{com}(\theta)]$$
+</div>
+
+<p>By linearity of expectation:</p>
+<div class="equation">
+$$Q(\theta|\tilde{\theta}) = Q_{Y|X}(\beta|\tilde{\theta}) + Q_X(\alpha|\tilde{\theta})$$
+</div>
+
+<p>where:</p>
+<ul>
+    <li>$Q_{Y|X}(\beta|\tilde{\theta}) = \mathbb{E}_{Z^{mis}|Z^{obs}, \tilde{\theta}}[\ell_{Y|X}(\beta)]$</li>
+    <li>$Q_X(\alpha|\tilde{\theta}) = \mathbb{E}_{Z^{mis}|Z^{obs}, \tilde{\theta}}[\ell_X(\alpha)]$</li>
+</ul>
+
+<h3>Step 4: Total Bias for the Joint Model</h3>
+
+<p>From Section 6, the total bias when using $Q(\hat{\theta}|\hat{\theta})$ to target $\mathbb{E}[\bar{\ell}_{com}(\hat{\theta})]$ is:</p>
+
+<div class="equation">
+$$\text{Total Bias} = \underbrace{\mathbb{E}[Q(\hat{\theta}|\hat{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})]}_{\text{Imputation bias}} + \underbrace{\mathbb{E}[\ell_{com}(\hat{\theta})] - \mathbb{E}[\bar{\ell}_{com}(\hat{\theta})]}_{\text{Optimism}}$$
+</div>
+
+<p>With:</p>
+<ul>
+    <li>Imputation bias $= \text{tr}(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}^{-1}(\theta^*))$</li>
+    <li>Optimism $= \text{tr}(\mathcal{I}_{com}(\theta^*) \cdot \mathcal{I}_{obs}^{-1}(\theta^*))$</li>
+</ul>
+
+<h3>Step 5: Block Diagonal Structure</h3>
+
+<p>Under the distinct parameters assumption, the information matrices are block diagonal:</p>
+
+<div class="equation">
+$$\mathcal{I}_{com}(\theta) = \begin{pmatrix} \mathcal{I}_{com,\beta} & 0 \\ 0 & \mathcal{I}_{com,\alpha} \end{pmatrix}$$
+</div>
+
+<div class="equation">
+$$\mathcal{I}_{obs}(\theta) = \begin{pmatrix} \mathcal{I}_{obs,\beta} & 0 \\ 0 & \mathcal{I}_{obs,\alpha} \end{pmatrix}$$
+</div>
+
+<div class="equation">
+$$\mathcal{I}_{mis|obs}(\theta) = \begin{pmatrix} \mathcal{I}_{mis|obs,\beta} & 0 \\ 0 & \mathcal{I}_{mis|obs,\alpha} \end{pmatrix}$$
+</div>
+
+<p>Therefore the traces separate:</p>
+
+<div class="equation">
+$$\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1}) = \text{tr}(\mathcal{I}_{mis|obs,\beta} \cdot \mathcal{I}_{obs,\beta}^{-1}) + \text{tr}(\mathcal{I}_{mis|obs,\alpha} \cdot \mathcal{I}_{obs,\alpha}^{-1})$$
+</div>
+
+<div class="equation">
+$$\text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}) = \text{tr}(\mathcal{I}_{com,\beta} \cdot \mathcal{I}_{obs,\beta}^{-1}) + \text{tr}(\mathcal{I}_{com,\alpha} \cdot \mathcal{I}_{obs,\alpha}^{-1})$$
+</div>
+
+<h3>Step 6: MI-AIC for the Joint Model</h3>
+
+<p>The MI-AIC for the joint model is:</p>
+
+<div class="equation">
+$$\text{MI-AIC}_{Y,X} = -2Q(\hat{\theta}|\hat{\theta}) + 2Q_\beta + 2Q_\alpha + 4\text{tr}(\text{RIV}_\beta) + 4\text{tr}(\text{RIV}_\alpha)$$
+</div>
+
+<p>Using the Q-function decomposition and grouping by component:</p>
+
+<div class="equation">
+$$= \underbrace{\left[-2Q_{Y|X}(\hat{\beta}|\hat{\theta}) + 2Q_\beta + 4\text{tr}(\text{RIV}_\beta)\right]}_{\text{MI-AIC}_{Y|X}} + \underbrace{\left[-2Q_X(\hat{\alpha}|\hat{\theta}) + 2Q_\alpha + 4\text{tr}(\text{RIV}_\alpha)\right]}_{\text{MI-AIC}_X}$$
+</div>
+
+<h3>Step 7: MI-AIC for the Conditional Model</h3>
+
+<p>For model selection in regression, we typically care only about the conditional model $f(Y|X;\beta)$. The relevant criterion is:</p>
+
+<div class="result-box">
+<strong>MI-AIC for conditional model:</strong>
+$$\boxed{\text{MI-AIC}_{Y|X} = -2Q_{Y|X}(\hat{\beta}|\hat{\theta}) + 2Q_\beta + 4\text{tr}(\text{RIV}_\beta)}$$
+
+<p>This equals:</p>
+$$\text{MI-AIC}_{Y|X} = \text{MI-AIC}_{Y,X} - \text{MI-AIC}_X$$
+</div>
+
+<p>where:</p>
+<ul>
+    <li>$Q_{Y|X}(\hat{\beta}|\hat{\theta}) = \mathbb{E}_{Z^{mis}|Z^{obs},\hat{\theta}}[\ell_{Y|X}(\hat{\beta})]$</li>
+    <li>$Q_\beta$ = number of regression parameters</li>
+    <li>$\text{RIV}_\beta = W_\beta^{-1} B_\beta$ = relative increase in variance for $\beta$</li>
+</ul>
+
+<div class="section-divider"></div>
+
+<h2 id="cc">8. Comparison to Claeskens & Consentino (2008)</h2>
+
+<p>Claeskens & Consentino (2008) propose model selection criteria for missing covariate problems. We now compare their approach to MI-AIC.</p>
+
+<h3>Their Setup</h3>
+
+<p>They model the complete data as $f(Y, X; \theta) = f(Y|X; \beta) \cdot f(X; \alpha)$ with the same distinct parameters assumption. They use the Q-function from the EM algorithm and define:</p>
+
+<ul>
+    <li>$I(\theta) = \mathbb{E}\{-\ddot{Q}(\theta|\theta)/n\}$ — expected negative Hessian of Q</li>
+    <li>$J(\theta) = \text{Var}\{\dot{Q}(\theta|\theta)\}/n$ — variance of Q's score</li>
+</ul>
+
+<h3>Their Criteria</h3>
+
+<p><strong>TIC (model-robust):</strong></p>
+<div class="equation">
+$$\text{TIC} = 2Q(\hat{\theta}|\hat{\theta}) - 2\text{tr}(\hat{J}\hat{I}^{-1})$$
+</div>
+
+<p><strong>AIC (when model correct, $I = J$):</strong></p>
+<div class="equation">
+$$\text{AIC} = 2Q(\hat{\theta}|\hat{\theta}) - 2 \cdot \text{length}(\theta)$$
+</div>
+
+<p><strong>AIC₁ (for regression part only):</strong></p>
+<div class="equation">
+$$\text{AIC}_1 = 2Q^{(1)}(\hat{\beta}|\hat{\theta}) - 2Q_\beta$$
+</div>
+
+<h3>What They Target</h3>
+
+<p>Critically, Claeskens & Consentino redefine the target. From their paper (p. 6):</p>
+
+<div class="note-box">
+"When using the integrated weighted log likelihood function instead of $\log f_\theta$, the relevant Kullback-Leibler distance to minimize is $KL(g, \tilde{f}_\theta)$"
+</div>
+
+<p>where $\tilde{f}_\theta = \exp Q(\theta|\theta)$. <strong>Their target is Q, not $\ell_{com}$.</strong></p>
+
+<p>Their Theorem 1 derives:</p>
+<div class="equation">
+$$\mathbb{E}(\hat{K}_n - K_n) = \text{tr}(I^{-1}J)/n$$
+</div>
+
+<p>This is the bias for using $Q(\hat{\theta}|\hat{\theta})$ to predict <em>Q on new data</em>—not to predict $\ell_{com}$ on new data.</p>
+
+<h3>The Gap</h3>
+
+<p>If the goal is to <strong>replicate complete-data model selection</strong> (which targets $\ell_{com}$), there is an additional bias they don't account for:</p>
+
+<div class="equation">
+$$\text{Imputation Bias} = \mathbb{E}[Q(\hat{\theta}|\hat{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})] = \text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$$
+</div>
+
+<p>Comparing their AIC₁ to our MI-AIC$_{Y|X}$:</p>
+
+<div class="result-box">
+<table>
+    <tr>
+        <th>Criterion</th>
+        <th>Formula</th>
+        <th>Penalty</th>
+    </tr>
+    <tr>
+        <td>C&C AIC₁</td>
+        <td>$2Q_{Y|X}(\hat{\beta}|\hat{\theta}) - 2Q_\beta$</td>
+        <td>$2Q_\beta$</td>
+    </tr>
+    <tr>
+        <td>MI-AIC$_{Y|X}$</td>
+        <td>$-2Q_{Y|X}(\hat{\beta}|\hat{\theta}) + 2Q_\beta + 4\text{tr}(\text{RIV}_\beta)$</td>
+        <td>$2Q_\beta + 4\text{tr}(\text{RIV}_\beta)$</td>
+    </tr>
+</table>
+</div>
+
+<p><strong>The gap:</strong></p>
+<div class="equation">
+$$\text{MI-AIC}_{Y|X} - (-\text{AIC}_1) = 4\text{tr}(\text{RIV}_\beta)$$
+</div>
+
+<p>C&C's AIC₁ underpenalizes by $4\text{tr}(\text{RIV}_\beta)$—the doubled imputation bias correction for the regression parameters—because they target Q rather than $\ell_{com}$.</p>
+
+<h3>Summary of Existing Methods</h3>
+
+<div class="result-box">
+<table>
+    <tr>
+        <th>Paper</th>
+        <th>Target Claimed</th>
+        <th>Imputation Bias Addressed?</th>
+    </tr>
+    <tr>
+        <td>Cavanaugh & Shumway (AICcd)</td>
+        <td>Complete-data divergence</td>
+        <td>No (underpenalizes)</td>
+    </tr>
+    <tr>
+        <td>Shimodaira (PDIO)</td>
+        <td>Complete-data divergence</td>
+        <td>No (underpenalizes)</td>
+    </tr>
+    <tr>
+        <td>Claeskens & Consentino</td>
+        <td>Q-function divergence</td>
+        <td>N/A (different target)</td>
+    </tr>
+    <tr>
+        <td><strong>MI-AIC (this paper)</strong></td>
+        <td>Complete-data divergence</td>
+        <td><strong>Yes</strong></td>
+    </tr>
+</table>
+</div>
+
+<p>Existing methods either (1) claim complete-data target but fail to fully correct (AICcd, PDIO), or (2) sidestep the problem by redefining the target (C&C). MI-AIC is the first to derive the correct penalty for the claimed goal of replicating complete-data model selection.</p>
+
+<div class="section-divider"></div>
+
+<h2 id="mibic">9. MI-BIC: Corrected BIC for Proper Multiple Imputation</h2>
+
+<p>The imputation bias correction applies to BIC as well, though the form differs slightly from MI-AIC.</p>
+
+<h3>Key Insight: Imputation Bias Affects the Deviance</h3>
+
+<p>The imputation bias arises from using $Q(\hat{\theta}|\hat{\theta})$ to estimate $\ell_{com}(\hat{\theta})$:</p>
+
+<div class="equation">
+$$\mathbb{E}[Q(\hat{\theta}|\hat{\theta})] - \mathbb{E}[\ell_{com}(\hat{\theta})] = \text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1}) = \text{tr}(\text{RIV})$$
+</div>
+
+<p>This bias needs to be corrected <strong>regardless of which information criterion we use</strong>. The correction is a property of the deviance estimation, not the penalty derivation.</p>
+
+<h3>AIC vs BIC: Different Penalty Derivations</h3>
+
+<p><strong>AIC penalty</strong> comes from correcting optimism (expected overfit):</p>
+<div class="equation">
+$$\text{Optimism} = \text{tr}(\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}) = Q + \text{tr}(\text{RIV})$$
+</div>
+
+<p>So the AIC penalty includes an additional $\text{tr}(\text{RIV})$ term beyond $Q$.</p>
+
+<p><strong>BIC penalty</strong> comes from a Laplace approximation to the Bayes factor:</p>
+<div class="equation">
+$$\text{BIC penalty} = Q \log(N)$$
+</div>
+
+<p>This derivation does not involve $\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1}$, so there is no additional RIV term in the penalty.</p>
+
+<h3>Total Corrections</h3>
+
+<p><strong>For MI-AIC:</strong></p>
+<ul>
+    <li>Imputation bias correction: $2\text{tr}(\text{RIV})$</li>
+    <li>Optimism correction: $2Q + 2\text{tr}(\text{RIV})$</li>
+    <li>Total penalty: $2Q + 4\text{tr}(\text{RIV})$</li>
+</ul>
+
+<p><strong>For MI-BIC:</strong></p>
+<ul>
+    <li>Imputation bias correction: $2\text{tr}(\text{RIV})$</li>
+    <li>BIC penalty: $Q \log(N)$</li>
+    <li>Total penalty: $Q \log(N) + 2\text{tr}(\text{RIV})$</li>
+</ul>
+
+<h3>MI-BIC Formula</h3>
+
+<div class="result-box">
+<strong>MI-BIC (Corrected BIC for Proper Multiple Imputation):</strong>
+$$\boxed{\text{MI-BIC} = -2\bar{Q}_{MI}(\hat{\theta}_{obs}) + Q \log(N) + 2\text{tr}(\text{RIV})}$$
+
+<p>where:</p>
+<ul>
+    <li>$\bar{Q}_{MI}(\hat{\theta}_{obs}) = \frac{1}{M} \sum_{m=1}^{M} \ell_{com}(\hat{\theta}_{obs} | Z^{obs}, \tilde{Z}^{mis,(m)})$</li>
+    <li>$Q$ = number of parameters</li>
+    <li>$N$ = sample size</li>
+    <li>$\text{RIV} = (1 + 1/M)W^{-1}B$ is the relative increase in variance matrix</li>
+</ul>
+</div>
+
+<h3>Comparison of Penalties</h3>
+
+<div class="result-box">
+<table>
+    <tr>
+        <th>Criterion</th>
+        <th>Standard (complete data)</th>
+        <th>MI-corrected (targeting complete-data)</th>
+    </tr>
+    <tr>
+        <td>AIC</td>
+        <td>$2Q$</td>
+        <td>$2Q + 4\text{tr}(\text{RIV})$</td>
+    </tr>
+    <tr>
+        <td>BIC</td>
+        <td>$Q \log(N)$</td>
+        <td>$Q \log(N) + 2\text{tr}(\text{RIV})$</td>
+    </tr>
+</table>
+</div>
+
+<h3>Conditional Versions for Missing Covariates</h3>
+
+<p>Under distinct parameters, the conditional versions for regression model selection are:</p>
+
+<div class="equation">
+$$\text{MI-AIC}_{Y|X} = -2Q_{Y|X}(\hat{\beta}|\hat{\theta}) + 2Q_\beta + 4\text{tr}(\text{RIV}_\beta)$$
+</div>
+
+<div class="equation">
+$$\text{MI-BIC}_{Y|X} = -2Q_{Y|X}(\hat{\beta}|\hat{\theta}) + Q_\beta \log(N) + 2\text{tr}(\text{RIV}_\beta)$$
+</div>
+
+<div class="note-box">
+<strong>Why the factor of 2 vs 4?</strong>
+<p>MI-AIC has $4\text{tr}(\text{RIV})$ because AIC's optimism correction involves $\mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1} = I_Q + \text{RIV}$, contributing an extra $\text{tr}(\text{RIV})$ beyond the base $Q$.</p>
+<p>MI-BIC has only $2\text{tr}(\text{RIV})$ because BIC's penalty comes from Bayesian model comparison, which does not involve this ratio of information matrices.</p>
+</div>
+
+</body>
+</html>
