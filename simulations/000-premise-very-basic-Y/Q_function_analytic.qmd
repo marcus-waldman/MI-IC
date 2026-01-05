@@ -1,0 +1,294 @@
+---
+title: "Analytic Q-Function for MVN with Missing Data"
+format:
+  html:
+    toc: true
+    number-sections: true
+    code-fold: true
+    html-math-method: katex
+crossref:
+  eq-prefix: "Eq."
+---
+
+## Setup
+
+For multivariate normal data with missing values, partition the data into observed and missing components.
+
+**Conditional distribution of missing given observed:**
+
+$$
+\mu_{m|o} = \mu_m + \Sigma_{mo} \Sigma_o^{-1} (Y_o - \mu_o)
+$$ {#eq-cond-mean}
+
+$$
+\Sigma_{m|o} = \Sigma_m - \Sigma_{mo} \Sigma_o^{-1} \Sigma_{mo}^T
+$$ {#eq-cond-var}
+
+## Q-Function Definition
+
+The Q-function is the expected complete-data log-likelihood, where the expectation is over the conditional distribution of missing data:
+
+$$
+Q(\hat{\theta} | \hat{\theta}) = E_{Y^m | Y^o, \hat{\theta}} \left[\log p(Y | \hat{\theta})\right]
+$$ {#eq-Q-def}
+
+## Derivation
+
+### Step 1: Factor the Joint Density
+
+$$
+Q(\hat{\theta} | \hat{\theta}) = E_{Y^m | Y^o, \hat{\theta}} \left[\log p(Y^m | Y^o, \hat{\theta}) + \log p(Y^o | \hat{\theta})\right]
+$$ {#eq-factor}
+
+Since $\log p(Y^o | \hat{\theta})$ does not depend on $Y^m$, it passes through the expectation:
+
+$$
+= E_{Y^m | Y^o, \hat{\theta}} \left[\log p(Y^m | Y^o, \hat{\theta})\right] + \log p(Y^o | \hat{\theta})
+$$ {#eq-factor2}
+
+### Step 2: Conditional Log-Likelihood
+
+The conditional distribution $Y^m | Y^o, \hat{\theta}$ is multivariate normal with mean $\mu_{m|o}$ and covariance $\Sigma_{m|o}$. Therefore:
+
+$$
+\log p(Y^m | Y^o, \hat{\theta}) = -\frac{q}{2}\log(2\pi) - \frac{1}{2}\log|\Sigma_{m|o}| - \frac{1}{2}(Y^m - \mu_{m|o})^T \Sigma_{m|o}^{-1}(Y^m - \mu_{m|o})
+$$ {#eq-cond-loglik}
+
+where $q$ is the dimension of the missing data.
+
+### Step 3: Take Expectation
+
+Taking the expectation over $Y^m | Y^o, \hat{\theta}$:
+
+$$
+E_{Y^m | Y^o, \hat{\theta}}\left[\log p(Y^m | Y^o, \hat{\theta})\right] = -\frac{q}{2}\log(2\pi) - \frac{1}{2}\log|\Sigma_{m|o}| - \frac{1}{2}E_{Y^m | Y^o, \hat{\theta}}\left[(Y^m - \mu_{m|o})^T \Sigma_{m|o}^{-1}(Y^m - \mu_{m|o})\right]
+$$ {#eq-expect1}
+
+### Step 4: Evaluate the Quadratic Form
+
+Using the identity for quadratic forms of centered Gaussian vectors:
+
+$$
+E[X^T A X] = \text{tr}(A \cdot \text{Var}(X)) \quad \text{when } E[X] = 0
+$$ {#eq-trace-identity}
+
+Since $Y^m | Y^o, \hat{\theta} \sim N(\mu_{m|o}, \Sigma_{m|o})$, we have $Y^m - \mu_{m|o}$ centered with variance $\Sigma_{m|o}$:
+
+$$
+E\left[(Y^m - \mu_{m|o})^T \Sigma_{m|o}^{-1}(Y^m - \mu_{m|o})\right] = \text{tr}\left(\Sigma_{m|o}^{-1} \Sigma_{m|o}\right) = \text{tr}(I_q) = q
+$$ {#eq-trace-result}
+
+### Step 5: Combine Terms
+
+Substituting back:
+
+$$
+E_{Y^m | Y^o, \hat{\theta}}\left[\log p(Y^m | Y^o, \hat{\theta})\right] = -\frac{q}{2}\log(2\pi) - \frac{1}{2}\log|\Sigma_{m|o}| - \frac{q}{2}
+$$ {#eq-combine}
+
+## Result (Single Observation)
+
+The Q-function contribution from the missing data **for a single observation $i$** is:
+
+$$
+Q_i(\hat{\theta} | \hat{\theta})_{\text{mis}} = -\frac{q_i}{2}\log(2\pi) - \frac{1}{2}\log|\Sigma_{m|o,i}| - \frac{q_i}{2}
+$$ {#eq-result}
+
+Or more compactly:
+
+$$
+Q_i(\hat{\theta} | \hat{\theta})_{\text{mis}} = -\frac{q_i}{2}\left(1 + \log(2\pi)\right) - \frac{1}{2}\log|\Sigma_{m|o,i}|
+$$ {#eq-result-alt}
+
+where:
+
+- $q_i$ = number of missing variables for observation $i$
+- $\Sigma_{m|o,i}$ = conditional covariance matrix for observation $i$'s missing pattern
+
+## Aggregation Across Observations
+
+For monotone missingness, observations fall into groups with the same missing pattern. Let:
+
+- $K$ = number of distinct missing patterns
+- $n_k$ = number of observations with pattern $k$
+- $q_k$ = number of missing variables in pattern $k$
+- $\Sigma_{m|o,k}$ = conditional covariance for pattern $k$ (same for all obs in group $k$)
+
+The **total Q-function contribution from missing data** is:
+
+$$
+Q(\hat{\theta} | \hat{\theta})_{\text{mis}} = \sum_{k=1}^{K} n_k \left[ -\frac{q_k}{2}\log(2\pi) - \frac{1}{2}\log|\Sigma_{m|o,k}| - \frac{q_k}{2} \right]
+$$ {#eq-aggregate}
+
+This simplifies to:
+
+$$
+Q(\hat{\theta} | \hat{\theta})_{\text{mis}} = -\frac{1}{2}\sum_{k=1}^{K} n_k \left[ q_k(1 + \log(2\pi)) + \log|\Sigma_{m|o,k}| \right]
+$$ {#eq-aggregate-simple}
+
+## Interpretation
+
+The Q-function contribution from missing data depends on:
+
+1. **$q_k$**: The dimension of missing data in each pattern
+   - Comes from $\text{tr}(\Sigma_{m|o}^{-1}\Sigma_{m|o}) = q_k$
+
+2. **$\log|\Sigma_{m|o,k}|$**: The log-determinant of conditional covariance for each pattern
+   - Captures uncertainty in the conditional distribution
+
+3. **$n_k$**: The count of observations in each missing pattern
+   - Weights each pattern's contribution
+
+## Connection to Entropy
+
+This result is the negative differential entropy of the conditional distribution:
+
+$$
+H(Y^m | Y^o) = \frac{q}{2}\left(1 + \log(2\pi)\right) + \frac{1}{2}\log|\Sigma_{m|o}|
+$$ {#eq-entropy}
+
+So:
+
+$$
+Q_i(\hat{\theta} | \hat{\theta})_{\text{mis}} = -H(Y_i^m | Y_i^o)
+$$ {#eq-neg-entropy}
+
+## Numerical Verification via Gauss-Hermite Quadrature
+
+We verify the analytic formula using Gauss-Hermite quadrature, which provides machine-precision integration for Gaussian expectations.
+
+**Simplified test case:**
+
+- $p = 4$ dimensional MVN
+- Single missing pattern: observe $(Y_1, Y_2)$, miss $(Y_3, Y_4)$
+- $q = 2$ missing dimensions
+
+```{r}
+#| label: setup
+#| message: false
+
+library(MASS)
+library(statmod)  # For gauss.quad
+
+set.seed(42)
+```
+
+### Define Parameters
+
+```{r}
+#| label: params
+
+# 4-dimensional MVN
+p <- 4
+mu <- c(1, 2, 3, 4)
+Sigma <- toeplitz(0.6^(0:(p-1)))
+
+cat("Mean vector:", mu, "\n")
+cat("\nCovariance matrix:\n")
+print(round(Sigma, 3))
+```
+
+### Partition into Observed/Missing
+
+```{r}
+#| label: partition
+
+# Observe first 2, miss last 2
+obs_idx <- 1:2
+mis_idx <- 3:4
+q <- length(mis_idx)
+
+# Fixed observed values
+Y_obs <- c(0.5, 1.5)
+
+# Partition parameters
+mu_o <- mu[obs_idx]
+mu_m <- mu[mis_idx]
+Sigma_oo <- Sigma[obs_idx, obs_idx]
+Sigma_mm <- Sigma[mis_idx, mis_idx]
+Sigma_mo <- Sigma[mis_idx, obs_idx]
+Sigma_om <- Sigma[obs_idx, mis_idx]
+
+# Conditional distribution parameters (Eqs. 1-2)
+Sigma_oo_inv <- solve(Sigma_oo)
+mu_m_given_o <- mu_m + Sigma_mo %*% Sigma_oo_inv %*% (Y_obs - mu_o)
+Sigma_m_given_o <- Sigma_mm - Sigma_mo %*% Sigma_oo_inv %*% Sigma_om
+
+cat("Conditional mean (mu_m|o):", as.vector(mu_m_given_o), "\n")
+cat("\nConditional covariance (Sigma_m|o):\n")
+print(round(Sigma_m_given_o, 4))
+cat("\nlog|Sigma_m|o| =", log(det(Sigma_m_given_o)), "\n")
+```
+
+### Analytic Q-Function (@eq-result)
+
+```{r}
+#| label: analytic
+
+Q_analytic <- -q/2 * log(2*pi) - 0.5 * log(det(Sigma_m_given_o)) - q/2
+
+cat("Analytic Q_mis =", Q_analytic, "\n")
+```
+
+### Gauss-Hermite Quadrature
+
+For a Gaussian integral with $Y^m \sim N(\mu_{m|o}, \Sigma_{m|o})$, we use the transformation via Cholesky decomposition: $Y^m = \mu_{m|o} + \sqrt{2} L^T z$ where $L^T L = \Sigma_{m|o}$.
+
+```{r}
+#| label: gauss-hermite
+
+# Gauss-Hermite quadrature points and weights
+n_quad <- 20
+gh <- gauss.quad(n_quad, kind = "hermite")
+
+# Cholesky decomposition
+L <- chol(Sigma_m_given_o)
+
+# Log conditional density function
+log_cond_density <- function(Y_m) {
+  diff <- Y_m - as.vector(mu_m_given_o)
+  Sigma_inv <- solve(Sigma_m_given_o)
+  -q/2 * log(2*pi) - 0.5 * log(det(Sigma_m_given_o)) -
+    0.5 * sum(diff * (Sigma_inv %*% diff))
+}
+
+# Tensor product grid for 2D integration
+grid <- expand.grid(z1 = gh$nodes, z2 = gh$nodes)
+
+Q_numerical <- 0
+for (i in 1:nrow(grid)) {
+  z <- c(grid$z1[i], grid$z2[i])
+
+  # Transform: Y_m = mu_m|o + sqrt(2) * L' * z
+  Y_m <- as.vector(mu_m_given_o) + sqrt(2) * t(L) %*% z
+
+  # Weight = w1 * w2 / pi
+  w <- gh$weights[which(gh$nodes == grid$z1[i])] *
+       gh$weights[which(gh$nodes == grid$z2[i])] / pi
+
+  Q_numerical <- Q_numerical + w * log_cond_density(Y_m)
+}
+
+cat("Gauss-Hermite Q_mis =", Q_numerical, "\n")
+```
+
+### Comparison
+
+```{r}
+#| label: comparison
+
+cat("\n=== Verification Results ===\n")
+cat("Analytic Q_mis:      ", Q_analytic, "\n")
+cat("Gauss-Hermite Q_mis: ", Q_numerical, "\n")
+cat("Difference:          ", Q_analytic - Q_numerical, "\n")
+```
+
+## Summary
+
+The Gauss-Hermite verification confirms the analytic formula to machine precision. The key result (@eq-result) is:
+
+$$
+Q_i(\hat{\theta} | \hat{\theta})_{\text{mis}} = -\frac{q}{2}\log(2\pi) - \frac{1}{2}\log|\Sigma_{m|o}| - \frac{q}{2}
+$$
+
+This can be computed directly from the conditional covariance $\Sigma_{m|o}$ without any Monte Carlo sampling.
