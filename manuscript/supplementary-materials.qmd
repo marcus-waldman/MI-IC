@@ -182,14 +182,14 @@ where $\mathcal{R}_k$ denotes the set of observations with pattern $k$.
 
 The Q-function is the expected complete-data log-likelihood, where the expectation is taken over the conditional distribution of missing data given observed data and current parameter estimates:
 $$
-Q(\theta | \tilde{\theta}) = \mathbb{E}_{Y_{mis}|Y_{obs}, \tilde{\theta}}\left[ \ell_{com}(\theta; Y_{com}) \right]
+Q(\theta | \tilde{\phi}) = \mathbb{E}_{Y_{mis}|Y_{obs}, \tilde{\phi}}\left[ \ell_{com}(\theta; Y_{com}) \right]
 $$
 
 ### Decomposition by Pattern
 
 We can decompose the Q-function by missingness pattern:
 $$
-Q(\theta | \tilde{\theta}) = \sum_{i \in \mathcal{R}_1} Q_i^{(1)}(\theta) + \sum_{i \in \mathcal{R}_2} Q_i^{(2)}(\theta | \tilde{\theta}) + \sum_{i \in \mathcal{R}_3} Q_i^{(3)}(\theta | \tilde{\theta})
+Q(\theta | \tilde{\phi}) = \sum_{i \in \mathcal{R}_1} Q_i^{(1)}(\theta) + \sum_{i \in \mathcal{R}_2} Q_i^{(2)}(\theta | \tilde{\phi}) + \sum_{i \in \mathcal{R}_3} Q_i^{(3)}(\theta | \tilde{\phi})
 $$
 
 **Pattern 1 (Complete cases):** No integration required.
@@ -197,13 +197,13 @@ $$
 Q_i^{(1)}(\theta) = \log f(M_i | X_i; a, \sigma^2_M) + \log f(Y_i | M_i; b, \sigma^2_Y)
 $$
 
-**Pattern 2 (Y missing):** Integrate over $Y_i | X_i, M_i, \tilde{\theta}$.
+**Pattern 2 (Y missing):** Integrate over $Y_i | X_i, M_i, \tilde{\phi}$.
 
-**Pattern 3 (M and Y missing):** Integrate over $(M_i, Y_i) | X_i, \tilde{\theta}$.
+**Pattern 3 (M and Y missing):** Integrate over $(M_i, Y_i) | X_i, \tilde{\phi}$.
 
 ### Imputation Model Specifications
 
-The Q-function depends on how missing values are imputed—specifically, the posterior distribution $p(Y_{mis} | Y_{obs}, \tilde{\theta})$ assumed by the imputation model. We consider three specifications to illustrate how congeniality affects the bias formula.
+The Q-function depends on how missing values are imputed—specifically, the posterior distribution $p(Y_{mis} | Y_{obs}, \tilde{\phi})$ assumed by the imputation model. We consider three specifications to illustrate how congeniality affects the bias formula.
 
 #### Imputation Model A: Matches Data Generating Process (Congenial)
 
@@ -221,7 +221,7 @@ This model is *congenial* because it matches the analysis model (and the true DG
 
 Given that $Y \perp X | M$ in this model:
 $$
-Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{b}M_i, \tilde{\sigma}^2_Y)
+Y_i | X_i, M_i, \tilde{\phi} \sim \mathcal{N}(\tilde{b}M_i, \tilde{\sigma}^2_Y)
 $$
 
 The required moments are:
@@ -236,7 +236,7 @@ $$
 
 The joint posterior follows from the model structure:
 $$
-\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{a}\tilde{b}X_i \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M & \tilde{b}\tilde{\sigma}^2_M \\ \tilde{b}\tilde{\sigma}^2_M & \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y \end{pmatrix} \right)
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\phi} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{a}\tilde{b}X_i \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M & \tilde{b}\tilde{\sigma}^2_M \\ \tilde{b}\tilde{\sigma}^2_M & \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y \end{pmatrix} \right)
 $$
 
 The required moments are:
@@ -266,7 +266,7 @@ where $\mu_Y$ and $\tau^2_Y$ are estimated from observed $Y$ values. This model 
 
 Despite observing $M$, the imputation model ignores it:
 $$
-Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
+Y_i | X_i, M_i, \tilde{\phi} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
 $$
 
 The required moments are:
@@ -283,7 +283,7 @@ This discards information from $M$ that would improve prediction of $Y$.
 
 Under the uncongenial model, $M$ and $Y$ are imputed independently:
 $$
-\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{\mu}_Y \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M & 0 \\ 0 & \tilde{\tau}^2_Y \end{pmatrix} \right)
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\phi} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{\mu}_Y \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M & 0 \\ 0 & \tilde{\tau}^2_Y \end{pmatrix} \right)
 $$
 
 The zero off-diagonal reflects the (incorrect) assumption that $M$ and $Y$ are conditionally independent given $X$. The required moments are:
@@ -312,7 +312,7 @@ This model is *congenial* because, as $n \to \infty$, $\hat{\boldsymbol{\Sigma}}
 
 Using standard MVN conditioning on both $X$ and $M$:
 $$
-Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\mu_{Y|XM}, \sigma^2_{Y|XM})
+Y_i | X_i, M_i, \tilde{\phi} \sim \mathcal{N}(\mu_{Y|XM}, \sigma^2_{Y|XM})
 $$
 
 where:
@@ -331,7 +331,7 @@ Note that this conditions on *both* $X$ and $M$, whereas Model A conditions only
 
 Using MVN conditioning on $X$ only:
 $$
-\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \boldsymbol{\mu}_{(M,Y)|X}, \boldsymbol{\Sigma}_{(M,Y)|X} \right)
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\phi} \sim \mathcal{N}_2\left( \boldsymbol{\mu}_{(M,Y)|X}, \boldsymbol{\Sigma}_{(M,Y)|X} \right)
 $$
 
 where:
@@ -405,48 +405,48 @@ $$
 
 ### Improper vs. Proper Multiple Imputation
 
-The Q-function expressions in the previous section compute $Q(\theta | \tilde{\theta})$ at a **fixed** imputation parameter $\tilde{\theta}$. In practice, there are two approaches:
+The Q-function expressions in the previous section compute $Q(\theta | \tilde{\phi})$ at a **fixed** imputation parameter $\tilde{\phi}$. In practice, there are two approaches:
 
-**Improper MI:** Set $\tilde{\theta} = \hat{\theta}_{obs}$ (the observed-data MLE). This treats $\tilde{\theta}$ as fixed and known.
+**Improper MI:** Set $\tilde{\phi} = \hat{\theta}_{obs}$ (the observed-data MLE). This treats $\tilde{\phi}$ as fixed and known.
 
-**Proper Bayesian MI:** Draw $\tilde{\theta} \sim p(\theta | Y_{obs})$ from the posterior distribution, then compute the **expected** Q-function:
+**Proper Bayesian MI:** Draw $\tilde{\phi} \sim p(\theta | Y_{obs})$ from the posterior distribution, then compute the **expected** Q-function:
 $$
-\mathbb{E}_{\tilde{\theta}}\left[Q(\theta | \tilde{\theta})\right] = \int Q(\theta | \tilde{\theta}) \, p(\tilde{\theta} | Y_{obs}) \, d\tilde{\theta}
-$$
-
-The proper Bayesian approach accounts for **parameter uncertainty** in the imputation model. Under large samples with a congenial model, $\tilde{\theta} \dot{\sim} \mathcal{N}(\hat{\theta}_{obs}, \mathcal{I}_{obs}^{-1})$.
-
-### Delta Method for Computing $\mathbb{E}_{\tilde{\theta}}[Q]$
-
-Since the Q-function is smooth in $\tilde{\theta}$, we use a second-order Taylor expansion around $\hat{\theta}_{obs}$:
-$$
-Q(\theta | \tilde{\theta}) \approx Q(\theta | \hat{\theta}) + \nabla_{\tilde{\theta}} Q(\theta | \hat{\theta})^\top (\tilde{\theta} - \hat{\theta}) + \frac{1}{2} (\tilde{\theta} - \hat{\theta})^\top H_Q(\theta | \hat{\theta}) (\tilde{\theta} - \hat{\theta})
+\mathbb{E}_{\tilde{\phi}}\left[Q(\theta | \tilde{\phi})\right] = \int Q(\theta | \tilde{\phi}) \, p(\tilde{\phi} | Y_{obs}) \, d\tilde{\phi}
 $$
 
-where $H_Q = \partial^2 Q / \partial \tilde{\theta} \partial \tilde{\theta}^\top$ is the Hessian of $Q$ with respect to the imputation parameters $\tilde{\theta}$.
+The proper Bayesian approach accounts for **parameter uncertainty** in the imputation model. Under large samples with a congenial model, $\tilde{\phi} \dot{\sim} \mathcal{N}(\hat{\theta}_{obs}, \mathcal{I}_{obs}^{-1})$.
 
-Taking expectations with $\tilde{\theta} \sim \mathcal{N}(\hat{\theta}, V_\theta)$ where $V_\theta = \mathcal{I}_{obs}^{-1}$:
+### Delta Method for Computing $\mathbb{E}_{\tilde{\phi}}[Q]$
+
+Since the Q-function is smooth in $\tilde{\phi}$, we use a second-order Taylor expansion around $\hat{\theta}_{obs}$:
 $$
-\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] \approx Q(\theta | \hat{\theta}) + \frac{1}{2} \text{tr}\left(H_Q \cdot V_\theta\right)
+Q(\theta | \tilde{\phi}) \approx Q(\theta | \hat{\theta}) + \nabla_{\tilde{\phi}} Q(\theta | \hat{\theta})^\top (\tilde{\phi} - \hat{\theta}) + \frac{1}{2} (\tilde{\phi} - \hat{\theta})^\top H_Q(\theta | \hat{\theta}) (\tilde{\phi} - \hat{\theta})
 $$
 
-The first-order term vanishes because $\mathbb{E}[\tilde{\theta} - \hat{\theta}] = 0$. The Hessian correction captures the curvature of $Q$ with respect to imputation parameter uncertainty.
+where $H_Q = \partial^2 Q / \partial \tilde{\phi} \partial \tilde{\phi}^\top$ is the Hessian of $Q$ with respect to the imputation parameters $\tilde{\phi}$.
+
+Taking expectations with $\tilde{\phi} \sim \mathcal{N}(\hat{\theta}, V_\theta)$ where $V_\theta = \mathcal{I}_{obs}^{-1}$:
+$$
+\mathbb{E}_{\tilde{\phi}}[Q(\theta | \tilde{\phi})] \approx Q(\theta | \hat{\theta}) + \frac{1}{2} \text{tr}\left(H_Q \cdot V_\theta\right)
+$$
+
+The first-order term vanishes because $\mathbb{E}[\tilde{\phi} - \hat{\theta}] = 0$. The Hessian correction captures the curvature of $Q$ with respect to imputation parameter uncertainty.
 
 ### Key Simplification: Monotone Missingness
 
-With monotone missingness, all $\tilde{\theta}$-dependent terms in the Q-function are **quadratic** (not rational functions). This occurs because:
+With monotone missingness, all $\tilde{\phi}$-dependent terms in the Q-function are **quadratic** (not rational functions). This occurs because:
 
-- Pattern 1 (complete): No dependence on $\tilde{\theta}$
-- Pattern 2 (Y missing): The expected squared residual $\mathbb{E}[(Y - bM)^2 | M, \tilde{\theta}]$ is quadratic in $\tilde{b}$
+- Pattern 1 (complete): No dependence on $\tilde{\phi}$
+- Pattern 2 (Y missing): The expected squared residual $\mathbb{E}[(Y - bM)^2 | M, \tilde{\phi}]$ is quadratic in $\tilde{b}$
 - Pattern 3 (both missing): The expected squared residuals are quadratic in $\tilde{a}$ and $\tilde{b}$
 
-Since all terms are quadratic, the Hessians are **constant** (independent of $\tilde{\theta}$), making the delta method expansion exact.
+Since all terms are quadratic, the Hessians are **constant** (independent of $\tilde{\phi}$), making the delta method expansion exact.
 
 ### Hessian Derivations by Pattern
 
 #### Pattern 1: Complete Observations
 
-No missing data, so $Q_i^{(1)}(\theta)$ does not depend on $\tilde{\theta}$:
+No missing data, so $Q_i^{(1)}(\theta)$ does not depend on $\tilde{\phi}$:
 $$
 H_i^{(1)} = \mathbf{0}_{4 \times 4}
 $$
@@ -455,7 +455,7 @@ $$
 
 The Y-residual component of $Q_i^{(2)}$ is:
 $$
--\frac{\mathbb{E}[(Y_i - bM_i)^2 | M_i, \tilde{\theta}]}{2\sigma^2_Y} = -\frac{\tilde{\sigma}^2_Y + (\tilde{b}M_i - bM_i)^2}{2\sigma^2_Y}
+-\frac{\mathbb{E}[(Y_i - bM_i)^2 | M_i, \tilde{\phi}]}{2\sigma^2_Y} = -\frac{\tilde{\sigma}^2_Y + (\tilde{b}M_i - bM_i)^2}{2\sigma^2_Y}
 $$
 
 Expanding $(\tilde{b} - b)^2 M_i^2$:
@@ -479,7 +479,7 @@ Only the $(b, b)$ element is non-zero.
 
 **M-residual component:**
 $$
--\frac{\mathbb{E}[(M_i - aX_i)^2 | X_i, \tilde{\theta}]}{2\sigma^2_M} = -\frac{\tilde{\sigma}^2_M + (\tilde{a}X_i - aX_i)^2}{2\sigma^2_M}
+-\frac{\mathbb{E}[(M_i - aX_i)^2 | X_i, \tilde{\phi}]}{2\sigma^2_M} = -\frac{\tilde{\sigma}^2_M + (\tilde{a}X_i - aX_i)^2}{2\sigma^2_M}
 $$
 
 Second derivative with respect to $\tilde{a}$:
@@ -491,7 +491,7 @@ $$
 
 The expected squared residual is:
 $$
-\mathbb{E}[(Y_i - bM_i)^2 | X_i, \tilde{\theta}] = \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}\tilde{b}X_i)^2 - 2b(\tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2) + b^2(\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2)
+\mathbb{E}[(Y_i - bM_i)^2 | X_i, \tilde{\phi}] = \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}\tilde{b}X_i)^2 - 2b(\tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2) + b^2(\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2)
 $$
 
 This simplifies to:
@@ -504,7 +504,7 @@ $$
 \frac{\partial^2}{\partial \tilde{b}^2}\left[-\frac{(\tilde{b} - b)^2\tilde{\sigma}^2_M + (\tilde{a}(\tilde{b} - b)X_i)^2}{2\sigma^2_Y}\right] = -\frac{\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2}{\sigma^2_Y}
 $$
 
-At the evaluation point $\tilde{\theta} = \hat{\theta}$:
+At the evaluation point $\tilde{\phi} = \hat{\theta}$:
 $$
 \frac{\partial^2}{\partial \tilde{a} \partial \tilde{b}}\left[-\frac{(\tilde{a}(\tilde{b} - b)X_i)^2}{2\sigma^2_Y}\right]\Bigg|_{\tilde{b}=b} = 0
 $$
@@ -520,7 +520,7 @@ $$
 
 The total Hessian correction is:
 $$
-\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] - Q(\theta | \hat{\theta}) = \frac{1}{2} \sum_{i=1}^{n} \text{tr}(H_i \cdot V_\theta)
+\mathbb{E}_{\tilde{\phi}}[Q(\theta | \tilde{\phi})] - Q(\theta | \hat{\theta}) = \frac{1}{2} \sum_{i=1}^{n} \text{tr}(H_i \cdot V_\theta)
 $$
 
 Breaking this down by pattern:
@@ -537,7 +537,7 @@ $$
 
 **Total correction:**
 $$
-\mathbb{E}_{\tilde{\theta}}[Q] - Q(\theta | \hat{\theta}) = \Delta^{(2)} + \Delta^{(3)}
+\mathbb{E}_{\tilde{\phi}}[Q] - Q(\theta | \hat{\theta}) = \Delta^{(2)} + \Delta^{(3)}
 $$
 
 ### The Correction is Always Negative
@@ -546,10 +546,10 @@ Since the Hessian matrices $H_i$ are **negative semi-definite** (all diagonal el
 
 Therefore:
 $$
-\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] \leq Q(\theta | \hat{\theta})
+\mathbb{E}_{\tilde{\phi}}[Q(\theta | \tilde{\phi})] \leq Q(\theta | \hat{\theta})
 $$
 
-**Interpretation:** Parameter uncertainty in $\tilde{\theta}$ systematically **reduces** the expected Q-function. The improper MI estimate $Q(\theta | \hat{\theta})$ is an **upper bound** on the proper Bayesian MI estimate.
+**Interpretation:** Parameter uncertainty in $\tilde{\phi}$ systematically **reduces** the expected Q-function. The improper MI estimate $Q(\theta | \hat{\theta})$ is an **upper bound** on the proper Bayesian MI estimate.
 
 ### Connection to the Bias Formula
 
@@ -562,10 +562,10 @@ $$
 
 **Proper Bayesian MI (Term 1):**
 $$
-\mathbb{E}_{\tilde{\theta}}[Q(\hat{\theta}_{obs} | \tilde{\theta})] - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV}) + \frac{1}{2}\text{tr}(H_Q \cdot V_\theta)
+\mathbb{E}_{\tilde{\phi}}[Q(\hat{\theta}_{obs} | \tilde{\phi})] - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV}) + \frac{1}{2}\text{tr}(H_Q \cdot V_\theta)
 $$
 
-The Hessian correction captures the additional term from integrating over the posterior of $\tilde{\theta}$. Under congeniality, both approaches lead to the same bias formula because the covariance structure between $\tilde{\theta}$ and $\hat{\theta}$ is correctly accounted for (see main derivation in the manuscript).
+The Hessian correction captures the additional term from integrating over the posterior of $\tilde{\phi}$. Under congeniality, both approaches lead to the same bias formula because the covariance structure between $\tilde{\phi}$ and $\hat{\theta}$ is correctly accounted for (see main derivation in the manuscript).
 
 ### Practical Computation
 
@@ -652,16 +652,16 @@ $$
 The imputation-based estimate $\text{tr}(\bar{W}^{-1}B)$ depends on the between-imputation variance $B$, which in turn depends on:
 
 1. **The imputation model** (determines posterior variance of $Y_{mis}|Y_{obs}$)
-2. **Proper vs. improper MI** (determines whether $\tilde{\theta}$ is drawn from posterior or fixed)
+2. **Proper vs. improper MI** (determines whether $\tilde{\phi}$ is drawn from posterior or fixed)
 
 We derive $B$ using the law of total variance. For proper MI:
 $$
-B = \mathbb{E}_{\tilde{\theta}}\left[\text{Var}(\hat{\theta}^{(m)} | \tilde{\theta})\right] + \text{Var}_{\tilde{\theta}}\left[\mathbb{E}(\hat{\theta}^{(m)} | \tilde{\theta})\right]
+B = \mathbb{E}_{\tilde{\phi}}\left[\text{Var}(\hat{\theta}^{(m)} | \tilde{\phi})\right] + \text{Var}_{\tilde{\phi}}\left[\mathbb{E}(\hat{\theta}^{(m)} | \tilde{\phi})\right]
 $$
 
-For improper MI (fixing $\tilde{\theta} = \hat{\theta}_{obs}$), only the first term remains:
+For improper MI (fixing $\tilde{\phi} = \hat{\theta}_{obs}$), only the first term remains:
 $$
-B_{improper} = \text{Var}(\hat{\theta}^{(m)} | \tilde{\theta} = \hat{\theta}_{obs})
+B_{improper} = \text{Var}(\hat{\theta}^{(m)} | \tilde{\phi} = \hat{\theta}_{obs})
 $$
 
 #### Model A: Congenial (Matches DGP)
@@ -684,12 +684,12 @@ $$
 
 **Proper MI:**
 
-The additional variance from $\tilde{\theta}$ uncertainty adds:
+The additional variance from $\tilde{\phi}$ uncertainty adds:
 $$
-B_{bb}^{(A, proper)} = B_{bb}^{(A, improper)} + \text{Var}_{\tilde{\theta}}[\tilde{b}] \cdot \frac{\sum_{i \in \mathcal{R}_2} M_i^2}{\left(\sum_j M_j^2\right)^2}
+B_{bb}^{(A, proper)} = B_{bb}^{(A, improper)} + \text{Var}_{\tilde{\phi}}[\tilde{b}] \cdot \frac{\sum_{i \in \mathcal{R}_2} M_i^2}{\left(\sum_j M_j^2\right)^2}
 $$
 
-where $\text{Var}_{\tilde{\theta}}[\tilde{b}] = V_\theta[b,b] = \mathcal{I}_{obs}^{-1}[b,b]$.
+where $\text{Var}_{\tilde{\phi}}[\tilde{b}] = V_\theta[b,b] = \mathcal{I}_{obs}^{-1}[b,b]$.
 
 **Result:** Under congeniality, $\text{tr}(\bar{W}^{-1}B) \to \text{tr}(\text{RIV})_{true}$ as $M \to \infty$ for both proper and improper MI (they converge to the same limit).
 
@@ -711,7 +711,7 @@ Pattern 3 assumes $\text{Cov}(M, Y | X) = 0$ instead of $b\sigma^2_M$, which **u
 
 **Proper MI:**
 
-Adding $\tilde{\theta}$ uncertainty does not fix the fundamental model misspecification:
+Adding $\tilde{\phi}$ uncertainty does not fix the fundamental model misspecification:
 $$
 B^{(B, proper)} \neq B^{(A, proper)}
 $$
@@ -759,7 +759,7 @@ The between-imputation variance $B$ arises directly from the posterior variance 
 
 Let $\hat{\theta}^{(m)}$ denote the estimate from the $m$-th imputed dataset. Each imputation draws $Y_{mis}^{(m)}$ from the posterior:
 $$
-Y_{mis}^{(m)} \sim p(Y_{mis} | Y_{obs}, \tilde{\theta})
+Y_{mis}^{(m)} \sim p(Y_{mis} | Y_{obs}, \tilde{\phi})
 $$
 
 The between-imputation variance is:
@@ -774,7 +774,7 @@ $$
 
 Therefore:
 $$
-B \approx \frac{\partial \hat{\theta}}{\partial Y_{mis}} \, \text{Var}(Y_{mis} | Y_{obs}, \tilde{\theta}) \, \left(\frac{\partial \hat{\theta}}{\partial Y_{mis}}\right)^\top
+B \approx \frac{\partial \hat{\theta}}{\partial Y_{mis}} \, \text{Var}(Y_{mis} | Y_{obs}, \tilde{\phi}) \, \left(\frac{\partial \hat{\theta}}{\partial Y_{mis}}\right)^\top
 $$
 
 This shows that $B$ is a **linear transformation** of the posterior variance from the imputation model.

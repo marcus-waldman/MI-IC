@@ -2312,7 +2312,7 @@ window.Quarto = {
   <li><a href="#proper-bayesian-mi-expectation-over-the-posterior" id="toc-proper-bayesian-mi-expectation-over-the-posterior" class="nav-link" data-scroll-target="#proper-bayesian-mi-expectation-over-the-posterior"><span class="header-section-number">1.6</span> Proper Bayesian MI: Expectation Over the Posterior</a>
   <ul class="collapse">
   <li><a href="#improper-vs.-proper-multiple-imputation" id="toc-improper-vs.-proper-multiple-imputation" class="nav-link" data-scroll-target="#improper-vs.-proper-multiple-imputation"><span class="header-section-number">1.6.1</span> Improper vs. Proper Multiple Imputation</a></li>
-  <li><a href="#delta-method-for-computing-mathbbe_tildethetaq" id="toc-delta-method-for-computing-mathbbe_tildethetaq" class="nav-link" data-scroll-target="#delta-method-for-computing-mathbbe_tildethetaq"><span class="header-section-number">1.6.2</span> Delta Method for Computing <span class="math inline">\(\mathbb{E}_{\tilde{\theta}}[Q]\)</span></a></li>
+  <li><a href="#delta-method-for-computing-mathbbe_tildephiq" id="toc-delta-method-for-computing-mathbbe_tildephiq" class="nav-link" data-scroll-target="#delta-method-for-computing-mathbbe_tildephiq"><span class="header-section-number">1.6.2</span> Delta Method for Computing <span class="math inline">\(\mathbb{E}_{\tilde{\phi}}[Q]\)</span></a></li>
   <li><a href="#key-simplification-monotone-missingness" id="toc-key-simplification-monotone-missingness" class="nav-link" data-scroll-target="#key-simplification-monotone-missingness"><span class="header-section-number">1.6.3</span> Key Simplification: Monotone Missingness</a></li>
   <li><a href="#hessian-derivations-by-pattern" id="toc-hessian-derivations-by-pattern" class="nav-link" data-scroll-target="#hessian-derivations-by-pattern"><span class="header-section-number">1.6.4</span> Hessian Derivations by Pattern</a></li>
   <li><a href="#aggregated-hessian-correction" id="toc-aggregated-hessian-correction" class="nav-link" data-scroll-target="#aggregated-hessian-correction"><span class="header-section-number">1.6.5</span> Aggregated Hessian Correction</a></li>
@@ -2345,7 +2345,7 @@ window.Quarto = {
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="header-section-number">5</span> References</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="supplementary-materials.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="..\supplementary-materials.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
 </div>
@@ -2555,22 +2555,22 @@ z_i = \gamma \cdot \frac{Y_i - \bar{Y}}{s_Y} + \epsilon_i, \quad \epsilon_i \sim
 <section id="analytical-q-function" class="level2" data-number="1.5">
 <h2 data-number="1.5" class="anchored" data-anchor-id="analytical-q-function"><span class="header-section-number">1.5</span> Analytical Q-Function</h2>
 <p>The Q-function is the expected complete-data log-likelihood, where the expectation is taken over the conditional distribution of missing data given observed data and current parameter estimates: <span class="math display">\[
-Q(\theta | \tilde{\theta}) = \mathbb{E}_{Y_{mis}|Y_{obs}, \tilde{\theta}}\left[ \ell_{com}(\theta; Y_{com}) \right]
+Q(\theta | \tilde{\phi}) = \mathbb{E}_{Y_{mis}|Y_{obs}, \tilde{\phi}}\left[ \ell_{com}(\theta; Y_{com}) \right]
 \]</span></p>
 <section id="decomposition-by-pattern" class="level3" data-number="1.5.1">
 <h3 data-number="1.5.1" class="anchored" data-anchor-id="decomposition-by-pattern"><span class="header-section-number">1.5.1</span> Decomposition by Pattern</h3>
 <p>We can decompose the Q-function by missingness pattern: <span class="math display">\[
-Q(\theta | \tilde{\theta}) = \sum_{i \in \mathcal{R}_1} Q_i^{(1)}(\theta) + \sum_{i \in \mathcal{R}_2} Q_i^{(2)}(\theta | \tilde{\theta}) + \sum_{i \in \mathcal{R}_3} Q_i^{(3)}(\theta | \tilde{\theta})
+Q(\theta | \tilde{\phi}) = \sum_{i \in \mathcal{R}_1} Q_i^{(1)}(\theta) + \sum_{i \in \mathcal{R}_2} Q_i^{(2)}(\theta | \tilde{\phi}) + \sum_{i \in \mathcal{R}_3} Q_i^{(3)}(\theta | \tilde{\phi})
 \]</span></p>
 <p><strong>Pattern 1 (Complete cases):</strong> No integration required. <span class="math display">\[
 Q_i^{(1)}(\theta) = \log f(M_i | X_i; a, \sigma^2_M) + \log f(Y_i | M_i; b, \sigma^2_Y)
 \]</span></p>
-<p><strong>Pattern 2 (Y missing):</strong> Integrate over <span class="math inline">\(Y_i | X_i, M_i, \tilde{\theta}\)</span>.</p>
-<p><strong>Pattern 3 (M and Y missing):</strong> Integrate over <span class="math inline">\((M_i, Y_i) | X_i, \tilde{\theta}\)</span>.</p>
+<p><strong>Pattern 2 (Y missing):</strong> Integrate over <span class="math inline">\(Y_i | X_i, M_i, \tilde{\phi}\)</span>.</p>
+<p><strong>Pattern 3 (M and Y missing):</strong> Integrate over <span class="math inline">\((M_i, Y_i) | X_i, \tilde{\phi}\)</span>.</p>
 </section>
 <section id="imputation-model-specifications" class="level3" data-number="1.5.2">
 <h3 data-number="1.5.2" class="anchored" data-anchor-id="imputation-model-specifications"><span class="header-section-number">1.5.2</span> Imputation Model Specifications</h3>
-<p>The Q-function depends on how missing values are imputed—specifically, the posterior distribution <span class="math inline">\(p(Y_{mis} | Y_{obs}, \tilde{\theta})\)</span> assumed by the imputation model. We consider three specifications to illustrate how congeniality affects the bias formula.</p>
+<p>The Q-function depends on how missing values are imputed—specifically, the posterior distribution <span class="math inline">\(p(Y_{mis} | Y_{obs}, \tilde{\phi})\)</span> assumed by the imputation model. We consider three specifications to illustrate how congeniality affects the bias formula.</p>
 <section id="imputation-model-a-matches-data-generating-process-congenial" class="level4" data-number="1.5.2.1">
 <h4 data-number="1.5.2.1" class="anchored" data-anchor-id="imputation-model-a-matches-data-generating-process-congenial"><span class="header-section-number">1.5.2.1</span> Imputation Model A: Matches Data Generating Process (Congenial)</h4>
 <p>The imputation model correctly specifies the mediation structure: <span class="math display">\[
@@ -2582,7 +2582,7 @@ Y | M &amp;\sim \mathcal{N}(bM, \sigma^2_Y)
 <p>This model is <em>congenial</em> because it matches the analysis model (and the true DGP).</p>
 <p><strong>Pattern 2: <span class="math inline">\(Y\)</span> Missing, <span class="math inline">\((X, M)\)</span> Observed</strong></p>
 <p>Given that <span class="math inline">\(Y \perp X | M\)</span> in this model: <span class="math display">\[
-Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{b}M_i, \tilde{\sigma}^2_Y)
+Y_i | X_i, M_i, \tilde{\phi} \sim \mathcal{N}(\tilde{b}M_i, \tilde{\sigma}^2_Y)
 \]</span></p>
 <p>The required moments are: <span class="math display">\[
 \begin{aligned}
@@ -2592,7 +2592,7 @@ Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{b}M_i, \tilde{\sigma}^2_Y
 \]</span></p>
 <p><strong>Pattern 3: <span class="math inline">\((M, Y)\)</span> Missing, <span class="math inline">\(X\)</span> Observed</strong></p>
 <p>The joint posterior follows from the model structure: <span class="math display">\[
-\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{a}\tilde{b}X_i \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M &amp; \tilde{b}\tilde{\sigma}^2_M \\ \tilde{b}\tilde{\sigma}^2_M &amp; \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y \end{pmatrix} \right)
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\phi} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{a}\tilde{b}X_i \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M &amp; \tilde{b}\tilde{\sigma}^2_M \\ \tilde{b}\tilde{\sigma}^2_M &amp; \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y \end{pmatrix} \right)
 \]</span></p>
 <p>The required moments are: <span class="math display">\[
 \begin{aligned}
@@ -2615,7 +2615,7 @@ Y &amp;\sim \mathcal{N}(\mu_Y, \tau^2_Y) \quad \text{(marginal, ignoring } M \te
 <p>where <span class="math inline">\(\mu_Y\)</span> and <span class="math inline">\(\tau^2_Y\)</span> are estimated from observed <span class="math inline">\(Y\)</span> values. This model is <em>uncongenial</em> because the true DGP has <span class="math inline">\(b = 0.5 \neq 0\)</span>.</p>
 <p><strong>Pattern 2: <span class="math inline">\(Y\)</span> Missing, <span class="math inline">\((X, M)\)</span> Observed</strong></p>
 <p>Despite observing <span class="math inline">\(M\)</span>, the imputation model ignores it: <span class="math display">\[
-Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
+Y_i | X_i, M_i, \tilde{\phi} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
 \]</span></p>
 <p>The required moments are: <span class="math display">\[
 \begin{aligned}
@@ -2626,7 +2626,7 @@ Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
 <p>This discards information from <span class="math inline">\(M\)</span> that would improve prediction of <span class="math inline">\(Y\)</span>.</p>
 <p><strong>Pattern 3: <span class="math inline">\((M, Y)\)</span> Missing, <span class="math inline">\(X\)</span> Observed</strong></p>
 <p>Under the uncongenial model, <span class="math inline">\(M\)</span> and <span class="math inline">\(Y\)</span> are imputed independently: <span class="math display">\[
-\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{\mu}_Y \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M &amp; 0 \\ 0 &amp; \tilde{\tau}^2_Y \end{pmatrix} \right)
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\phi} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{\mu}_Y \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M &amp; 0 \\ 0 &amp; \tilde{\tau}^2_Y \end{pmatrix} \right)
 \]</span></p>
 <p>The zero off-diagonal reflects the (incorrect) assumption that <span class="math inline">\(M\)</span> and <span class="math inline">\(Y\)</span> are conditionally independent given <span class="math inline">\(X\)</span>. The required moments are: <span class="math display">\[
 \begin{aligned}
@@ -2647,7 +2647,7 @@ Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
 <p>This model is <em>congenial</em> because, as <span class="math inline">\(n \to \infty\)</span>, <span class="math inline">\(\hat{\boldsymbol{\Sigma}}\)</span> converges to the true population covariance matrix implied by the DGP. The saturated model does not impose the correct structure, but it captures the correct covariance asymptotically.</p>
 <p><strong>Pattern 2: <span class="math inline">\(Y\)</span> Missing, <span class="math inline">\((X, M)\)</span> Observed</strong></p>
 <p>Using standard MVN conditioning on both <span class="math inline">\(X\)</span> and <span class="math inline">\(M\)</span>: <span class="math display">\[
-Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\mu_{Y|XM}, \sigma^2_{Y|XM})
+Y_i | X_i, M_i, \tilde{\phi} \sim \mathcal{N}(\mu_{Y|XM}, \sigma^2_{Y|XM})
 \]</span></p>
 <p>where: <span class="math display">\[
 \begin{aligned}
@@ -2659,7 +2659,7 @@ Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\mu_{Y|XM}, \sigma^2_{Y|XM})
 <p>Note that this conditions on <em>both</em> <span class="math inline">\(X\)</span> and <span class="math inline">\(M\)</span>, whereas Model A conditions only on <span class="math inline">\(M\)</span> (since <span class="math inline">\(Y \perp X | M\)</span> in the mediation structure). The saturated model uses the additional information from <span class="math inline">\(X\)</span>.</p>
 <p><strong>Pattern 3: <span class="math inline">\((M, Y)\)</span> Missing, <span class="math inline">\(X\)</span> Observed</strong></p>
 <p>Using MVN conditioning on <span class="math inline">\(X\)</span> only: <span class="math display">\[
-\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \boldsymbol{\mu}_{(M,Y)|X}, \boldsymbol{\Sigma}_{(M,Y)|X} \right)
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\phi} \sim \mathcal{N}_2\left( \boldsymbol{\mu}_{(M,Y)|X}, \boldsymbol{\Sigma}_{(M,Y)|X} \right)
 \]</span></p>
 <p>where: <span class="math display">\[
 \begin{aligned}
@@ -2749,46 +2749,46 @@ Q_i^{(2)} = -\frac{1}{2}\log(2\pi\sigma^2_M) - \frac{(M_i - aX_i)^2}{2\sigma^2_M
 <h2 data-number="1.6" class="anchored" data-anchor-id="proper-bayesian-mi-expectation-over-the-posterior"><span class="header-section-number">1.6</span> Proper Bayesian MI: Expectation Over the Posterior</h2>
 <section id="improper-vs.-proper-multiple-imputation" class="level3" data-number="1.6.1">
 <h3 data-number="1.6.1" class="anchored" data-anchor-id="improper-vs.-proper-multiple-imputation"><span class="header-section-number">1.6.1</span> Improper vs. Proper Multiple Imputation</h3>
-<p>The Q-function expressions in the previous section compute <span class="math inline">\(Q(\theta | \tilde{\theta})\)</span> at a <strong>fixed</strong> imputation parameter <span class="math inline">\(\tilde{\theta}\)</span>. In practice, there are two approaches:</p>
-<p><strong>Improper MI:</strong> Set <span class="math inline">\(\tilde{\theta} = \hat{\theta}_{obs}\)</span> (the observed-data MLE). This treats <span class="math inline">\(\tilde{\theta}\)</span> as fixed and known.</p>
-<p><strong>Proper Bayesian MI:</strong> Draw <span class="math inline">\(\tilde{\theta} \sim p(\theta | Y_{obs})\)</span> from the posterior distribution, then compute the <strong>expected</strong> Q-function: <span class="math display">\[
-\mathbb{E}_{\tilde{\theta}}\left[Q(\theta | \tilde{\theta})\right] = \int Q(\theta | \tilde{\theta}) \, p(\tilde{\theta} | Y_{obs}) \, d\tilde{\theta}
+<p>The Q-function expressions in the previous section compute <span class="math inline">\(Q(\theta | \tilde{\phi})\)</span> at a <strong>fixed</strong> imputation parameter <span class="math inline">\(\tilde{\phi}\)</span>. In practice, there are two approaches:</p>
+<p><strong>Improper MI:</strong> Set <span class="math inline">\(\tilde{\phi} = \hat{\theta}_{obs}\)</span> (the observed-data MLE). This treats <span class="math inline">\(\tilde{\phi}\)</span> as fixed and known.</p>
+<p><strong>Proper Bayesian MI:</strong> Draw <span class="math inline">\(\tilde{\phi} \sim p(\theta | Y_{obs})\)</span> from the posterior distribution, then compute the <strong>expected</strong> Q-function: <span class="math display">\[
+\mathbb{E}_{\tilde{\phi}}\left[Q(\theta | \tilde{\phi})\right] = \int Q(\theta | \tilde{\phi}) \, p(\tilde{\phi} | Y_{obs}) \, d\tilde{\phi}
 \]</span></p>
-<p>The proper Bayesian approach accounts for <strong>parameter uncertainty</strong> in the imputation model. Under large samples with a congenial model, <span class="math inline">\(\tilde{\theta} \dot{\sim} \mathcal{N}(\hat{\theta}_{obs}, \mathcal{I}_{obs}^{-1})\)</span>.</p>
+<p>The proper Bayesian approach accounts for <strong>parameter uncertainty</strong> in the imputation model. Under large samples with a congenial model, <span class="math inline">\(\tilde{\phi} \dot{\sim} \mathcal{N}(\hat{\theta}_{obs}, \mathcal{I}_{obs}^{-1})\)</span>.</p>
 </section>
-<section id="delta-method-for-computing-mathbbe_tildethetaq" class="level3" data-number="1.6.2">
-<h3 data-number="1.6.2" class="anchored" data-anchor-id="delta-method-for-computing-mathbbe_tildethetaq"><span class="header-section-number">1.6.2</span> Delta Method for Computing <span class="math inline">\(\mathbb{E}_{\tilde{\theta}}[Q]\)</span></h3>
-<p>Since the Q-function is smooth in <span class="math inline">\(\tilde{\theta}\)</span>, we use a second-order Taylor expansion around <span class="math inline">\(\hat{\theta}_{obs}\)</span>: <span class="math display">\[
-Q(\theta | \tilde{\theta}) \approx Q(\theta | \hat{\theta}) + \nabla_{\tilde{\theta}} Q(\theta | \hat{\theta})^\top (\tilde{\theta} - \hat{\theta}) + \frac{1}{2} (\tilde{\theta} - \hat{\theta})^\top H_Q(\theta | \hat{\theta}) (\tilde{\theta} - \hat{\theta})
+<section id="delta-method-for-computing-mathbbe_tildephiq" class="level3" data-number="1.6.2">
+<h3 data-number="1.6.2" class="anchored" data-anchor-id="delta-method-for-computing-mathbbe_tildephiq"><span class="header-section-number">1.6.2</span> Delta Method for Computing <span class="math inline">\(\mathbb{E}_{\tilde{\phi}}[Q]\)</span></h3>
+<p>Since the Q-function is smooth in <span class="math inline">\(\tilde{\phi}\)</span>, we use a second-order Taylor expansion around <span class="math inline">\(\hat{\theta}_{obs}\)</span>: <span class="math display">\[
+Q(\theta | \tilde{\phi}) \approx Q(\theta | \hat{\theta}) + \nabla_{\tilde{\phi}} Q(\theta | \hat{\theta})^\top (\tilde{\phi} - \hat{\theta}) + \frac{1}{2} (\tilde{\phi} - \hat{\theta})^\top H_Q(\theta | \hat{\theta}) (\tilde{\phi} - \hat{\theta})
 \]</span></p>
-<p>where <span class="math inline">\(H_Q = \partial^2 Q / \partial \tilde{\theta} \partial \tilde{\theta}^\top\)</span> is the Hessian of <span class="math inline">\(Q\)</span> with respect to the imputation parameters <span class="math inline">\(\tilde{\theta}\)</span>.</p>
-<p>Taking expectations with <span class="math inline">\(\tilde{\theta} \sim \mathcal{N}(\hat{\theta}, V_\theta)\)</span> where <span class="math inline">\(V_\theta = \mathcal{I}_{obs}^{-1}\)</span>: <span class="math display">\[
-\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] \approx Q(\theta | \hat{\theta}) + \frac{1}{2} \text{tr}\left(H_Q \cdot V_\theta\right)
+<p>where <span class="math inline">\(H_Q = \partial^2 Q / \partial \tilde{\phi} \partial \tilde{\phi}^\top\)</span> is the Hessian of <span class="math inline">\(Q\)</span> with respect to the imputation parameters <span class="math inline">\(\tilde{\phi}\)</span>.</p>
+<p>Taking expectations with <span class="math inline">\(\tilde{\phi} \sim \mathcal{N}(\hat{\theta}, V_\theta)\)</span> where <span class="math inline">\(V_\theta = \mathcal{I}_{obs}^{-1}\)</span>: <span class="math display">\[
+\mathbb{E}_{\tilde{\phi}}[Q(\theta | \tilde{\phi})] \approx Q(\theta | \hat{\theta}) + \frac{1}{2} \text{tr}\left(H_Q \cdot V_\theta\right)
 \]</span></p>
-<p>The first-order term vanishes because <span class="math inline">\(\mathbb{E}[\tilde{\theta} - \hat{\theta}] = 0\)</span>. The Hessian correction captures the curvature of <span class="math inline">\(Q\)</span> with respect to imputation parameter uncertainty.</p>
+<p>The first-order term vanishes because <span class="math inline">\(\mathbb{E}[\tilde{\phi} - \hat{\theta}] = 0\)</span>. The Hessian correction captures the curvature of <span class="math inline">\(Q\)</span> with respect to imputation parameter uncertainty.</p>
 </section>
 <section id="key-simplification-monotone-missingness" class="level3" data-number="1.6.3">
 <h3 data-number="1.6.3" class="anchored" data-anchor-id="key-simplification-monotone-missingness"><span class="header-section-number">1.6.3</span> Key Simplification: Monotone Missingness</h3>
-<p>With monotone missingness, all <span class="math inline">\(\tilde{\theta}\)</span>-dependent terms in the Q-function are <strong>quadratic</strong> (not rational functions). This occurs because:</p>
+<p>With monotone missingness, all <span class="math inline">\(\tilde{\phi}\)</span>-dependent terms in the Q-function are <strong>quadratic</strong> (not rational functions). This occurs because:</p>
 <ul>
-<li>Pattern 1 (complete): No dependence on <span class="math inline">\(\tilde{\theta}\)</span></li>
-<li>Pattern 2 (Y missing): The expected squared residual <span class="math inline">\(\mathbb{E}[(Y - bM)^2 | M, \tilde{\theta}]\)</span> is quadratic in <span class="math inline">\(\tilde{b}\)</span></li>
+<li>Pattern 1 (complete): No dependence on <span class="math inline">\(\tilde{\phi}\)</span></li>
+<li>Pattern 2 (Y missing): The expected squared residual <span class="math inline">\(\mathbb{E}[(Y - bM)^2 | M, \tilde{\phi}]\)</span> is quadratic in <span class="math inline">\(\tilde{b}\)</span></li>
 <li>Pattern 3 (both missing): The expected squared residuals are quadratic in <span class="math inline">\(\tilde{a}\)</span> and <span class="math inline">\(\tilde{b}\)</span></li>
 </ul>
-<p>Since all terms are quadratic, the Hessians are <strong>constant</strong> (independent of <span class="math inline">\(\tilde{\theta}\)</span>), making the delta method expansion exact.</p>
+<p>Since all terms are quadratic, the Hessians are <strong>constant</strong> (independent of <span class="math inline">\(\tilde{\phi}\)</span>), making the delta method expansion exact.</p>
 </section>
 <section id="hessian-derivations-by-pattern" class="level3" data-number="1.6.4">
 <h3 data-number="1.6.4" class="anchored" data-anchor-id="hessian-derivations-by-pattern"><span class="header-section-number">1.6.4</span> Hessian Derivations by Pattern</h3>
 <section id="pattern-1-complete-observations" class="level4" data-number="1.6.4.1">
 <h4 data-number="1.6.4.1" class="anchored" data-anchor-id="pattern-1-complete-observations"><span class="header-section-number">1.6.4.1</span> Pattern 1: Complete Observations</h4>
-<p>No missing data, so <span class="math inline">\(Q_i^{(1)}(\theta)\)</span> does not depend on <span class="math inline">\(\tilde{\theta}\)</span>: <span class="math display">\[
+<p>No missing data, so <span class="math inline">\(Q_i^{(1)}(\theta)\)</span> does not depend on <span class="math inline">\(\tilde{\phi}\)</span>: <span class="math display">\[
 H_i^{(1)} = \mathbf{0}_{4 \times 4}
 \]</span></p>
 </section>
 <section id="pattern-2-y-missing-m-observed" class="level4" data-number="1.6.4.2">
 <h4 data-number="1.6.4.2" class="anchored" data-anchor-id="pattern-2-y-missing-m-observed"><span class="header-section-number">1.6.4.2</span> Pattern 2: Y Missing, M Observed</h4>
 <p>The Y-residual component of <span class="math inline">\(Q_i^{(2)}\)</span> is: <span class="math display">\[
--\frac{\mathbb{E}[(Y_i - bM_i)^2 | M_i, \tilde{\theta}]}{2\sigma^2_Y} = -\frac{\tilde{\sigma}^2_Y + (\tilde{b}M_i - bM_i)^2}{2\sigma^2_Y}
+-\frac{\mathbb{E}[(Y_i - bM_i)^2 | M_i, \tilde{\phi}]}{2\sigma^2_Y} = -\frac{\tilde{\sigma}^2_Y + (\tilde{b}M_i - bM_i)^2}{2\sigma^2_Y}
 \]</span></p>
 <p>Expanding <span class="math inline">\((\tilde{b} - b)^2 M_i^2\)</span>: <span class="math display">\[
 -\frac{\tilde{\sigma}^2_Y + (\tilde{b} - b)^2 M_i^2}{2\sigma^2_Y}
@@ -2804,14 +2804,14 @@ H_i^{(2)} = \begin{pmatrix} 0 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; -M_i^2/\sigma^2
 <section id="pattern-3-both-m-and-y-missing" class="level4" data-number="1.6.4.3">
 <h4 data-number="1.6.4.3" class="anchored" data-anchor-id="pattern-3-both-m-and-y-missing"><span class="header-section-number">1.6.4.3</span> Pattern 3: Both M and Y Missing</h4>
 <p><strong>M-residual component:</strong> <span class="math display">\[
--\frac{\mathbb{E}[(M_i - aX_i)^2 | X_i, \tilde{\theta}]}{2\sigma^2_M} = -\frac{\tilde{\sigma}^2_M + (\tilde{a}X_i - aX_i)^2}{2\sigma^2_M}
+-\frac{\mathbb{E}[(M_i - aX_i)^2 | X_i, \tilde{\phi}]}{2\sigma^2_M} = -\frac{\tilde{\sigma}^2_M + (\tilde{a}X_i - aX_i)^2}{2\sigma^2_M}
 \]</span></p>
 <p>Second derivative with respect to <span class="math inline">\(\tilde{a}\)</span>: <span class="math display">\[
 \frac{\partial^2}{\partial \tilde{a}^2}\left[-\frac{(\tilde{a} - a)^2 X_i^2}{2\sigma^2_M}\right] = -\frac{X_i^2}{\sigma^2_M}
 \]</span></p>
 <p><strong>Y-residual component:</strong></p>
 <p>The expected squared residual is: <span class="math display">\[
-\mathbb{E}[(Y_i - bM_i)^2 | X_i, \tilde{\theta}] = \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}\tilde{b}X_i)^2 - 2b(\tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2) + b^2(\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2)
+\mathbb{E}[(Y_i - bM_i)^2 | X_i, \tilde{\phi}] = \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}\tilde{b}X_i)^2 - 2b(\tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2) + b^2(\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2)
 \]</span></p>
 <p>This simplifies to: <span class="math display">\[
 = (\tilde{b} - b)^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}(\tilde{b} - b)X_i)^2
@@ -2819,7 +2819,7 @@ H_i^{(2)} = \begin{pmatrix} 0 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; -M_i^2/\sigma^2
 <p>Taking second derivatives: <span class="math display">\[
 \frac{\partial^2}{\partial \tilde{b}^2}\left[-\frac{(\tilde{b} - b)^2\tilde{\sigma}^2_M + (\tilde{a}(\tilde{b} - b)X_i)^2}{2\sigma^2_Y}\right] = -\frac{\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2}{\sigma^2_Y}
 \]</span></p>
-<p>At the evaluation point <span class="math inline">\(\tilde{\theta} = \hat{\theta}\)</span>: <span class="math display">\[
+<p>At the evaluation point <span class="math inline">\(\tilde{\phi} = \hat{\theta}\)</span>: <span class="math display">\[
 \frac{\partial^2}{\partial \tilde{a} \partial \tilde{b}}\left[-\frac{(\tilde{a}(\tilde{b} - b)X_i)^2}{2\sigma^2_Y}\right]\Bigg|_{\tilde{b}=b} = 0
 \]</span></p>
 <p>The cross-derivative vanishes when evaluated at <span class="math inline">\(\tilde{b} = b\)</span>.</p>
@@ -2831,7 +2831,7 @@ H_i^{(3)} = \begin{pmatrix} -X_i^2/\sigma^2_M &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp;
 <section id="aggregated-hessian-correction" class="level3" data-number="1.6.5">
 <h3 data-number="1.6.5" class="anchored" data-anchor-id="aggregated-hessian-correction"><span class="header-section-number">1.6.5</span> Aggregated Hessian Correction</h3>
 <p>The total Hessian correction is: <span class="math display">\[
-\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] - Q(\theta | \hat{\theta}) = \frac{1}{2} \sum_{i=1}^{n} \text{tr}(H_i \cdot V_\theta)
+\mathbb{E}_{\tilde{\phi}}[Q(\theta | \tilde{\phi})] - Q(\theta | \hat{\theta}) = \frac{1}{2} \sum_{i=1}^{n} \text{tr}(H_i \cdot V_\theta)
 \]</span></p>
 <p>Breaking this down by pattern:</p>
 <p><strong>Pattern 2 contribution:</strong> <span class="math display">\[
@@ -2841,16 +2841,16 @@ H_i^{(3)} = \begin{pmatrix} -X_i^2/\sigma^2_M &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp;
 \Delta^{(3)} = \frac{1}{2} \sum_{i \in \mathcal{R}_3} \left[ \left(-\frac{X_i^2}{\sigma^2_M}\right) V_\theta[a,a] + \left(-\frac{\hat{\sigma}^2_M + \hat{a}^2 X_i^2}{\sigma^2_Y}\right) V_\theta[b,b] \right]
 \]</span></p>
 <p><strong>Total correction:</strong> <span class="math display">\[
-\mathbb{E}_{\tilde{\theta}}[Q] - Q(\theta | \hat{\theta}) = \Delta^{(2)} + \Delta^{(3)}
+\mathbb{E}_{\tilde{\phi}}[Q] - Q(\theta | \hat{\theta}) = \Delta^{(2)} + \Delta^{(3)}
 \]</span></p>
 </section>
 <section id="the-correction-is-always-negative" class="level3" data-number="1.6.6">
 <h3 data-number="1.6.6" class="anchored" data-anchor-id="the-correction-is-always-negative"><span class="header-section-number">1.6.6</span> The Correction is Always Negative</h3>
 <p>Since the Hessian matrices <span class="math inline">\(H_i\)</span> are <strong>negative semi-definite</strong> (all diagonal elements are non-positive) and <span class="math inline">\(V_\theta\)</span> is positive definite, the trace <span class="math inline">\(\text{tr}(H_i \cdot V_\theta) \leq 0\)</span> for all <span class="math inline">\(i\)</span>.</p>
 <p>Therefore: <span class="math display">\[
-\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] \leq Q(\theta | \hat{\theta})
+\mathbb{E}_{\tilde{\phi}}[Q(\theta | \tilde{\phi})] \leq Q(\theta | \hat{\theta})
 \]</span></p>
-<p><strong>Interpretation:</strong> Parameter uncertainty in <span class="math inline">\(\tilde{\theta}\)</span> systematically <strong>reduces</strong> the expected Q-function. The improper MI estimate <span class="math inline">\(Q(\theta | \hat{\theta})\)</span> is an <strong>upper bound</strong> on the proper Bayesian MI estimate.</p>
+<p><strong>Interpretation:</strong> Parameter uncertainty in <span class="math inline">\(\tilde{\phi}\)</span> systematically <strong>reduces</strong> the expected Q-function. The improper MI estimate <span class="math inline">\(Q(\theta | \hat{\theta})\)</span> is an <strong>upper bound</strong> on the proper Bayesian MI estimate.</p>
 </section>
 <section id="connection-to-the-bias-formula" class="level3" data-number="1.6.7">
 <h3 data-number="1.6.7" class="anchored" data-anchor-id="connection-to-the-bias-formula"><span class="header-section-number">1.6.7</span> Connection to the Bias Formula</h3>
@@ -2859,9 +2859,9 @@ H_i^{(3)} = \begin{pmatrix} -X_i^2/\sigma^2_M &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp;
 Q(\hat{\theta}_{obs} | \hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV})
 \]</span></p>
 <p><strong>Proper Bayesian MI (Term 1):</strong> <span class="math display">\[
-\mathbb{E}_{\tilde{\theta}}[Q(\hat{\theta}_{obs} | \tilde{\theta})] - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV}) + \frac{1}{2}\text{tr}(H_Q \cdot V_\theta)
+\mathbb{E}_{\tilde{\phi}}[Q(\hat{\theta}_{obs} | \tilde{\phi})] - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV}) + \frac{1}{2}\text{tr}(H_Q \cdot V_\theta)
 \]</span></p>
-<p>The Hessian correction captures the additional term from integrating over the posterior of <span class="math inline">\(\tilde{\theta}\)</span>. Under congeniality, both approaches lead to the same bias formula because the covariance structure between <span class="math inline">\(\tilde{\theta}\)</span> and <span class="math inline">\(\hat{\theta}\)</span> is correctly accounted for (see main derivation in the manuscript).</p>
+<p>The Hessian correction captures the additional term from integrating over the posterior of <span class="math inline">\(\tilde{\phi}\)</span>. Under congeniality, both approaches lead to the same bias formula because the covariance structure between <span class="math inline">\(\tilde{\phi}\)</span> and <span class="math inline">\(\hat{\theta}\)</span> is correctly accounted for (see main derivation in the manuscript).</p>
 </section>
 <section id="practical-computation" class="level3" data-number="1.6.8">
 <h3 data-number="1.6.8" class="anchored" data-anchor-id="practical-computation"><span class="header-section-number">1.6.8</span> Practical Computation</h3>
@@ -2933,13 +2933,13 @@ T = \bar{W} + \left(1 + \frac{1}{M}\right)B
 <p>The imputation-based estimate <span class="math inline">\(\text{tr}(\bar{W}^{-1}B)\)</span> depends on the between-imputation variance <span class="math inline">\(B\)</span>, which in turn depends on:</p>
 <ol type="1">
 <li><strong>The imputation model</strong> (determines posterior variance of <span class="math inline">\(Y_{mis}|Y_{obs}\)</span>)</li>
-<li><strong>Proper vs. improper MI</strong> (determines whether <span class="math inline">\(\tilde{\theta}\)</span> is drawn from posterior or fixed)</li>
+<li><strong>Proper vs. improper MI</strong> (determines whether <span class="math inline">\(\tilde{\phi}\)</span> is drawn from posterior or fixed)</li>
 </ol>
 <p>We derive <span class="math inline">\(B\)</span> using the law of total variance. For proper MI: <span class="math display">\[
-B = \mathbb{E}_{\tilde{\theta}}\left[\text{Var}(\hat{\theta}^{(m)} | \tilde{\theta})\right] + \text{Var}_{\tilde{\theta}}\left[\mathbb{E}(\hat{\theta}^{(m)} | \tilde{\theta})\right]
+B = \mathbb{E}_{\tilde{\phi}}\left[\text{Var}(\hat{\theta}^{(m)} | \tilde{\phi})\right] + \text{Var}_{\tilde{\phi}}\left[\mathbb{E}(\hat{\theta}^{(m)} | \tilde{\phi})\right]
 \]</span></p>
-<p>For improper MI (fixing <span class="math inline">\(\tilde{\theta} = \hat{\theta}_{obs}\)</span>), only the first term remains: <span class="math display">\[
-B_{improper} = \text{Var}(\hat{\theta}^{(m)} | \tilde{\theta} = \hat{\theta}_{obs})
+<p>For improper MI (fixing <span class="math inline">\(\tilde{\phi} = \hat{\theta}_{obs}\)</span>), only the first term remains: <span class="math display">\[
+B_{improper} = \text{Var}(\hat{\theta}^{(m)} | \tilde{\phi} = \hat{\theta}_{obs})
 \]</span></p>
 </section>
 <section id="model-a-congenial-matches-dgp" class="level4" data-number="1.7.4.3">
@@ -2953,10 +2953,10 @@ B_{bb}^{(A, improper)} = \frac{\hat{\sigma}^2_Y}{\left(\sum_j M_j^2\right)^2} \s
 B_{aa}^{(A, improper)} = \frac{\hat{\sigma}^2_M}{\left(\sum_j X_j^2\right)^2} \sum_{i \in \mathcal{R}_3} X_i^2
 \]</span></p>
 <p><strong>Proper MI:</strong></p>
-<p>The additional variance from <span class="math inline">\(\tilde{\theta}\)</span> uncertainty adds: <span class="math display">\[
-B_{bb}^{(A, proper)} = B_{bb}^{(A, improper)} + \text{Var}_{\tilde{\theta}}[\tilde{b}] \cdot \frac{\sum_{i \in \mathcal{R}_2} M_i^2}{\left(\sum_j M_j^2\right)^2}
+<p>The additional variance from <span class="math inline">\(\tilde{\phi}\)</span> uncertainty adds: <span class="math display">\[
+B_{bb}^{(A, proper)} = B_{bb}^{(A, improper)} + \text{Var}_{\tilde{\phi}}[\tilde{b}] \cdot \frac{\sum_{i \in \mathcal{R}_2} M_i^2}{\left(\sum_j M_j^2\right)^2}
 \]</span></p>
-<p>where <span class="math inline">\(\text{Var}_{\tilde{\theta}}[\tilde{b}] = V_\theta[b,b] = \mathcal{I}_{obs}^{-1}[b,b]\)</span>.</p>
+<p>where <span class="math inline">\(\text{Var}_{\tilde{\phi}}[\tilde{b}] = V_\theta[b,b] = \mathcal{I}_{obs}^{-1}[b,b]\)</span>.</p>
 <p><strong>Result:</strong> Under congeniality, <span class="math inline">\(\text{tr}(\bar{W}^{-1}B) \to \text{tr}(\text{RIV})_{true}\)</span> as <span class="math inline">\(M \to \infty\)</span> for both proper and improper MI (they converge to the same limit).</p>
 </section>
 <section id="model-b-uncongenial-ignores-m-to-y" class="level4" data-number="1.7.4.4">
@@ -2970,7 +2970,7 @@ B_{bb}^{(B, improper)} &gt; B_{bb}^{(A, improper)}
 \]</span></p>
 <p>Pattern 3 assumes <span class="math inline">\(\text{Cov}(M, Y | X) = 0\)</span> instead of <span class="math inline">\(b\sigma^2_M\)</span>, which <strong>underestimates</strong> the joint uncertainty.</p>
 <p><strong>Proper MI:</strong></p>
-<p>Adding <span class="math inline">\(\tilde{\theta}\)</span> uncertainty does not fix the fundamental model misspecification: <span class="math display">\[
+<p>Adding <span class="math inline">\(\tilde{\phi}\)</span> uncertainty does not fix the fundamental model misspecification: <span class="math display">\[
 B^{(B, proper)} \neq B^{(A, proper)}
 \]</span></p>
 <p><strong>Result:</strong> <span class="math inline">\(\text{tr}(\bar{W}^{-1}B)\)</span> is biased for <span class="math inline">\(\text{tr}(\text{RIV})_{true}\)</span> regardless of proper/improper MI. The bias depends on the degree of uncongeniality.</p>
@@ -3037,7 +3037,7 @@ B^{(C, proper)} \to B^{(A, proper)} \quad \text{as } n \to \infty
 <section id="from-posterior-variance-to-between-imputation-variance" class="level4" data-number="1.7.5.1">
 <h4 data-number="1.7.5.1" class="anchored" data-anchor-id="from-posterior-variance-to-between-imputation-variance"><span class="header-section-number">1.7.5.1</span> From Posterior Variance to Between-Imputation Variance</h4>
 <p>Let <span class="math inline">\(\hat{\theta}^{(m)}\)</span> denote the estimate from the <span class="math inline">\(m\)</span>-th imputed dataset. Each imputation draws <span class="math inline">\(Y_{mis}^{(m)}\)</span> from the posterior: <span class="math display">\[
-Y_{mis}^{(m)} \sim p(Y_{mis} | Y_{obs}, \tilde{\theta})
+Y_{mis}^{(m)} \sim p(Y_{mis} | Y_{obs}, \tilde{\phi})
 \]</span></p>
 <p>The between-imputation variance is: <span class="math display">\[
 B = \text{Var}\left(\hat{\theta}^{(m)} | Y_{obs}\right)
@@ -3046,7 +3046,7 @@ B = \text{Var}\left(\hat{\theta}^{(m)} | Y_{obs}\right)
 \hat{\theta}^{(m)} \approx \hat{\theta}(\mathbb{E}[Y_{mis}]) + \frac{\partial \hat{\theta}}{\partial Y_{mis}} \left(Y_{mis}^{(m)} - \mathbb{E}[Y_{mis}]\right)
 \]</span></p>
 <p>Therefore: <span class="math display">\[
-B \approx \frac{\partial \hat{\theta}}{\partial Y_{mis}} \, \text{Var}(Y_{mis} | Y_{obs}, \tilde{\theta}) \, \left(\frac{\partial \hat{\theta}}{\partial Y_{mis}}\right)^\top
+B \approx \frac{\partial \hat{\theta}}{\partial Y_{mis}} \, \text{Var}(Y_{mis} | Y_{obs}, \tilde{\phi}) \, \left(\frac{\partial \hat{\theta}}{\partial Y_{mis}}\right)^\top
 \]</span></p>
 <p>This shows that <span class="math inline">\(B\)</span> is a <strong>linear transformation</strong> of the posterior variance from the imputation model.</p>
 </section>
