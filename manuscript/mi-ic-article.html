@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Marcus R. Waldman">
+<meta name="dcterms.date" content="2026-01-11">
+<meta name="keywords" content="multiple imputation, information criteria, AIC, BIC, model selection, missing data, Q-function">
+
+<title>Information Criteria for Multiply-Imputed Data: A Principled Approach for Complete-Data Replication</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="mi-ic-article_files/libs/clipboard/clipboard.min.js"></script>
+<script src="mi-ic-article_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="mi-ic-article_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="mi-ic-article_files/libs/quarto-html/popper.min.js"></script>
+<script src="mi-ic-article_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="mi-ic-article_files/libs/quarto-html/anchor.min.js"></script>
+<link href="mi-ic-article_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="mi-ic-article_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="mi-ic-article_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="mi-ic-article_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="mi-ic-article_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-intro" id="toc-sec-intro" class="nav-link active" data-scroll-target="#sec-intro">1. Introduction</a></li>
+  <li><a href="#sec-background" id="toc-sec-background" class="nav-link" data-scroll-target="#sec-background">2. Background: Model Selection and Missing Data</a>
+  <ul class="collapse">
+  <li><a href="#aic-bic" id="toc-aic-bic" class="nav-link" data-scroll-target="#aic-bic">2.1 AIC &amp; BIC</a></li>
+  <li><a href="#multiple-imputation-framework" id="toc-multiple-imputation-framework" class="nav-link" data-scroll-target="#multiple-imputation-framework">2.2 Multiple Imputation Framework</a>
+  <ul class="collapse">
+  <li><a href="#rubins-pooling-rules" id="toc-rubins-pooling-rules" class="nav-link" data-scroll-target="#rubins-pooling-rules">2.2.1 Rubin’s Pooling Rules</a></li>
+  <li><a href="#the-q-function-and-mi" id="toc-the-q-function-and-mi" class="nav-link" data-scroll-target="#the-q-function-and-mi">2.2.2 The Q-Function and MI</a></li>
+  </ul></li>
+  <li><a href="#existing-approaches-to-ic-under-missing-data" id="toc-existing-approaches-to-ic-under-missing-data" class="nav-link" data-scroll-target="#existing-approaches-to-ic-under-missing-data">2.3 Existing Approaches to IC Under Missing Data</a>
+  <ul class="collapse">
+  <li><a href="#ad-hoc-averaging" id="toc-ad-hoc-averaging" class="nav-link" data-scroll-target="#ad-hoc-averaging">2.3.1 Ad Hoc Averaging</a></li>
+  <li><a href="#pdio-and-aiccd" id="toc-pdio-and-aiccd" class="nav-link" data-scroll-target="#pdio-and-aiccd">2.3.2 PDIO and AICcd</a></li>
+  <li><a href="#other-methods" id="toc-other-methods" class="nav-link" data-scroll-target="#other-methods">2.3.3 Other Methods</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#sec-theory" id="toc-sec-theory" class="nav-link" data-scroll-target="#sec-theory">3. Theory: Deriving Corrected IC for Complete-Data Replication</a>
+  <ul class="collapse">
+  <li><a href="#defining-the-target" id="toc-defining-the-target" class="nav-link" data-scroll-target="#defining-the-target">3.1 Defining the Target</a></li>
+  <li><a href="#what-mi-computes" id="toc-what-mi-computes" class="nav-link" data-scroll-target="#what-mi-computes">3.2 What MI Computes</a></li>
+  <li><a href="#the-bias-decomposition" id="toc-the-bias-decomposition" class="nav-link" data-scroll-target="#the-bias-decomposition">3.3 The Bias Decomposition</a>
+  <ul class="collapse">
+  <li><a href="#term-1-imputation-bias" id="toc-term-1-imputation-bias" class="nav-link" data-scroll-target="#term-1-imputation-bias">3.3.1 Term 1: Imputation Bias</a></li>
+  <li><a href="#term-2-estimation-mismatch" id="toc-term-2-estimation-mismatch" class="nav-link" data-scroll-target="#term-2-estimation-mismatch">3.3.2 Term 2: Estimation Mismatch</a></li>
+  <li><a href="#total-bias" id="toc-total-bias" class="nav-link" data-scroll-target="#total-bias">3.3.3 Total Bias</a></li>
+  </ul></li>
+  <li><a href="#corrected-ic-formulas" id="toc-corrected-ic-formulas" class="nav-link" data-scroll-target="#corrected-ic-formulas">3.4 Corrected IC Formulas</a></li>
+  <li><a href="#comparison-to-pdio-and-aiccd" id="toc-comparison-to-pdio-and-aiccd" class="nav-link" data-scroll-target="#comparison-to-pdio-and-aiccd">3.5 Comparison to PDIO and AICcd</a></li>
+  </ul></li>
+  <li><a href="#sec-simulation" id="toc-sec-simulation" class="nav-link" data-scroll-target="#sec-simulation">4. Simulation Studies</a>
+  <ul class="collapse">
+  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">4.1 Overview</a></li>
+  <li><a href="#study-1-illustrating-the-bias-formula-and-key-assumptions" id="toc-study-1-illustrating-the-bias-formula-and-key-assumptions" class="nav-link" data-scroll-target="#study-1-illustrating-the-bias-formula-and-key-assumptions">4.2 Study 1: Illustrating the Bias Formula and Key Assumptions</a>
+  <ul class="collapse">
+  <li><a href="#purpose" id="toc-purpose" class="nav-link" data-scroll-target="#purpose">4.2.1 Purpose</a></li>
+  <li><a href="#design" id="toc-design" class="nav-link" data-scroll-target="#design">4.2.2 Design</a></li>
+  <li><a href="#outcomes" id="toc-outcomes" class="nav-link" data-scroll-target="#outcomes">4.2.3 Outcomes</a></li>
+  <li><a href="#expected-results" id="toc-expected-results" class="nav-link" data-scroll-target="#expected-results">4.2.4 Expected Results</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">4.2.5 Summary</a></li>
+  </ul></li>
+  <li><a href="#study-2-structural-equation-modeling" id="toc-study-2-structural-equation-modeling" class="nav-link" data-scroll-target="#study-2-structural-equation-modeling">4.3 Study 2: Structural Equation Modeling</a></li>
+  <li><a href="#study-3-latent-profile-analysis" id="toc-study-3-latent-profile-analysis" class="nav-link" data-scroll-target="#study-3-latent-profile-analysis">4.4 Study 3: Latent Profile Analysis</a></li>
+  </ul></li>
+  <li><a href="#sec-empirical" id="toc-sec-empirical" class="nav-link" data-scroll-target="#sec-empirical">5. Empirical Example</a></li>
+  <li><a href="#sec-discussion" id="toc-sec-discussion" class="nav-link" data-scroll-target="#sec-discussion">6. Discussion</a></li>
+  <li><a href="#appendix-a" id="toc-appendix-a" class="nav-link" data-scroll-target="#appendix-a">Appendix A: Detailed Derivation of Term 1 (Imputation Bias)</a>
+  <ul class="collapse">
+  <li><a href="#a.1-proof-strategy" id="toc-a.1-proof-strategy" class="nav-link" data-scroll-target="#a.1-proof-strategy">A.1 Proof Strategy</a></li>
+  <li><a href="#a.2-simplifying-the-nested-expectations" id="toc-a.2-simplifying-the-nested-expectations" class="nav-link" data-scroll-target="#a.2-simplifying-the-nested-expectations">A.2 Simplifying the Nested Expectations</a></li>
+  <li><a href="#a.3-taylor-expansion-of-the-expectation" id="toc-a.3-taylor-expansion-of-the-expectation" class="nav-link" data-scroll-target="#a.3-taylor-expansion-of-the-expectation">A.3 Taylor Expansion of the Expectation</a></li>
+  <li><a href="#a.4-applying-to-our-setting" id="toc-a.4-applying-to-our-setting" class="nav-link" data-scroll-target="#a.4-applying-to-our-setting">A.4 Applying to Our Setting</a></li>
+  <li><a href="#a.5-expanding-the-log-likelihood" id="toc-a.5-expanding-the-log-likelihood" class="nav-link" data-scroll-target="#a.5-expanding-the-log-likelihood">A.5 Expanding the Log-Likelihood</a></li>
+  <li><a href="#a.6-the-key-cancellation-gibbs-inequality" id="toc-a.6-the-key-cancellation-gibbs-inequality" class="nav-link" data-scroll-target="#a.6-the-key-cancellation-gibbs-inequality">A.6 The Key Cancellation (Gibbs’ Inequality)</a></li>
+  <li><a href="#a.7-combining-results" id="toc-a.7-combining-results" class="nav-link" data-scroll-target="#a.7-combining-results">A.7 Combining Results</a></li>
+  <li><a href="#a.8-converting-to-trace-form" id="toc-a.8-converting-to-trace-form" class="nav-link" data-scroll-target="#a.8-converting-to-trace-form">A.8 Converting to Trace Form</a></li>
+  <li><a href="#a.9-simplification-under-key-assumptions" id="toc-a.9-simplification-under-key-assumptions" class="nav-link" data-scroll-target="#a.9-simplification-under-key-assumptions">A.9 Simplification Under Key Assumptions</a></li>
+  <li><a href="#a.10-summary" id="toc-a.10-summary" class="nav-link" data-scroll-target="#a.10-summary">A.10 Summary</a></li>
+  </ul></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="..\mi-ic-article.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Information Criteria for Multiply-Imputed Data: A Principled Approach for Complete-Data Replication</h1>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Marcus R. Waldman </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            University of Colorado Anschutz Medical Campus
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 11, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Model selection via information criteria (AIC, BIC) is fundamental to quantitative research, yet standard approaches break down when data contain missing values. Applied researchers using multiple imputation (MI) typically average IC values across imputations—a procedure lacking theoretical justification—or use methods like AICcd that target predictive performance rather than what researchers actually want: replication of the inference they would have made had their data been complete. This article introduces the <em>complete-data replication</em> principle and derives corrected information criteria that target this goal. We show that the pooled deviance across imputations (the Q-function) is biased for the complete-data log-likelihood, with bias equal to ½tr(RIV), where RIV is the relative increase in variance from Rubin’s combining rules. This leads to corrected formulas—MI-AIC and MI-BIC—that require only standard MI output and represent minimal modification to current practice. We clarify why our approach differs from AICcd (which uses 2tr(RIV) rather than tr(RIV)) by showing they target different inferential goals. Simulation studies in structural equation modeling and latent profile analysis demonstrate that the corrected criteria better replicate complete-data model selection decisions. Practical guidance for implementation is provided.</p>
+  </div>
+</div>
+
+<div>
+  <div class="keywords">
+    <div class="block-title">Keywords</div>
+    <p>multiple imputation, information criteria, AIC, BIC, model selection, missing data, Q-function</p>
+  </div>
+</div>
+
+</header>
+
+
+<section id="sec-intro" class="level1">
+<h1>1. Introduction</h1>
+<p>Model selection via information criteria (IC) such as AIC <span class="citation" data-cites="akaikehirotuguNewLookStatistical1974">(<a href="#ref-akaikehirotuguNewLookStatistical1974" role="doc-biblioref">Akaike, Hirotugu 1974</a>)</span> and BIC <span class="citation" data-cites="schwarzgideonEstimatingDimensionModel1978">(<a href="#ref-schwarzgideonEstimatingDimensionModel1978" role="doc-biblioref">Schwarz, Gideon 1978</a>)</span> are fundamental to quantitative research across the behavioral sciences. These criteria are most frequently used for evaluating nonnested models, providing a principled basis for balancing fit against complexity. For example, in mixture modeling, IC guide class enumeration decisions <span class="citation" data-cites="nylundasparouhovmuthenDecidingNumberClasses2007 masynLatentClassAnalysis2013a">(<a href="#ref-nylundasparouhovmuthenDecidingNumberClasses2007" role="doc-biblioref">Nylund, Asparouhov, Muthén 2007</a>; <a href="#ref-masynLatentClassAnalysis2013a" role="doc-biblioref">Masyn 2013</a>)</span>, while in structural equation modeling, they inform choices among alternative factor structures and tests of measurement invariance <span class="citation" data-cites="kuiperAICtypeTheoryBasedModel2022 linhuangwengSelectingPathModels2017 vriezeModelSelectionPsychological2012 huangAsymptoticsAICBIC2017">(<a href="#ref-kuiperAICtypeTheoryBasedModel2022" role="doc-biblioref">Kuiper 2022</a>; <a href="#ref-linhuangwengSelectingPathModels2017" role="doc-biblioref">Lin, Huang, Weng 2017</a>; <a href="#ref-vriezeModelSelectionPsychological2012" role="doc-biblioref">Vrieze 2012</a>; <a href="#ref-huangAsymptoticsAICBIC2017" role="doc-biblioref">Huang 2017</a>)</span>, as well as decisions about cross-loadings and residual covariances <span class="citation" data-cites="linhuangwengSelectingPathModels2017 bollenBICAlternativeBayesian2014">(<a href="#ref-linhuangwengSelectingPathModels2017" role="doc-biblioref">Lin, Huang, Weng 2017</a>; <a href="#ref-bollenBICAlternativeBayesian2014" role="doc-biblioref">Bollen et al. 2014</a>)</span>. At the same time, missing data are nearly ubiquitous in applied research. Multiple imputation (MI) has emerged as the dominant approach for handling missing data <span class="citation" data-cites="rubindonaldb.MultipleImputationNonresponse1987 schaferMissingDataOur2002 grahamMissingDataAnalysis2009">(<a href="#ref-rubindonaldb.MultipleImputationNonresponse1987" role="doc-biblioref">Rubin, Donald B. 1987</a>; <a href="#ref-schaferMissingDataOur2002" role="doc-biblioref">Schafer and Graham 2002</a>; <a href="#ref-grahamMissingDataAnalysis2009" role="doc-biblioref">Graham 2009</a>)</span>, offering a framework that is both principled and convenient for propagating uncertainty from the imputation process through to final inferences.</p>
+<p>Despite the widespread use of both IC and MI, there is no consensus on how to properly pool them. Applied researchers and the software they use typically average IC values across imputations—a procedure lacking both theoretical justification and a clear inferential target. Although theoretical work on IC for missing data exists, such as the AIC with a correction for missing data (AICcd) proposed by <span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">Cavanaugh and Shumway (<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">1998</a>)</span>, these methods have not been implemented in standard SEM software and target predictive performance at the observed-data maximum likelihood estimate rather than what applied researchers typically seek: replication of the inference they would have made had their data been complete. This leaves a fundamental question unresolved: <em>What information criteria would researchers have computed had their data been complete?</em> Although asymptotic theory establishes that IC will select the correct model structure as sample size grows <span class="citation" data-cites="akaikehirotuguNewLookStatistical1974 schwarzgideonEstimatingDimensionModel1978 huangAsymptoticsAICBIC2017">(<a href="#ref-akaikehirotuguNewLookStatistical1974" role="doc-biblioref">Akaike, Hirotugu 1974</a>; <a href="#ref-schwarzgideonEstimatingDimensionModel1978" role="doc-biblioref">Schwarz, Gideon 1978</a>; <a href="#ref-huangAsymptoticsAICBIC2017" role="doc-biblioref">Huang 2017</a>)</span>, this provides no guidance for the finite-sample behavior of IC under MI or when all candidate models are approximations—the most common situation in practice.</p>
+<p>The primary purpose of this article is to introduce the <em>complete-data replication</em> principle and derive information criteria that answer this question by targeting what AIC and BIC would have been at the complete-data maximum likelihood estimate. We show that the pooled deviance across imputations is biased for the complete-data log-likelihood, with bias equal to ½tr(RIV), where RIV is the relative increase in variance from Rubin’s rules <span class="citation" data-cites="rubindonaldb.MultipleImputationNonresponse1987">(<a href="#ref-rubindonaldb.MultipleImputationNonresponse1987" role="doc-biblioref">Rubin, Donald B. 1987</a>)</span>. Although this result builds on the connection between MI and the Q-function from EM-based approaches, our contribution extends this work to the MI framework where imputations are drawn from a posterior distribution rather than a point estimate. This leads to corrected formulas—MI-AIC and MI-BIC—that require only standard MI output. We clarify why our approach differs from AICcd by showing they target different inferential goals, conduct simulation studies in structural equation modeling and latent profile analysis to demonstrate that the corrected criteria better replicate complete-data model selection decisions, and provide practical guidance for implementation.</p>
+<p>The next section reviews information criteria and multiple imputation, establishing notation and the complete-data replication principle. Section 3 presents the theoretical derivation of the bias in the Q-function and the corrected IC formulas. Section 4 describes two simulation studies that evaluate performance when the true model is among the candidates and when all models are approximations. Section 5 presents an empirical example, and Section 6 concludes with a discussion of implications and recommendations.</p>
+<hr>
+</section>
+<section id="sec-background" class="level1">
+<h1>2. Background: Model Selection and Missing Data</h1>
+<section id="aic-bic" class="level2">
+<h2 class="anchored" data-anchor-id="aic-bic">2.1 AIC &amp; BIC</h2>
+<p>The Akaike Information Criterion (AIC; <span class="citation" data-cites="akaikehirotuguNewLookStatistical1974">Akaike, Hirotugu (<a href="#ref-akaikehirotuguNewLookStatistical1974" role="doc-biblioref">1974</a>)</span>) and Bayesian Information Criterion (BIC; <span class="citation" data-cites="schwarzgideonEstimatingDimensionModel1978">Schwarz, Gideon (<a href="#ref-schwarzgideonEstimatingDimensionModel1978" role="doc-biblioref">1978</a>)</span>) are model selection tools that estimate the expected predictive performance of candidate models. Both are based on the Kullback-Leibler (KL) divergence, a measure of the distance between a fitted model and the true data-generating model <span class="citation" data-cites="cavanaughAkaikeInformationCriterion2019">(<a href="#ref-cavanaughAkaikeInformationCriterion2019" role="doc-biblioref">Cavanaugh and Neath 2019</a>)</span>. AIC provides an asymptotically unbiased estimator of the expected KL-divergence, while BIC approximates the Bayes factor for model comparison under certain prior specifications.</p>
+<p>AIC is defined as:</p>
+<p><span class="math display">\[\text{AIC} = -2\ell(\hat{\theta}) + 2q\]</span></p>
+<p>BIC is defined as:</p>
+<p><span class="math display">\[\text{BIC} = -2\ell(\hat{\theta}) + q\log(n)\]</span></p>
+<p>where <span class="math inline">\(\ell(\hat{\theta})\)</span> is the log-likelihood evaluated at the maximum likelihood estimate (MLE), <span class="math inline">\(q\)</span> is the number of parameters, and <span class="math inline">\(n\)</span> is the sample size. The penalty terms (<span class="math inline">\(2q\)</span> for AIC, <span class="math inline">\(q\log(n)\)</span> for BIC) correct for overfitting by penalizing model complexity. Lower values indicate better models.</p>
+<p>While both criteria target predictive performance, they differ in their asymptotic properties. AIC optimizes expected prediction error, while BIC is consistent for selecting the true model when it is among the candidates <span class="citation" data-cites="huangAsymptoticsAICBIC2017">(<a href="#ref-huangAsymptoticsAICBIC2017" role="doc-biblioref">Huang 2017</a>)</span>. In latent class and mixture modeling contexts, BIC tends to outperform AIC in selecting the correct number of classes <span class="citation" data-cites="nylundasparouhovmuthenDecidingNumberClasses2007">(<a href="#ref-nylundasparouhovmuthenDecidingNumberClasses2007" role="doc-biblioref">Nylund, Asparouhov, Muthén 2007</a>)</span>.</p>
+<p>Both AIC and BIC assume complete data when computing the log-likelihood at the MLE. When data contain missing values, this assumption no longer holds, motivating the need for modified IC formulas.</p>
+</section>
+<section id="multiple-imputation-framework" class="level2">
+<h2 class="anchored" data-anchor-id="multiple-imputation-framework">2.2 Multiple Imputation Framework</h2>
+<p>Multiple imputation (MI; <span class="citation" data-cites="rubindonaldb.MultipleImputationNonresponse1987">Rubin, Donald B. (<a href="#ref-rubindonaldb.MultipleImputationNonresponse1987" role="doc-biblioref">1987</a>)</span>) is a widely-used approach to treat missing data that is both principled and convenient. It is principled because it reflects uncertainty about the missing values through the imputation distribution and, fundamentally, marginalizes across the complete-data likelihood to approximate the observed-data likelihood.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> It is convenient because it separates the imputation step from the analysis step, allowing analysts to use standard complete-data methods after imputation <span class="citation" data-cites="schaferMissingDataOur2002 grahamMissingDataAnalysis2009">(<a href="#ref-schaferMissingDataOur2002" role="doc-biblioref">Schafer and Graham 2002</a>; <a href="#ref-grahamMissingDataAnalysis2009" role="doc-biblioref">Graham 2009</a>)</span>. The MI procedure consists of three steps:</p>
+<ol type="1">
+<li>For <span class="math inline">\(m = 1, \ldots, M\)</span>: Generate one random imputation of the missing values under a specified distribution</li>
+<li>Fit the model of interest to each imputed dataset</li>
+<li>Pool the resulting parameter estimates and inferences</li>
+</ol>
+<p>For the theoretical results in this article, we assume imputations are <em>Bayesianly proper</em> <span class="citation" data-cites="schaferAnalysisIncompleteMultivariate1997a">(<a href="#ref-schaferAnalysisIncompleteMultivariate1997a" role="doc-biblioref">Schafer 1997</a>)</span>—that is, the imputed values are drawn from a posterior predictive distribution that accounts for uncertainty in both the missing data and the parameters of the imputation model. This distinguishes proper MI from simpler imputation methods that condition on point estimates of parameters.</p>
+<p>The Bayesian foundation of multiple imputation is to make inference from the observed-data posterior distribution, <span class="math inline">\(p(\theta | Y_{\text{obs}})\)</span>. By generating multiple draws from the posterior predictive distribution of the missing data and analyzing each completed dataset, MI approximates this observed-data posterior. The goal is to obtain parameter estimates and uncertainty quantification that would arise from directly analyzing the observed-data posterior, without explicitly deriving its analytical form.</p>
+<section id="rubins-pooling-rules" class="level3">
+<h3 class="anchored" data-anchor-id="rubins-pooling-rules">2.2.1 Rubin’s Pooling Rules</h3>
+<p>Rubin’s rules <span class="citation" data-cites="rubindonaldb.MultipleImputationNonresponse1987">(<a href="#ref-rubindonaldb.MultipleImputationNonresponse1987" role="doc-biblioref">Rubin, Donald B. 1987</a>)</span> provide the framework for combining estimates across imputations. These combining rules are derived under the assumption that the observed-data posterior can be approximated as a normal distribution, allowing for straightforward pooling of point estimates and variances. For a scalar parameter with point estimate <span class="math inline">\(\hat{\theta}_m\)</span> from imputed dataset <span class="math inline">\(m\)</span>:</p>
+<ul>
+<li><strong>Pooled estimate</strong>: <span class="math inline">\(\bar{\theta} = M^{-1}\sum_{m=1}^M \hat{\theta}_m\)</span></li>
+<li><strong>Within-imputation variance</strong>: <span class="math inline">\(W = M^{-1}\sum_{m=1}^M V_m\)</span>, where <span class="math inline">\(V_m\)</span> is the variance estimate from dataset <span class="math inline">\(m\)</span></li>
+<li><strong>Between-imputation variance</strong>: <span class="math inline">\(B = \frac{1}{M-1}\sum_{m=1}^M(\hat{\theta}_m - \bar{\theta})^2\)</span></li>
+<li><strong>Total variance</strong>: <span class="math inline">\(T = W + (1 + M^{-1})B\)</span></li>
+<li><strong>Relative Increase in Variance</strong>: <span class="math inline">\(\text{RIV} = (1 + M^{-1})B / W\)</span></li>
+</ul>
+<p>The within-imputation variance <span class="math inline">\(W\)</span> reflects the average uncertainty within each imputed dataset—the variability that would remain even if the missing values were known. The between-imputation variance <span class="math inline">\(B\)</span> captures the variability across imputations, reflecting uncertainty about what the missing values actually are. The total variance <span class="math inline">\(T\)</span> combines these sources, with the term <span class="math inline">\((1 + M^{-1})B\)</span> providing a finite-sample correction for using <span class="math inline">\(M\)</span> rather than infinite imputations. The relative increase in variance (RIV) quantifies how much additional uncertainty is introduced by the missingness, expressed as a proportion of the within-imputation variance. Conceptually, RIV connects to the missing information principle: it estimates the ratio of missing information to observed information, <span class="math inline">\(\mathcal{I}_{\text{mis}|\text{obs}} / \mathcal{I}_{\text{obs}}\)</span>.</p>
+</section>
+<section id="the-q-function-and-mi" class="level3">
+<h3 class="anchored" data-anchor-id="the-q-function-and-mi">2.2.2 The Q-Function and MI</h3>
+<p>The connection between MI and the EM algorithm [<span class="citation" data-cites="dempstera.p">(<a href="#ref-dempstera.p" role="doc-biblioref"><strong>dempstera.p?</strong></a>)</span>.;lairdn.m.;rubind.b.MaximumLikelihoodIncomplete1977] provides important theoretical context for our derivation. The EM algorithm iterates between an E-step (computing the expected complete-data log-likelihood given current parameter estimates) and an M-step (maximizing this expectation). The Q-function is the expected complete-data log-likelihood:</p>
+<p><span class="math display">\[Q(\theta|\theta_t) = E[\ell_{\text{com}}(\theta) | Y_{\text{obs}}, \theta_t]\]</span></p>
+<p>where <span class="math inline">\(\ell_{\text{com}}(\theta)\)</span> is the log-likelihood for the complete data (observed plus imputed), and the expectation is over the distribution of the missing data given the observed data and current parameters <span class="math inline">\(\theta_t\)</span>. In traditional EM, this expectation is evaluated either analytically or through numerical integration.</p>
+<p>Stochastic EM (NEEDS CITATION) provides a bridge between traditional EM and multiple imputation. Rather than computing the expectation analytically, Stochastic EM approximates the E-step by drawing samples from the conditional distribution of the missing data. The Q-function is then approximated as an average of complete-data log-likelihoods across these draws. Multiple imputation extends this stochastic approach by additionally drawing parameters from their posterior distribution, rather than conditioning on point estimates as in Stochastic EM. This Bayesian treatment of parameter uncertainty distinguishes <em>Bayesianly proper</em> MI <span class="citation" data-cites="schaferAnalysisIncompleteMultivariate1997a">(<a href="#ref-schaferAnalysisIncompleteMultivariate1997a" role="doc-biblioref">Schafer 1997</a>)</span> from deterministic or stochastic EM approaches.</p>
+<p>Central to this framework is the <em>missing information principle</em> <span class="citation" data-cites="orchardMissingInformationPrinciple1972a schaferAnalysisIncompleteMultivariate1997a">(<a href="#ref-orchardMissingInformationPrinciple1972a" role="doc-biblioref">Orchard and Woodbury 1972</a>; <a href="#ref-schaferAnalysisIncompleteMultivariate1997a" role="doc-biblioref">Schafer 1997</a>)</span>, which decomposes the complete-data observed information matrix (derived from the Hessian) as:</p>
+<p><span class="math display">\[\mathcal{I}_{\text{com}} = \mathcal{I}_{\text{obs}} + \mathcal{I}_{\text{mis}|\text{obs}}\]</span></p>
+<p>This decomposition reveals that the observed-data information (<span class="math inline">\(\mathcal{I}_{\text{obs}}\)</span>) is less than the complete-data information (<span class="math inline">\(\mathcal{I}_{\text{com}}\)</span>) by an amount equal to the missing information (<span class="math inline">\(\mathcal{I}_{\text{mis}|\text{obs}}\)</span>). The ratio <span class="math inline">\(\mathcal{I}_{\text{mis}|\text{obs}} / \mathcal{I}_{\text{obs}}\)</span> quantifies the information loss due to missingness, which connects directly to RIV in Rubin’s rules. This article extends theoretical results developed in the Q-function and EM literature to the Bayesianly proper MI framework, where the target is replication of complete-data inference rather than observed-data maximization.</p>
+</section>
+</section>
+<section id="existing-approaches-to-ic-under-missing-data" class="level2">
+<h2 class="anchored" data-anchor-id="existing-approaches-to-ic-under-missing-data">2.3 Existing Approaches to IC Under Missing Data</h2>
+<section id="ad-hoc-averaging" class="level3">
+<h3 class="anchored" data-anchor-id="ad-hoc-averaging">2.3.1 Ad Hoc Averaging</h3>
+<p>The most common approach in applied practice is to compute IC for each imputed dataset separately, then average across imputations:</p>
+<p><span class="math display">\[\text{IC}_{\text{adhoc}} = M^{-1}\sum_{m=1}^M \text{IC}_m\]</span></p>
+<p>This approach has intuitive appeal—it treats IC values like parameter estimates and applies the same averaging used for point estimates. It is also what standard MI software packages compute by default, making it the path of least resistance for applied researchers. However, this procedure lacks theoretical justification. It is unclear what quantity the averaged IC estimates, and the approach conflates two sources of variability: the within-imputation uncertainty captured by each <span class="math inline">\(\text{IC}_m\)</span> and the between-imputation variability reflecting missing-data uncertainty. Despite these limitations, ad hoc averaging remains widespread in practice due to its simplicity and default availability in software.</p>
+</section>
+<section id="pdio-and-aiccd" class="level3">
+<h3 class="anchored" data-anchor-id="pdio-and-aiccd">2.3.2 PDIO and AICcd</h3>
+<p>The first theoretically grounded correction for information criteria under incomplete data was derived by <span class="citation" data-cites="shimodaira1994">(<a href="#ref-shimodaira1994" role="doc-biblioref"><strong>shimodaira1994?</strong></a>)</span>, who proposed PDIO (predictive divergence for indirect observation models). Shimodaira showed that for models where observations are only available indirectly—including missing data, latent variable models, and mixture distributions—the AIC penalty should be <span class="math inline">\(\text{tr}(I_X I_Y^{-1})\)</span> rather than simply <span class="math inline">\(q\)</span>, where <span class="math inline">\(I_X\)</span> is the complete-data Fisher information and <span class="math inline">\(I_Y\)</span> is the observed-data Fisher information. Using the missing information principle, this can be rewritten as <span class="math inline">\(\text{tr}(I_X I_Y^{-1}) = q + \text{tr}(\text{RIV})\)</span>, yielding a penalty of <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span> on the AIC scale.</p>
+<p><span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">Cavanaugh and Shumway (<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">1998</a>)</span> independently derived an equivalent result, which they termed AICcd (AIC with correction for incomplete data):</p>
+<p><span class="math display">\[\text{AICcd} = -2\bar{Q} + 2q + 2\text{tr}(\text{RIV})\]</span></p>
+<p>where <span class="math inline">\(\bar{Q}\)</span> is the pooled log-likelihood across imputations. Both PDIO and AICcd target the expected predictive performance of the model at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>. The penalty term <span class="math inline">\(2\text{tr}(\text{RIV})\)</span> accounts for the additional degrees of freedom consumed by estimating parameters in the presence of missing data—it is double the trace of the missing information ratio because it corrects for both the bias from in-sample optimization and the information loss from missingness. Importantly, PDIO and AICcd answer a different question than the one posed in this article. While they target predictive performance given the observed-data structure, our MI-AIC targets replication of what the researcher would have computed had the data been complete. Both are theoretically valid for their respective inferential goals, but they optimize different objectives.</p>
+</section>
+<section id="other-methods" class="level3">
+<h3 class="anchored" data-anchor-id="other-methods">2.3.3 Other Methods</h3>
+<p>An alternative strategy is to avoid imputation altogether by using full information maximum likelihood (FIML), which directly maximizes the observed-data likelihood and allows standard IC formulas to be applied <span class="citation" data-cites="laiUsingInformationCriteria2021">(<a href="#ref-laiUsingInformationCriteria2021" role="doc-biblioref">Lai 2021</a>)</span>. While FIML and MI are both valid approaches, they involve different computational strategies and may yield different IC values for the same model. A key observation across existing methods is that none explicitly target complete-data replication—the inference a researcher would have made had there been no missing data. This is the gap our approach fills.</p>
+<hr>
+</section>
+</section>
+</section>
+<section id="sec-theory" class="level1">
+<h1>3. Theory: Deriving Corrected IC for Complete-Data Replication</h1>
+<section id="defining-the-target" class="level2">
+<h2 class="anchored" data-anchor-id="defining-the-target">3.1 Defining the Target</h2>
+<p>When researchers use multiple imputation to handle missing data, a natural question arises: which model would I have selected had my data been complete? This framing treats MI as a device to approximate complete-data inference, allowing researchers to make decisions that replicate what they would have concluded without missingness. Our target is therefore <span class="math inline">\(\text{AIC}_{\text{com}}\)</span>, the AIC that would have been computed had the data been complete:</p>
+<p><span class="math display">\[\text{AIC}_{\text{com}} = -2\ell_{\text{com}}(\hat{\theta}_{\text{com}}) + 2q\]</span></p>
+<p>where <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> is the MLE under the complete-data model, <span class="math inline">\(\ell_{\text{com}}(\cdot)\)</span> is the complete-data log-likelihood, and <span class="math inline">\(q\)</span> is the number of parameters.</p>
+<p>This target differs fundamentally from alternative approaches. For example, AICcd <span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">(<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">Cavanaugh and Shumway 1998</a>)</span> targets predictive performance evaluated at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>, reflecting the goal of optimal prediction given the observed-data structure. In contrast, our goal is to replicate the inference a researcher would make if the data had no missing values—answering “what model would I select with complete data?” rather than “what model predicts best given my observed data?” Both targets are valid, but they serve different inferential purposes. For most applications in structural equation modeling and applied psychological research, complete-data replication is the more natural choice because researchers typically ask counterfactual questions about their substantive conclusions, not predictive questions conditional on the pattern of missingness.</p>
+</section>
+<section id="what-mi-computes" class="level2">
+<h2 class="anchored" data-anchor-id="what-mi-computes">3.2 What MI Computes</h2>
+<p>Multiple imputation provides <span class="math inline">\(M\)</span> completed datasets <span class="math inline">\(Y_1^{\text{com}}, \ldots, Y_M^{\text{com}}\)</span>, each consisting of the observed data <span class="math inline">\(Y^{\text{obs}}\)</span> combined with imputed values for the missing data. For each completed dataset, we can compute the complete-data log-likelihood <span class="math inline">\(\ell_{\text{com}}(\theta | Y_m^{\text{com}})\)</span> and fit the model to obtain parameter estimates. The Q-function, introduced in Section 2.2.2, is the average of the complete-data log-likelihoods across imputations:</p>
+<p><span class="math display">\[\bar{Q}(\theta) = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\theta | Y_m^{\text{com}})\]</span></p>
+<p>In practice, we evaluate this Q-function at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>—the parameter estimate obtained by pooling estimates across imputations using Rubin’s rules.</p>
+<p>To understand the challenge, consider the parameter landscape. Let <span class="math inline">\(\theta^*\)</span> denote the true parameter value. The complete-data MLE <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> is the value that would maximize the complete-data log-likelihood if we had no missing values: <span class="math inline">\(\hat{\theta}_{\text{com}} = \arg\max_\theta \ell_{\text{com}}(\theta | Y^{\text{com}})\)</span>. The observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> is the value obtained from the observed data (or equivalently, pooled across imputations), which maximizes <span class="math inline">\(\ell_{\text{obs}}(\theta | Y^{\text{obs}})\)</span>. Finally, let <span class="math inline">\(\tilde{\phi}\)</span> denote the imputation parameter—in Bayesianly proper MI, this is a draw from the posterior distribution <span class="math inline">\(p(\theta|Y^{\text{obs}})\)</span>. This posterior draw distinguishes proper MI from deterministic approaches: each imputation uses a different <span class="math inline">\(\tilde{\phi}^{(m)}\)</span> sampled from the posterior, rather than conditioning on a single point estimate as in the EM algorithm.</p>
+<p>The central question is: what is the bias when we use <span class="math inline">\(\bar{Q}(\hat{\theta}_{\text{obs}})\)</span> as a proxy for <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\)</span>? We want the log-likelihood at the complete-data MLE, but MI gives us the Q-function at the observed-data MLE. The bias decomposes into two terms, which we derive in the next section.</p>
+</section>
+<section id="the-bias-decomposition" class="level2">
+<h2 class="anchored" data-anchor-id="the-bias-decomposition">3.3 The Bias Decomposition</h2>
+<p>The bias of <span class="math inline">\(\bar{Q}\)</span> as an estimate of <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\)</span> decomposes as:</p>
+<p><span class="math display">\[\text{Bias} = \mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})] = \underbrace{\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]}_{\text{Term 1: Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})]}_{\text{Term 2: Estimation Mismatch}}\]</span></p>
+<p>The notation <span class="math inline">\(Q(\hat{\theta}_{\text{obs}}|\tilde{\phi})\)</span> emphasizes that the Q-function depends on both: (1) the parameter <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> at which we evaluate the log-likelihood, and (2) the imputation parameter <span class="math inline">\(\tilde{\phi}\)</span> used to generate the imputed values. This distinguishes the MI framework from deterministic EM, where the Q-function is conditioned on a point estimate rather than a draw from the posterior.</p>
+<section id="term-1-imputation-bias" class="level3">
+<h3 class="anchored" data-anchor-id="term-1-imputation-bias">3.3.1 Term 1: Imputation Bias</h3>
+<p>Term 1 quantifies the bias introduced by imputing missing data with a parameter <span class="math inline">\(\tilde{\phi}\)</span> drawn from the posterior distribution <span class="math inline">\(p(\theta|Y^{\text{obs}})\)</span> rather than the true parameter <span class="math inline">\(\theta^*\)</span>. A key insight is that if the imputation parameter were the true parameter, this term would be exactly zero by the law of iterated expectations:</p>
+<p><span class="math display">\[\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\theta^*)] = \mathbb{E}[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]] = \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]\]</span></p>
+<p>The bias arises precisely because <span class="math inline">\(\tilde{\phi}\)</span> is sampled from the posterior and therefore <span class="math inline">\(\tilde{\phi} \neq \theta^*\)</span>.</p>
+<p><strong>Derivation.</strong> We use the log-likelihood factorization <span class="math inline">\(\ell_{\text{com}} = \ell_{\text{obs}} + \ell_{\text{mis}|\text{obs}}\)</span>. Since <span class="math inline">\(\ell_{\text{obs}}(\hat{\theta}_{\text{obs}})\)</span> does not depend on <span class="math inline">\(Y^{\text{mis}}\)</span>, the <span class="math inline">\(\ell_{\text{obs}}\)</span> terms cancel:</p>
+<p><span class="math display">\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]</span></p>
+<p>The bias arises entirely from imputing under <span class="math inline">\(\tilde{\phi}\)</span> versus the true conditional distribution under <span class="math inline">\(\theta^*\)</span>. Taking the full expectation and rearranging nested expectations:</p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]</span></p>
+<p>where <span class="math inline">\(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\)</span>. Taylor expanding around <span class="math inline">\(\tilde{\phi} = \theta^*\)</span> and using properties of exponential family models, the difference becomes:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]</span></p>
+<p>where <span class="math inline">\(S_{\text{mis}|\text{obs}}(\theta^*)\)</span> is the score function. Expanding <span class="math inline">\(\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)</span> around <span class="math inline">\(\theta^*\)</span> and applying Gibbs’ inequality (the cross-entropy <span class="math inline">\(\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\)</span> is maximized at <span class="math inline">\(\theta = \theta^*\)</span>), the term <span class="math inline">\(\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\)</span> vanishes, leaving:</p>
+<p><span class="math display">\[\text{Term 1} \approx \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]</span></p>
+<p>Using the trace identity <span class="math inline">\(a^T B c = \text{tr}(B c a^T)\)</span> and recognizing that both estimators are asymptotically unbiased:</p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]</span></p>
+<p><strong>Simplification under key assumptions.</strong> To simplify <span class="math inline">\(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\)</span>, we decompose the posterior draw as:</p>
+<p><span class="math display">\[\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\]</span></p>
+<p>where <span class="math inline">\(\Delta\tilde{\phi}\)</span> represents the deviation of the posterior draw from the observed-data MLE. This decomposition requires two assumptions:</p>
+<ol type="1">
+<li><p><strong>Congeniality</strong> <span class="citation" data-cites="mengMultipleimputationInferencesUncongenial1994">(<a href="#ref-mengMultipleimputationInferencesUncongenial1994" role="doc-biblioref"><strong>mengMultipleimputationInferencesUncongenial1994?</strong></a>)</span>: The imputation model is congenial with the analysis model, meaning both target the same parameter: <span class="math inline">\(\mathbb{E}[\tilde{\phi}] \to \theta^*\)</span> as <span class="math inline">\(n \to \infty\)</span>. This ensures that <span class="math inline">\(\mathbb{E}[\Delta\tilde{\phi}] = 0\)</span> asymptotically.</p></li>
+<li><p><strong>Uncorrelatedness</strong>: The deviation <span class="math inline">\(\Delta\tilde{\phi}\)</span> is uncorrelated with <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>: <span class="math inline">\(\text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = 0\)</span>. This states that the direction of deviation from the MLE is uncorrelated with the MLE itself.</p></li>
+</ol>
+<p>Under these assumptions:</p>
+<p><span class="math display">\[\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\right) = \text{tr}(\text{RIV})\]</span></p>
+<p><strong>Intuition.</strong> Imputing missing data using parameters drawn from the posterior creates “artificial coherence” between the observed and imputed portions of the data. Because the posterior concentrates around values that fit the observed data well, the imputed values tend to align more closely with the observed data than they would if generated under the true <span class="math inline">\(\theta^*\)</span>. This spurious coherence inflates the complete-data log-likelihood.</p>
+<p><strong>Relationship to prior work.</strong> This result corresponds to the bias correction derived by <span class="citation" data-cites="shimodaira1994">(<a href="#ref-shimodaira1994" role="doc-biblioref"><strong>shimodaira1994?</strong></a>)</span> for PDIO and independently by <span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">Cavanaugh and Shumway (<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">1998</a>)</span> for AICcd. However, our derivation is more general because it applies to the multiple imputation framework where <span class="math inline">\(\tilde{\phi}\)</span> is a posterior draw rather than a point estimate. The <span class="math inline">\(\text{tr}(\text{RIV})\)</span> result holds under the congeniality and uncorrelatedness assumptions, regardless of the specific form of the posterior distribution.</p>
+</section>
+<section id="term-2-estimation-mismatch" class="level3">
+<h3 class="anchored" data-anchor-id="term-2-estimation-mismatch">3.3.2 Term 2: Estimation Mismatch</h3>
+<p>Term 2 represents the loss in complete-data log-likelihood from evaluating at <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> (the observed-data MLE) rather than at <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> (the complete-data MLE). Since <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> maximizes <span class="math inline">\(\ell_{\text{com}}(\theta)\)</span> by definition, we have <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{com}}) \geq \ell_{\text{com}}(\hat{\theta}_{\text{obs}})\)</span>, which means Term 2 is non-positive. We now derive its exact value.</p>
+<p><strong>Taylor expansion.</strong> Expanding <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{obs}})\)</span> in a second-order Taylor series around the maximizer <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span>:</p>
+<p><span class="math display">\[\ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \ell_{\text{com}}(\hat{\theta}_{\text{com}}) + \nabla\ell_{\text{com}}(\hat{\theta}_{\text{com}})^T(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) - \frac{1}{2}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})^T \mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}})(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) + o_p(n^{-3/2})\]</span></p>
+<p>where <span class="math inline">\(\mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}}) = -\nabla^2\ell_{\text{com}}(\theta)|_{\theta=\hat{\theta}_{\text{com}}}\)</span> is the observed information matrix at <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span>. Because <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> is the MLE, the score vanishes: <span class="math inline">\(\nabla\ell_{\text{com}}(\hat{\theta}_{\text{com}}) = 0\)</span>. Therefore the first-order term disappears, leaving:</p>
+<p><span class="math display">\[\ell_{\text{com}}(\hat{\theta}_{\text{obs}}) - \ell_{\text{com}}(\hat{\theta}_{\text{com}}) = -\frac{1}{2}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})^T \mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}})(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) + o_p(n^{-3/2})\]</span></p>
+<p><strong>Taking expectations.</strong> Under standard regularity conditions, the observed information converges in probability to the Fisher information: <span class="math inline">\(\mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}}) \xrightarrow{p} \mathcal{I}_{\text{com}}(\theta^*)\)</span>. Replacing with Fisher information and taking expectations:</p>
+<p><span class="math display">\[\text{Term 2} = \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})] = -\frac{1}{2}\mathbb{E}\left[(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})^T \mathcal{I}_{\text{com}}(\theta^*)(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})\right] + O(n^{-3/2})\]</span></p>
+<p>Using the trace identity <span class="math inline">\(a^T B a = \text{tr}(B a a^T)\)</span> and recognizing that both MLEs are asymptotically unbiased for <span class="math inline">\(\theta^*\)</span>:</p>
+<p><span class="math display">\[\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}}(\theta^*) \cdot \text{Var}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})\right) + O(n^{-3/2})\]</span></p>
+<p><strong>Computing the variance of the difference.</strong> To evaluate this expression, we need the variance decomposition:</p>
+<p><span class="math display">\[\text{Var}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Var}(\hat{\theta}_{\text{com}}) - 2\text{Cov}(\hat{\theta}_{\text{obs}}, \hat{\theta}_{\text{com}})\]</span></p>
+<p>The marginal variances are standard: <span class="math inline">\(\text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\)</span> and <span class="math inline">\(\text{Var}(\hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{com}}(\theta^*)^{-1}\)</span>. The key is computing the covariance.</p>
+<p><strong>Asymptotic linear representation.</strong> By standard MLE theory, to leading order:</p>
+<p><span class="math display">\[\hat{\theta}_{\text{obs}} - \theta^* \approx \mathcal{I}_{\text{obs}}(\theta^*)^{-1} S_{\text{obs}}(\theta^*), \quad \hat{\theta}_{\text{com}} - \theta^* \approx \mathcal{I}_{\text{com}}(\theta^*)^{-1} S_{\text{com}}(\theta^*)\]</span></p>
+<p>where <span class="math inline">\(S_{\text{obs}}(\theta^*)\)</span> and <span class="math inline">\(S_{\text{com}}(\theta^*)\)</span> are the score functions evaluated at the true parameter. Therefore:</p>
+<p><span class="math display">\[\text{Cov}(\hat{\theta}_{\text{obs}}, \hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{obs}}^{-1} \text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{com}}(\theta^*)) \mathcal{I}_{\text{com}}^{-1}\]</span></p>
+<p><strong>Score covariance.</strong> Since <span class="math inline">\(S_{\text{com}}(\theta^*) = S_{\text{obs}}(\theta^*) + S_{\text{mis}|\text{obs}}(\theta^*)\)</span>:</p>
+<p><span class="math display">\[\text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{com}}(\theta^*)) = \text{Var}(S_{\text{obs}}(\theta^*)) + \text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{mis}|\text{obs}}(\theta^*))\]</span></p>
+<p>The key observation is that <span class="math inline">\(\text{Cov}(S_{\text{obs}}, S_{\text{mis}|\text{obs}}) = 0\)</span>. To see this, condition on <span class="math inline">\(Y^{\text{obs}}\)</span>: <span class="math inline">\(S_{\text{obs}}(\theta^*)\)</span> is a function of <span class="math inline">\(Y^{\text{obs}}\)</span> only (so it is constant given <span class="math inline">\(Y^{\text{obs}}\)</span>), while <span class="math inline">\(\mathbb{E}[S_{\text{mis}|\text{obs}}(\theta^*) | Y^{\text{obs}}] = 0\)</span> by the score property. By the law of total covariance:</p>
+<p><span class="math display">\[\text{Cov}(S_{\text{obs}}, S_{\text{mis}|\text{obs}}) = \mathbb{E}[\text{Cov}(S_{\text{obs}}, S_{\text{mis}|\text{obs}}|Y^{\text{obs}})] + \text{Cov}(\mathbb{E}[S_{\text{obs}}|Y^{\text{obs}}], \mathbb{E}[S_{\text{mis}|\text{obs}}|Y^{\text{obs}}]) = 0 + 0 = 0\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[\text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{com}}(\theta^*)) = \text{Var}(S_{\text{obs}}(\theta^*)) = \mathcal{I}_{\text{obs}}(\theta^*)\]</span></p>
+<p><strong>MLE covariance.</strong> Substituting back:</p>
+<p><span class="math display">\[\text{Cov}(\hat{\theta}_{\text{obs}}, \hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{obs}}^{-1} \mathcal{I}_{\text{obs}} \mathcal{I}_{\text{com}}^{-1} = \mathcal{I}_{\text{com}}^{-1} = \text{Var}(\hat{\theta}_{\text{com}})\]</span></p>
+<p>This reveals that the covariance between the two MLEs equals the variance of the complete-data MLE. Intuitively, the observed-data MLE “fully overlaps” with the complete-data MLE in the information it provides.</p>
+<p><strong>Variance of the difference.</strong> Using the variance decomposition:</p>
+<p><span class="math display">\[\text{Var}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{obs}}^{-1} + \mathcal{I}_{\text{com}}^{-1} - 2\mathcal{I}_{\text{com}}^{-1} = \mathcal{I}_{\text{obs}}^{-1} - \mathcal{I}_{\text{com}}^{-1}\]</span></p>
+<p>This is positive semi-definite, as expected, since <span class="math inline">\(\mathcal{I}_{\text{com}}^{-1} \preceq \mathcal{I}_{\text{obs}}^{-1}\)</span> (the complete-data MLE has lower variance than the observed-data MLE).</p>
+<p><strong>Substituting back.</strong> Returning to Term 2:</p>
+<p><span class="math display">\[\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}} \cdot \left(\mathcal{I}_{\text{obs}}^{-1} - \mathcal{I}_{\text{com}}^{-1}\right)\right) = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}} \mathcal{I}_{\text{obs}}^{-1}\right) + \frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}} \mathcal{I}_{\text{com}}^{-1}\right)\]</span></p>
+<p>The second term simplifies to <span class="math inline">\(\frac{1}{2}\text{tr}(I_q) = \frac{q}{2}\)</span>, where <span class="math inline">\(q\)</span> is the number of parameters. For the first term, use the missing information principle <span class="math inline">\(\mathcal{I}_{\text{com}} = \mathcal{I}_{\text{obs}} + \mathcal{I}_{\text{mis}|\text{obs}}\)</span>:</p>
+<p><span class="math display">\[\text{tr}\left(\mathcal{I}_{\text{com}} \mathcal{I}_{\text{obs}}^{-1}\right) = \text{tr}\left((\mathcal{I}_{\text{obs}} + \mathcal{I}_{\text{mis}|\text{obs}}) \mathcal{I}_{\text{obs}}^{-1}\right) = \text{tr}(I_q) + \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}} \mathcal{I}_{\text{obs}}^{-1}\right) = q + \text{tr}(\text{RIV})\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[\text{Term 2} = -\frac{1}{2}\left(q + \text{tr}(\text{RIV})\right) + \frac{q}{2} = -\frac{q}{2} - \frac{1}{2}\text{tr}(\text{RIV}) + \frac{q}{2} = -\frac{1}{2}\text{tr}(\text{RIV})\]</span></p>
+<p><strong>Interpretation.</strong> Evaluating the complete-data log-likelihood at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> rather than at the complete-data MLE <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> incurs an expected loss of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span>. This loss partially offsets the positive bias from imputation (Term 1), which was <span class="math inline">\(\text{tr}(\text{RIV})\)</span>. The factor of <span class="math inline">\(\frac{1}{2}\)</span> arises from the quadratic curvature of the log-likelihood surface.</p>
+</section>
+<section id="total-bias" class="level3">
+<h3 class="anchored" data-anchor-id="total-bias">3.3.3 Total Bias</h3>
+<p>Combining the two terms:</p>
+<p><span class="math display">\[\text{Bias} = \text{Term 1} + \text{Term 2} = \text{tr}(\text{RIV}) - \frac{1}{2}\text{tr}(\text{RIV}) = \frac{1}{2}\text{tr}(\text{RIV})\]</span></p>
+<p>The total bias is positive but only half of the imputation bias. This partial cancellation has a clear interpretation. Imputation with estimated parameters creates artificial coherence, inflating the Q-function by <span class="math inline">\(\text{tr}(\text{RIV})\)</span> (Term 1). However, because we evaluate at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> rather than the complete-data MLE <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span>, we incur a loss of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> (Term 2) due to not being at the maximizer. The net effect is that half of the imputation bias remains.</p>
+<p>The factor of <span class="math inline">\(\frac{1}{2}\)</span> in the net bias arises from the quadratic curvature of the log-likelihood surface. The imputation bias increases linearly with the deviation <span class="math inline">\((\tilde{\phi} - \theta^*)\)</span>, but the evaluation mismatch involves a quadratic form in <span class="math inline">\((\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})\)</span>, yielding the <span class="math inline">\(\frac{1}{2}\)</span> factor in the second-order Taylor expansion.</p>
+<p>The total bias is directly proportional to the relative increase in variance (RIV), which quantifies the fraction of information lost due to missingness. When there is little missing data, RIV is small and the bias correction is negligible. When missingness is substantial, RIV is large and the bias correction becomes important for accurate model selection.</p>
+</section>
+</section>
+<section id="corrected-ic-formulas" class="level2">
+<h2 class="anchored" data-anchor-id="corrected-ic-formulas">3.4 Corrected IC Formulas</h2>
+<p>The bias of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> in the log-likelihood translates directly to a correction in the AIC penalty. Recall that AIC is defined as <span class="math inline">\(-2\ell(\hat{\theta}) + 2q\)</span>, where the factor of 2 converts the log-likelihood to the deviance scale. Since the Q-function <span class="math inline">\(\bar{Q}\)</span> has bias <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> for the complete-data log-likelihood, the deviance <span class="math inline">\(-2\bar{Q}\)</span> has bias <span class="math inline">\(-2 \times \frac{1}{2}\text{tr}(\text{RIV}) = -\text{tr}(\text{RIV})\)</span>. To correct this bias, we add <span class="math inline">\(\text{tr}(\text{RIV})\)</span> to the penalty:</p>
+<p><span class="math display">\[\text{MI-AIC} = -2\bar{Q} + 2q + \text{tr}(\text{RIV})\]</span></p>
+<p>This formula targets <span class="math inline">\(\text{AIC}_{\text{com}}\)</span>, the AIC that would have been computed with complete data.</p>
+<p>The same correction applies to BIC and other information criteria. BIC has penalty structure <span class="math inline">\(q\log(n)\)</span> instead of <span class="math inline">\(2q\)</span>, but the bias still affects the deviance term <span class="math inline">\(-2\ell\)</span>, not the penalty structure. Therefore:</p>
+<p><span class="math display">\[\text{MI-BIC} = -2\bar{Q} + q\log(n) + \text{tr}(\text{RIV})\]</span></p>
+<p>More generally, for any IC of the form <span class="math inline">\(-2\ell + f(q, n)\)</span>, the MI-corrected version is <span class="math inline">\(-2\bar{Q} + f(q,n) + \text{tr}(\text{RIV})\)</span>.</p>
+<p><strong>Practical computation.</strong> All quantities in these formulas are directly computable from standard MI output. The Q-function <span class="math inline">\(\bar{Q}\)</span> is the average log-likelihood across imputations, and the correction term uses Rubin’s within-imputation (<span class="math inline">\(W\)</span>) and between-imputation (<span class="math inline">\(B\)</span>) covariance matrices:</p>
+<p><span class="math display">\[\text{tr}(\text{RIV}) = \text{tr}\left((1 + M^{-1})W^{-1}B\right)\]</span></p>
+<p>This computation requires only the covariance matrices that MI software routinely provides, making the correction straightforward to implement in practice.</p>
+<p><strong>Regularity conditions.</strong> These formulas assume standard asymptotic regularity: the model is correctly specified, the sample size <span class="math inline">\(n\)</span> is large enough for Fisher information to be well-defined, and the number of imputations <span class="math inline">\(M\)</span> is sufficient to make Monte Carlo error negligible. The within-imputation covariance matrix <span class="math inline">\(W\)</span> must be invertible; in high-dimensional settings where <span class="math inline">\(W\)</span> is near-singular, regularization (e.g., ridge-type adjustments) may be necessary before computing <span class="math inline">\(W^{-1}B\)</span>.</p>
+</section>
+<section id="comparison-to-pdio-and-aiccd" class="level2">
+<h2 class="anchored" data-anchor-id="comparison-to-pdio-and-aiccd">3.5 Comparison to PDIO and AICcd</h2>
+<p>PDIO <span class="citation" data-cites="shimodaira1994">(<a href="#ref-shimodaira1994" role="doc-biblioref"><strong>shimodaira1994?</strong></a>)</span> and AICcd <span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">(<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">Cavanaugh and Shumway 1998</a>)</span> represent earlier theoretically grounded approaches to IC under missing data. Both arrive at the same penalty:</p>
+<p><span class="math display">\[\text{PDIO} = \text{AICcd} = -2\bar{Q} + 2q + 2\text{tr}(\text{RIV})\]</span></p>
+<p>The penalty is <span class="math inline">\(2\text{tr}(\text{RIV})\)</span>—twice our correction—because these methods target a different inferential goal. While we target <span class="math inline">\(\text{AIC}_{\text{com}}\)</span> (complete-data replication), PDIO and AICcd target predictive performance evaluated at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>.</p>
+<p>The difference can be understood through our bias decomposition. Shimodaira’s derivation shows that the total penalty for indirect observation models should be <span class="math inline">\(\text{tr}(I_X I_Y^{-1}) = q + \text{tr}(\text{RIV})\)</span>, which on the AIC scale (multiplied by 2) gives <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span>. This corresponds to our Term 1 plus the base penalty <span class="math inline">\(q\)</span>. Our contribution is to further decompose the bias when targeting <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> rather than <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>: Term 2 (estimation mismatch) contributes <span class="math inline">\(-\frac{1}{2}\text{tr}(\text{RIV})\)</span>, partially offsetting Term 1 and yielding a net correction of only <span class="math inline">\(\text{tr}(\text{RIV})\)</span>. Both derivations are correct for their respective targets.</p>
+<p>Table 1 summarizes the comparison across methods:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Penalty</th>
+<th>Target Estimand</th>
+<th>Use When…</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Complete-data AIC</td>
+<td><span class="math inline">\(2q\)</span></td>
+<td>Prediction (complete data)</td>
+<td>No missing data</td>
+</tr>
+<tr class="even">
+<td>MI-AIC (ours)</td>
+<td><span class="math inline">\(2q + \text{tr}(\text{RIV})\)</span></td>
+<td>Complete-data replication</td>
+<td>Asking “what model would I select with complete data?”</td>
+</tr>
+<tr class="odd">
+<td>PDIO/AICcd</td>
+<td><span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span></td>
+<td>Prediction at <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span></td>
+<td>Asking “what model predicts best given observed structure?”</td>
+</tr>
+<tr class="even">
+<td>Ad hoc average</td>
+<td><span class="math inline">\(2q\)</span> (incorrect)</td>
+<td>Unclear</td>
+<td>Should not be used—lacks theory</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Which method to use?</strong> The choice depends on the research question. If the goal is to replicate the model selection decision one would make with complete data—the most common scenario in applied structural equation modeling and psychological research—use MI-AIC or MI-BIC. If the goal is to optimize predictive performance conditional on the observed-data structure, use PDIO or AICcd. The ad hoc approach of simply averaging IC across imputations lacks theoretical justification and should be avoided, as it conflates within- and between-imputation variability without a clear target estimand.</p>
+<p>All three corrected methods (MI-AIC, PDIO, and AICcd) are asymptotically valid and computationally straightforward, requiring only standard MI output. The key is choosing the method that matches the inferential question of interest.</p>
+<hr>
+</section>
+</section>
+<section id="sec-simulation" class="level1">
+<h1>4. Simulation Studies</h1>
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">4.1 Overview</h2>
+<p>Three simulation studies validate the theory and demonstrate practical performance:</p>
+<ol type="1">
+<li><strong>Study 1</strong>: A simplified pedagogical simulation to build intuition about the bias formula and its key assumptions</li>
+<li><strong>Study 2</strong>: Replication of Bollen et al.’s (2014) SEM design with missing data and MI</li>
+<li><strong>Study 3</strong>: Latent profile analysis (LPA) simulation for mixture modeling context</li>
+</ol>
+</section>
+<section id="study-1-illustrating-the-bias-formula-and-key-assumptions" class="level2">
+<h2 class="anchored" data-anchor-id="study-1-illustrating-the-bias-formula-and-key-assumptions">4.2 Study 1: Illustrating the Bias Formula and Key Assumptions</h2>
+<section id="purpose" class="level3">
+<h3 class="anchored" data-anchor-id="purpose">4.2.1 Purpose</h3>
+<p>Before evaluating model selection performance in realistic settings, we use a simplified simulation to build intuition about the bias formula derived in Section 3. This study addresses three questions:</p>
+<ol type="1">
+<li>Does the bias formula (Bias = ½tr(RIV)) hold across different missing data mechanisms?</li>
+<li>What role does congeniality play in the bias formula?</li>
+<li>How do inclusive imputation models affect tr(RIV) and the penalty term?</li>
+</ol>
+<p>The key insight we aim to demonstrate is that <em>congeniality</em>—not ignorability—is the critical assumption for the bias formula. The missing data mechanism (MCAR, MAR, MNAR) affects whether point estimates are unbiased for the true parameter <span class="math inline">\(\theta^*\)</span>, but it does not affect whether the relationship between the Q-function and complete-data log-likelihood follows our derivation. In contrast, when congeniality is violated, the bias formula breaks down regardless of the missing mechanism.</p>
+</section>
+<section id="design" class="level3">
+<h3 class="anchored" data-anchor-id="design">4.2.2 Design</h3>
+<p><strong>Data generating mechanism.</strong> We simulate a simple three-variable mediation system with variables X, M, and Y. The true data generating mechanism is full mediation:</p>
+<ul>
+<li><span class="math inline">\(X \sim N(0, 1)\)</span></li>
+<li><span class="math inline">\(M = \beta_{XM} X + \epsilon_M\)</span>, where <span class="math inline">\(\epsilon_M \sim N(0, \sigma^2_M)\)</span></li>
+<li><span class="math inline">\(Y = \beta_{MY} M + \epsilon_Y\)</span>, where <span class="math inline">\(\epsilon_Y \sim N(0, \sigma^2_Y)\)</span></li>
+</ul>
+<p>Note that X has no direct effect on Y in the true model. We set <span class="math inline">\(\beta_{XM} = 0.5\)</span>, <span class="math inline">\(\beta_{MY} = 0.5\)</span>, and <span class="math inline">\(\sigma^2_M = \sigma^2_Y = 0.75\)</span> to yield standardized path coefficients of approximately 0.5.</p>
+<p><strong>Sample size and missingness.</strong> Each simulated dataset has <span class="math inline">\(N = 100\)</span> observations. We induce substantial missingness: approximately 50% of observations are missing M, Y, or both. This high rate of missingness ensures that the bias and penalty terms are large enough to observe clearly.</p>
+<p><strong>Conditions.</strong> We cross two factors in a 3 × 3 factorial design:</p>
+<p><em>Missing data mechanism (3 levels):</em></p>
+<ul>
+<li><strong>MCAR</strong>: Missingness is independent of all variables. Each observation has a 50% probability of being selected for missingness, with M, Y, or both missing at random among those selected.</li>
+<li><strong>MAR</strong>: Missingness depends on X (the fully observed variable). Observations with higher X values have higher probability of missingness on M and Y.</li>
+<li><strong>MNAR</strong>: Missingness depends on M or Y themselves. Observations with higher M values have higher probability of M being missing; similarly for Y.</li>
+</ul>
+<p><em>Imputation model (3 levels):</em></p>
+<ul>
+<li><strong>Matched</strong>: The imputation model matches the true data generating mechanism (X → M → Y). This is congenial with both analysis models.</li>
+<li><strong>Saturated</strong>: The imputation model assumes a fully saturated covariance structure among X, M, and Y. This is congenial but more inclusive than the true model, resulting in wider posterior variance.</li>
+<li><strong>Uncongenial</strong>: The imputation model assumes X → M and X → Y with M and Y conditionally independent given X. This is uncongenial because it contradicts the true M → Y relationship.</li>
+</ul>
+<p><strong>Analysis models.</strong> For each imputed dataset, we fit two structural equation models:</p>
+<ul>
+<li><strong>Model A (Full mediation)</strong>: X → M → Y with no direct X → Y path. This is the true model.</li>
+<li><strong>Model B (Partial mediation)</strong>: X → M → Y with an additional direct X → Y path. This model is overparameterized relative to the true DGM.</li>
+</ul>
+<p><strong>Number of imputations and replications.</strong> We generate <span class="math inline">\(M = 20\)</span> imputations per dataset and conduct 1,000 replications per condition.</p>
+</section>
+<section id="outcomes" class="level3">
+<h3 class="anchored" data-anchor-id="outcomes">4.2.3 Outcomes</h3>
+<p>For each replication, we compute:</p>
+<ol type="1">
+<li><p><strong>Empirical bias</strong>: <span class="math inline">\(\bar{Q} - \ell_{\text{com}}(\hat{\theta}_{\text{com}})\)</span>, comparing the MI-pooled Q-function to the complete-data log-likelihood computed from the full data (before missingness was induced).</p></li>
+<li><p><strong>Theoretical bias</strong>: <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> computed from Rubin’s combining rules.</p></li>
+<li><p><strong>Agreement</strong>: The correspondence between empirical and theoretical bias across conditions.</p></li>
+</ol>
+<p>We examine these outcomes separately for each analysis model (full mediation vs.&nbsp;partial mediation) to understand how model complexity interacts with the imputation model.</p>
+</section>
+<section id="expected-results" class="level3">
+<h3 class="anchored" data-anchor-id="expected-results">4.2.4 Expected Results</h3>
+<p><strong>Result 1: The missing mechanism does not affect the bias formula.</strong></p>
+<p>Across MCAR, MAR, and MNAR conditions—holding the imputation model fixed at either Matched or Saturated (both congenial)—the empirical bias should approximately equal ½tr(RIV). The missing mechanism affects whether point estimates <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> are unbiased for <span class="math inline">\(\theta^*\)</span>, but not whether the bias decomposition from Section 3 holds. This demonstrates that ignorability is not the relevant assumption for our bias formula.</p>
+<p><strong>Result 2: Congeniality is essential for the bias formula.</strong></p>
+<p>Under the uncongenial imputation model (X → M, X → Y), the empirical bias will <em>not</em> equal ½tr(RIV). Because this imputation model assumes M and Y are conditionally independent given X—contradicting the true M → Y relationship—the congeniality assumption is violated. Specifically, <span class="math inline">\(\mathbb{E}[\tilde{\phi}] \not\to \theta^*\)</span>, so the decomposition <span class="math inline">\(\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\)</span> with <span class="math inline">\(\mathbb{E}[\Delta\tilde{\phi}] = 0\)</span> fails. This result will hold regardless of the missing mechanism (MCAR, MAR, or MNAR), reinforcing that congeniality—not ignorability—is the critical assumption.</p>
+<p><strong>Result 3: Inclusive imputation inflates tr(RIV) but preserves the bias formula.</strong></p>
+<p>The saturated imputation model, while congenial, produces systematically larger tr(RIV) than the matched imputation model. This occurs because the saturated model has wider posterior variance—it estimates more parameters and thus has greater uncertainty. In terms of our decomposition, <span class="math inline">\(\text{Var}(\Delta\tilde{\phi}) &gt; 0\)</span> for the saturated model, inflating <span class="math inline">\(\text{Var}(\tilde{\phi})\)</span>.</p>
+<p>Critically, even with this inflated variance:</p>
+<ul>
+<li>The bias formula still holds: empirical bias ≈ ½tr(RIV)</li>
+<li>The larger tr(RIV) yields a correspondingly larger penalty term</li>
+</ul>
+<p>This confirms the theoretical result from Section 3.3.1: inclusive imputation models do not distort the bias formula because <span class="math inline">\(\text{Var}(\Delta\tilde{\phi})\)</span> does not enter <span class="math inline">\(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\)</span>.</p>
+<p><strong>Result 4: The penalty term self-corrects for imputation model complexity.</strong></p>
+<p>The inflated tr(RIV) under saturated imputation has an important implication: without proper penalization, the larger Q-function values from inclusive imputation could spuriously favor more complex analysis models. However, because the penalty term scales with tr(RIV), this tendency is offset. The MI-AIC and MI-BIC formulas automatically adjust for the additional uncertainty introduced by inclusive imputation.</p>
+<p>This foreshadows the role of proper penalization in Studies 2 and 3, where we evaluate actual model selection performance.</p>
+</section>
+<section id="summary" class="level3">
+<h3 class="anchored" data-anchor-id="summary">4.2.5 Summary</h3>
+<p>Study 1 establishes the empirical validity of the theoretical framework from Section 3:</p>
+<ol type="1">
+<li>The bias = ½tr(RIV) relationship is robust to the missing data mechanism</li>
+<li>Congeniality is the critical assumption—violations cause the formula to fail</li>
+<li>Inclusive (but congenial) imputation models inflate tr(RIV), but the penalty self-corrects</li>
+<li>The distinction between ignorability (for valid point estimates) and congeniality (for the bias formula) is empirically confirmed</li>
+</ol>
+<p>These results provide the foundation for interpreting Studies 2 and 3, which evaluate model selection performance in more realistic settings.</p>
+</section>
+</section>
+<section id="study-2-structural-equation-modeling" class="level2">
+<h2 class="anchored" data-anchor-id="study-2-structural-equation-modeling">4.3 Study 2: Structural Equation Modeling</h2>
+<p>[Replication of Bollen et al.&nbsp;(2014) SEM design with missing data and MI — to be added]</p>
+</section>
+<section id="study-3-latent-profile-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="study-3-latent-profile-analysis">4.4 Study 3: Latent Profile Analysis</h2>
+<p>[LPA simulation for mixture modeling context — to be added]</p>
+<hr>
+</section>
+</section>
+<section id="sec-empirical" class="level1">
+<h1>5. Empirical Example</h1>
+<p>[Empirical example to be added]</p>
+<hr>
+</section>
+<section id="sec-discussion" class="level1">
+<h1>6. Discussion</h1>
+<p>[Discussion to be added]</p>
+<!-- TODO: Add section on fully inclusive imputation models -->
+<!-- Key point: A consequence of the uncorrelatedness assumption is that the variance of Δθ does not affect the bias correction. Practitioners often use "fully inclusive" imputation models with wider posterior variance to protect against bias from uncongenial models. This additional variance contributes to Var(θ̃) but does NOT appear in Cov(θ̃, θ̂), which determines Term 1. Therefore, as long as the imputation model is congenial and the uncorrelatedness assumption holds, inclusive imputation strategies do not change the asymptotic bias correction—they simply add noise that averages out across imputations. This justifies standard MI practice of using inclusive models for bias protection. -->
+<hr>
+</section>
+<section id="appendix-a" class="level1">
+<h1>Appendix A: Detailed Derivation of Term 1 (Imputation Bias)</h1>
+<p>This appendix provides a complete derivation of the imputation bias term presented in Section 3.3.1. We show that:</p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]</span></p>
+<p>and under the congeniality and uncorrelatedness assumptions, this simplifies to <span class="math inline">\(\text{tr}(\text{RIV})\)</span>.</p>
+<section id="a.1-proof-strategy" class="level2">
+<h2 class="anchored" data-anchor-id="a.1-proof-strategy">A.1 Proof Strategy</h2>
+<p>We use the log-likelihood factorization <span class="math inline">\(\ell_{\text{com}} = \ell_{\text{obs}} + \ell_{\text{mis}|\text{obs}}\)</span>. The Q-function can be written as:</p>
+<p><span class="math display">\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) = \ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) + \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\]</span></p>
+<p>while the complete-data log-likelihood is:</p>
+<p><span class="math display">\[\ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) + \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]</span></p>
+<p>The <span class="math inline">\(\ell_{\text{obs}}(\hat{\theta}_{\text{obs}})\)</span> terms are identical and cancel, leaving:</p>
+<p><span class="math display">\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\]</span></p>
+<p>where the outer expectation is over <span class="math inline">\((Y^{\text{obs}}, Y^{\text{mis}}) \sim p(Y|\theta^*)\)</span>.</p>
+</section>
+<section id="a.2-simplifying-the-nested-expectations" class="level2">
+<h2 class="anchored" data-anchor-id="a.2-simplifying-the-nested-expectations">A.2 Simplifying the Nested Expectations</h2>
+<p>Write the full expectation explicitly:</p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\right]\]</span></p>
+<p>Note that <span class="math inline">\(\hat{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}}(Y^{\text{obs}})\)</span> and <span class="math inline">\(\tilde{\phi} = \tilde{\phi}(Y^{\text{obs}})\)</span> are functions of <span class="math inline">\(Y^{\text{obs}}\)</span> only.</p>
+<p>Since <span class="math inline">\(\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\)</span> is a function of <span class="math inline">\(Y^{\text{obs}}\)</span> only (we’ve integrated out <span class="math inline">\(Y^{\text{mis}}\)</span>), the middle expectation <span class="math inline">\(\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}[\cdot]\)</span> acts only on the second term:</p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]</span></p>
+<p>where we use the shorthand <span class="math inline">\(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\)</span>.</p>
+<p>This is the difference in expected log-likelihood when imputing under <span class="math inline">\(\tilde{\phi}\)</span> versus under the true <span class="math inline">\(\theta^*\)</span>.</p>
+</section>
+<section id="a.3-taylor-expansion-of-the-expectation" class="level2">
+<h2 class="anchored" data-anchor-id="a.3-taylor-expansion-of-the-expectation">A.3 Taylor Expansion of the Expectation</h2>
+<p>We expand <span class="math inline">\(\mathbb{E}_{\tilde{\phi}}[g]\)</span> around <span class="math inline">\(\tilde{\phi} = \theta^*\)</span> for any function <span class="math inline">\(g(Y^{\text{mis}})\)</span>:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\phi} - \theta^*)^T \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*}\]</span></p>
+<p>For exponential family models, this derivative can be expressed using the score function. The score of the conditional distribution is:</p>
+<p><span class="math display">\[S_{\text{mis}|\text{obs}}(\theta) = \frac{\partial}{\partial \theta} \ell_{\text{mis}|\text{obs}}(\theta) = \frac{\partial}{\partial \theta} \log p(Y^{\text{mis}}|Y^{\text{obs}}, \theta)\]</span></p>
+<p>A fundamental property of score functions is that the expected score at the true parameter equals zero:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*)] = 0\]</span></p>
+<p>This follows from the fact that <span class="math inline">\(\int p(Y^{\text{mis}}|Y^{\text{obs}}, \theta^*) \, dY^{\text{mis}} = 1\)</span>, and differentiating both sides with respect to <span class="math inline">\(\theta\)</span> gives zero.</p>
+<p>For exponential family models, the derivative of the expectation equals:</p>
+<p><span class="math display">\[\left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*} = \mathbb{E}_{\theta^*}[g \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]</span></p>
+<p>This is the covariance between <span class="math inline">\(g\)</span> and the score function (since <span class="math inline">\(\mathbb{E}[S] = 0\)</span>).</p>
+</section>
+<section id="a.4-applying-to-our-setting" class="level2">
+<h2 class="anchored" data-anchor-id="a.4-applying-to-our-setting">A.4 Applying to Our Setting</h2>
+<p>With <span class="math inline">\(g = \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)</span>:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]</span></p>
+</section>
+<section id="a.5-expanding-the-log-likelihood" class="level2">
+<h2 class="anchored" data-anchor-id="a.5-expanding-the-log-likelihood">A.5 Expanding the Log-Likelihood</h2>
+<p>To evaluate <span class="math inline">\(\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\)</span>, we Taylor expand <span class="math inline">\(\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)</span> around <span class="math inline">\(\theta^*\)</span>:</p>
+<p><span class="math display">\[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \approx \ell_{\text{mis}|\text{obs}}(\theta^*) + (\hat{\theta}_{\text{obs}} - \theta^*)^T S_{\text{mis}|\text{obs}}(\theta^*)\]</span></p>
+<p>Substituting:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] \approx \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + (\hat{\theta}_{\text{obs}} - \theta^*)^T \mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*) S_{\text{mis}|\text{obs}}(\theta^*)^T]\]</span></p>
+<p>The second term involves the Fisher information matrix. A fundamental result in likelihood theory is that the variance of the score equals the Fisher information:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*) S_{\text{mis}|\text{obs}}(\theta^*)^T] = \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] \approx \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]</span></p>
+</section>
+<section id="a.6-the-key-cancellation-gibbs-inequality" class="level2">
+<h2 class="anchored" data-anchor-id="a.6-the-key-cancellation-gibbs-inequality">A.6 The Key Cancellation (Gibbs’ Inequality)</h2>
+<p>We now show that <span class="math inline">\(\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = 0\)</span>.</p>
+<p>This term can be recognized as the derivative of a cross-entropy:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\right|_{\theta=\theta^*}\]</span></p>
+<p>The function <span class="math inline">\(\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\)</span> is a cross-entropy:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)] = \int p(Y^{\text{mis}}|Y^{\text{obs}},\theta) \log p(Y^{\text{mis}}|Y^{\text{obs}},\theta^*) \, dY^{\text{mis}}\]</span></p>
+<p>By <strong>Gibbs’ inequality</strong> (equivalently, the non-negativity of KL-divergence), this cross-entropy is maximized when <span class="math inline">\(\theta = \theta^*\)</span>. This is because:</p>
+<p><span class="math display">\[D_{KL}(p_{\theta^*} \| p_{\theta^*}) = 0 \leq D_{KL}(p_\theta \| p_{\theta^*}) \quad \text{for all } \theta\]</span></p>
+<p>where <span class="math inline">\(D_{KL}(p \| q) = \mathbb{E}_p[\log p - \log q] \geq 0\)</span> with equality iff <span class="math inline">\(p = q\)</span>.</p>
+<p>At the maximum <span class="math inline">\(\theta = \theta^*\)</span>, the derivative with respect to <span class="math inline">\(\theta\)</span> must vanish:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = 0\]</span></p>
+</section>
+<section id="a.7-combining-results" class="level2">
+<h2 class="anchored" data-anchor-id="a.7-combining-results">A.7 Combining Results</h2>
+<p>From Sections A.4–A.6:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]</span></p>
+<p>Taking the expectation over <span class="math inline">\(Y^{\text{obs}}\)</span>:</p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]</span></p>
+</section>
+<section id="a.8-converting-to-trace-form" class="level2">
+<h2 class="anchored" data-anchor-id="a.8-converting-to-trace-form">A.8 Converting to Trace Form</h2>
+<p>Using the trace identity <span class="math inline">\(a^T B c = \text{tr}(B c a^T)\)</span>:</p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathbb{E}[(\hat{\theta}_{\text{obs}} - \theta^*)(\tilde{\phi} - \theta^*)^T]\right)\]</span></p>
+<p>Since both <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> and <span class="math inline">\(\tilde{\phi}\)</span> are asymptotically unbiased for <span class="math inline">\(\theta^*\)</span>, the expectation equals the covariance:</p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]</span></p>
+<p>This is our main result in general form.</p>
+</section>
+<section id="a.9-simplification-under-key-assumptions" class="level2">
+<h2 class="anchored" data-anchor-id="a.9-simplification-under-key-assumptions">A.9 Simplification Under Key Assumptions</h2>
+<p>To simplify <span class="math inline">\(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\)</span>, we decompose the posterior draw as:</p>
+<p><span class="math display">\[\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\]</span></p>
+<p>where <span class="math inline">\(\Delta\tilde{\phi}\)</span> represents the deviation of the posterior draw from the observed-data MLE.</p>
+<p><strong>Assumption 1 (Congeniality):</strong> The imputation model is congenial with the analysis model <span class="citation" data-cites="mengMultipleimputationInferencesUncongenial1994">(<a href="#ref-mengMultipleimputationInferencesUncongenial1994" role="doc-biblioref"><strong>mengMultipleimputationInferencesUncongenial1994?</strong></a>)</span>, meaning both target the same parameter: <span class="math inline">\(\mathbb{E}[\tilde{\phi}] \to \theta^*\)</span> as <span class="math inline">\(n \to \infty\)</span>. This ensures that <span class="math inline">\(\mathbb{E}[\Delta\tilde{\phi}] = 0\)</span> asymptotically.</p>
+<p><strong>Assumption 2 (Uncorrelatedness):</strong> The deviation <span class="math inline">\(\Delta\tilde{\phi}\)</span> is uncorrelated with <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>: <span class="math inline">\(\text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = 0\)</span>.</p>
+<p>Under these assumptions:</p>
+<p><span class="math display">\[\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]</span></p>
+<p>Therefore:</p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\right) = \text{tr}(\text{RIV})\]</span></p>
+<p>where the last equality uses the definition <span class="math inline">\(\text{RIV} = \mathcal{I}_{\text{mis}|\text{obs}} \cdot \mathcal{I}_{\text{obs}}^{-1}\)</span>.</p>
+</section>
+<section id="a.10-summary" class="level2">
+<h2 class="anchored" data-anchor-id="a.10-summary">A.10 Summary</h2>
+<p>The imputation bias equals <span class="math inline">\(\text{tr}(\text{RIV})\)</span> under two assumptions: (1) the imputation model is congenial with the analysis model, and (2) the deviation of the posterior draw from the MLE is uncorrelated with the MLE. These assumptions are satisfied by standard Bayesianly proper multiple imputation procedures. Importantly, the result holds regardless of the variance of the posterior draws—wider posterior variance (as in “fully inclusive” imputation models) does not affect the bias correction.</p>
+<hr>
+</section>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<p>[References will be compiled from references.bib]</p>
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-akaikehirotuguNewLookStatistical1974" class="csl-entry" role="listitem">
+Akaike, Hirotugu. 1974. <span>“A <span>New Look</span> at the <span>Statistical Model Identification</span>.”</span> <a href="https://doi.org/10.1109/TAC.1974.1100705">https://doi.org/10.1109/TAC.1974.1100705</a>.
+</div>
+<div id="ref-bollenBICAlternativeBayesian2014" class="csl-entry" role="listitem">
+Bollen, Kenneth A., Jeffrey J. Harden, Surajit Ray, and Jane Zavisca. 2014. <span>“<span>BIC</span> and <span>Alternative Bayesian Information Criteria</span> in the <span>Selection</span> of <span>Structural Equation Models</span>.”</span> <em>Structural Equation Modeling: A Multidisciplinary Journal</em> 21 (1): 1–19. <a href="https://doi.org/10.1080/10705511.2014.856691">https://doi.org/10.1080/10705511.2014.856691</a>.
+</div>
+<div id="ref-cavanaughAkaikeInformationCriterion2019" class="csl-entry" role="listitem">
+Cavanaugh, Joseph E., and Andrew A. Neath. 2019. <span>“The <span>Akaike</span> Information Criterion: <span>Background</span>, Derivation, Properties, Application, Interpretation, and Refinements.”</span> <em>WIREs Computational Statistics</em> 11 (3): e1460. <a href="https://doi.org/10.1002/wics.1460">https://doi.org/10.1002/wics.1460</a>.
+</div>
+<div id="ref-cavanaughAkaikeInformationCriterion1998" class="csl-entry" role="listitem">
+Cavanaugh, Joseph E., and Robert H. Shumway. 1998. <span>“An <span>Akaike</span> Information Criterion for Model Selection in the Presence of Incomplete Data.”</span> <em>Journal of Statistical Planning and Inference</em> 67: 45–65. <a href="https://doi.org/10.1016/s0378-3758(97)00115-8">https://doi.org/10.1016/s0378-3758(97)00115-8</a>.
+</div>
+<div id="ref-grahamMissingDataAnalysis2009" class="csl-entry" role="listitem">
+Graham. 2009. <span>“Missing <span>Data Analysis</span>: <span>Making It Work</span> in the <span>Real World</span>.”</span> <em>Annual Review of Psychology</em>. <a href="https://doi.org/10.1146/annurev.psych.58.110405.085530">https://doi.org/10.1146/annurev.psych.58.110405.085530</a>.
+</div>
+<div id="ref-huangAsymptoticsAICBIC2017" class="csl-entry" role="listitem">
+Huang. 2017. <span>“Asymptotics of <span>AIC</span>, <span>BIC</span>, and <span>RMSEA</span> for <span>Model Selection</span> in <span>Structural Equation Modeling</span>.”</span> <em>Psychometrika</em>. <a href="https://doi.org/10.1007/s11336-017-9572-y">https://doi.org/10.1007/s11336-017-9572-y</a>.
+</div>
+<div id="ref-kuiperAICtypeTheoryBasedModel2022" class="csl-entry" role="listitem">
+Kuiper. 2022. <span>“<span class="nocase">AIC-type Theory-Based Model Selection</span> for <span>Structural Equation Models</span>.”</span> <em>Structural Equation Modeling: A Multidisciplinary Journal</em>. <a href="https://doi.org/10.1080/10705511.2020.1836967">https://doi.org/10.1080/10705511.2020.1836967</a>.
+</div>
+<div id="ref-laiUsingInformationCriteria2021" class="csl-entry" role="listitem">
+Lai, Keke. 2021. <span>“Using <span>Information Criteria Under Missing Data</span>: <span>Full Information Maximum Likelihood Versus Two-Stage Estimation</span>.”</span> <em>Structural Equation Modeling: A Multidisciplinary Journal</em> 28 (2): 278–91. <a href="https://doi.org/10.1080/10705511.2020.1780925">https://doi.org/10.1080/10705511.2020.1780925</a>.
+</div>
+<div id="ref-linhuangwengSelectingPathModels2017" class="csl-entry" role="listitem">
+Lin, Huang, Weng. 2017. <span>“Selecting <span>Path Models</span> in <span>SEM</span>: <span>A Comparison</span> of <span>Model Selection Criteria</span>.”</span> <em>Structural Equation Modeling: A Multidisciplinary Journal</em>. <a href="https://doi.org/10.1080/10705511.2017.1363652">https://doi.org/10.1080/10705511.2017.1363652</a>.
+</div>
+<div id="ref-masynLatentClassAnalysis2013a" class="csl-entry" role="listitem">
+Masyn. 2013. <span>“Latent <span>Class Analysis</span> and <span>Finite Mixture Modeling</span>.”</span> <em>Oxford Handbooks Online</em>. <a href="https://doi.org/10.1093/oxfordhb/9780199934898.013.0025">https://doi.org/10.1093/oxfordhb/9780199934898.013.0025</a>.
+</div>
+<div id="ref-nylundasparouhovmuthenDecidingNumberClasses2007" class="csl-entry" role="listitem">
+Nylund, Asparouhov, Muthén. 2007. <span>“Deciding on the <span>Number</span> of <span>Classes</span> in <span>Latent Class Analysis</span> and <span>Growth Mixture Modeling</span>: <span>A Monte Carlo Simulation Study</span>.”</span> <em>Structural Equation Modeling: A Multidisciplinary Journal</em>. <a href="https://doi.org/10.1080/10705510701575396">https://doi.org/10.1080/10705510701575396</a>.
+</div>
+<div id="ref-orchardMissingInformationPrinciple1972a" class="csl-entry" role="listitem">
+Orchard, Terence, and Max A. Woodbury. 1972. <span>“A Missing Information Principle: Theory and Applications.”</span> <em>Proc. Sixth Berkeley Symp. On Math. Statist. And</em> Prob. (Vol.1): 697–715.
+</div>
+<div id="ref-rubindonaldb.MultipleImputationNonresponse1987" class="csl-entry" role="listitem">
+Rubin, Donald B. 1987. <span>“Multiple <span>Imputation</span> for <span>Nonresponse</span> in <span>Surveys</span>.”</span>
+</div>
+<div id="ref-schaferAnalysisIncompleteMultivariate1997a" class="csl-entry" role="listitem">
+Schafer, Joseph L. 1997. <em>Analysis of Incomplete Multivariate Data</em>. CRC press.
+</div>
+<div id="ref-schaferMissingDataOur2002" class="csl-entry" role="listitem">
+Schafer, Joseph L, and John W Graham. 2002. <span>“Missing Data: Our View of the State of the Art.”</span> <em>Psychological Methods</em> 7 (2): 147. <a href="https://doi.org/10.1037/1082-989x.7.2.147">https://doi.org/10.1037/1082-989x.7.2.147</a>.
+</div>
+<div id="ref-schwarzgideonEstimatingDimensionModel1978" class="csl-entry" role="listitem">
+Schwarz, Gideon. 1978. <span>“Estimating the <span>Dimension</span> of a <span>Model</span>.”</span> <a href="https://doi.org/10.1214/aos/1176344136">https://doi.org/10.1214/aos/1176344136</a>.
+</div>
+<div id="ref-vriezeModelSelectionPsychological2012" class="csl-entry" role="listitem">
+Vrieze. 2012. <span>“Model Selection and Psychological Theory: <span>A</span> Discussion of the Differences Between the <span>Akaike</span> Information Criterion (<span>AIC</span>) and the <span>Bayesian</span> Information Criterion (<span>BIC</span>).”</span> <em>Psychological Methods</em>. <a href="https://doi.org/10.1037/a0027127">https://doi.org/10.1037/a0027127</a>.
+</div>
+</div></section><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>MI validity requires the missing data mechanism to be ignorable (i.e., missing at random, MAR) and the parameters of the missingness mechanism to be a priori independent of the parameters of the analysis model <span class="citation" data-cites="rubindonaldb.MultipleImputationNonresponse1987">(<a href="#ref-rubindonaldb.MultipleImputationNonresponse1987" role="doc-biblioref">Rubin, Donald B. 1987</a>)</span>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

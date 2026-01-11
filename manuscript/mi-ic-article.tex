@@ -197,7 +197,7 @@ criteria, AIC, BIC, model selection, missing data, Q-function},
 \title{Information Criteria for Multiply-Imputed Data: A Principled
 Approach for Complete-Data Replication}
 \author{Marcus R. Waldman}
-\date{2026-01-10}
+\date{2026-01-11}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -593,12 +593,12 @@ The observed-data MLE \(\hat{\theta}_{\text{obs}}\) is the value
 obtained from the observed data (or equivalently, pooled across
 imputations), which maximizes
 \(\ell_{\text{obs}}(\theta | Y^{\text{obs}})\). Finally, let
-\(\tilde{\theta}_{\text{obs}}\) denote the imputation parameter---in
-Bayesianly proper MI, this is a draw from the posterior distribution
+\(\tilde{\phi}\) denote the imputation parameter---in Bayesianly proper
+MI, this is a draw from the posterior distribution
 \(p(\theta|Y^{\text{obs}})\). This posterior draw distinguishes proper
 MI from deterministic approaches: each imputation uses a different
-\(\tilde{\theta}_{\text{obs}}^{(m)}\) sampled from the posterior, rather
-than conditioning on a single point estimate as in the EM algorithm.
+\(\tilde{\phi}^{(m)}\) sampled from the posterior, rather than
+conditioning on a single point estimate as in the EM algorithm.
 
 The central question is: what is the bias when we use
 \(\bar{Q}(\hat{\theta}_{\text{obs}})\) as a proxy for
@@ -612,53 +612,50 @@ derive in the next section.
 The bias of \(\bar{Q}\) as an estimate of
 \(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\) decomposes as:
 
-\[\text{Bias} = \mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})] = \underbrace{\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]}_{\text{Term 1: Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})]}_{\text{Term 2: Estimation Mismatch}}\]
+\[\text{Bias} = \mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})] = \underbrace{\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]}_{\text{Term 1: Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})]}_{\text{Term 2: Estimation Mismatch}}\]
 
-The notation
-\(Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}})\) emphasizes
+The notation \(Q(\hat{\theta}_{\text{obs}}|\tilde{\phi})\) emphasizes
 that the Q-function depends on both: (1) the parameter
 \(\hat{\theta}_{\text{obs}}\) at which we evaluate the log-likelihood,
-and (2) the imputation parameter \(\tilde{\theta}_{\text{obs}}\) used to
-generate the imputed values. This distinguishes the MI framework from
-deterministic EM, where the Q-function is conditioned on a point
-estimate rather than a draw from the posterior.
+and (2) the imputation parameter \(\tilde{\phi}\) used to generate the
+imputed values. This distinguishes the MI framework from deterministic
+EM, where the Q-function is conditioned on a point estimate rather than
+a draw from the posterior.
 
 \subsubsection{3.3.1 Term 1: Imputation
 Bias}\label{term-1-imputation-bias}
 
 Term 1 quantifies the bias introduced by imputing missing data with a
-parameter \(\tilde{\theta}_{\text{obs}}\) drawn from the posterior
-distribution \(p(\theta|Y^{\text{obs}})\) rather than the true parameter
+parameter \(\tilde{\phi}\) drawn from the posterior distribution
+\(p(\theta|Y^{\text{obs}})\) rather than the true parameter
 \(\theta^*\). A key insight is that if the imputation parameter were the
 true parameter, this term would be exactly zero by the law of iterated
 expectations:
 
 \[\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\theta^*)] = \mathbb{E}[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]] = \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]\]
 
-The bias arises precisely because \(\tilde{\theta}_{\text{obs}}\) is
-sampled from the posterior and therefore
-\(\tilde{\theta}_{\text{obs}} \neq \theta^*\).
+The bias arises precisely because \(\tilde{\phi}\) is sampled from the
+posterior and therefore \(\tilde{\phi} \neq \theta^*\).
 
 \textbf{Derivation.} We use the log-likelihood factorization
 \(\ell_{\text{com}} = \ell_{\text{obs}} + \ell_{\text{mis}|\text{obs}}\).
 Since \(\ell_{\text{obs}}(\hat{\theta}_{\text{obs}})\) does not depend
 on \(Y^{\text{mis}}\), the \(\ell_{\text{obs}}\) terms cancel:
 
-\[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]
+\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]
 
-The bias arises entirely from imputing under
-\(\tilde{\theta}_{\text{obs}}\) versus the true conditional distribution
-under \(\theta^*\). Taking the full expectation and rearranging nested
-expectations:
+The bias arises entirely from imputing under \(\tilde{\phi}\) versus the
+true conditional distribution under \(\theta^*\). Taking the full
+expectation and rearranging nested expectations:
 
-\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]
+\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]
 
 where
 \(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\).
-Taylor expanding around \(\tilde{\theta}_{\text{obs}} = \theta^*\) and
-using properties of exponential family models, the difference becomes:
+Taylor expanding around \(\tilde{\phi} = \theta^*\) and using properties
+of exponential family models, the difference becomes:
 
-\[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]
+\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]
 
 where \(S_{\text{mis}|\text{obs}}(\theta^*)\) is the score function.
 Expanding \(\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)
@@ -668,21 +665,22 @@ maximized at \(\theta = \theta^*\)), the term
 \(\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\)
 vanishes, leaving:
 
-\[\text{Term 1} \approx \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]
+\[\text{Term 1} \approx \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]
 
 Using the trace identity \(a^T B c = \text{tr}(B c a^T)\) and
 recognizing that both estimators are asymptotically unbiased:
 
-\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\right)\]
+\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]
 
 \textbf{Simplification under key assumptions.} To simplify
-\(\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\),
-we decompose the posterior draw as:
+\(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\), we decompose
+the posterior draw as:
 
-\[\tilde{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}} + \Delta\theta\]
+\[\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\]
 
-where \(\Delta\theta\) represents the deviation of the posterior draw
-from the observed-data MLE. This decomposition requires two assumptions:
+where \(\Delta\tilde{\phi}\) represents the deviation of the posterior
+draw from the observed-data MLE. This decomposition requires two
+assumptions:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -690,21 +688,20 @@ from the observed-data MLE. This decomposition requires two assumptions:
   \textbf{Congeniality}
   (\textbf{mengMultipleimputationInferencesUncongenial1994?}): The
   imputation model is congenial with the analysis model, meaning both
-  target the same parameter:
-  \(\mathbb{E}[\tilde{\theta}_{\text{obs}}] \to \theta^*\) as
-  \(n \to \infty\). This ensures that \(\mathbb{E}[\Delta\theta] = 0\)
-  asymptotically.
+  target the same parameter: \(\mathbb{E}[\tilde{\phi}] \to \theta^*\)
+  as \(n \to \infty\). This ensures that
+  \(\mathbb{E}[\Delta\tilde{\phi}] = 0\) asymptotically.
 \item
-  \textbf{Uncorrelatedness}: The deviation \(\Delta\theta\) is
+  \textbf{Uncorrelatedness}: The deviation \(\Delta\tilde{\phi}\) is
   uncorrelated with \(\hat{\theta}_{\text{obs}}\):
-  \(\text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = 0\). This
-  states that the direction of deviation from the MLE is uncorrelated
-  with the MLE itself.
+  \(\text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = 0\).
+  This states that the direction of deviation from the MLE is
+  uncorrelated with the MLE itself.
 \end{enumerate}
 
 Under these assumptions:
 
-\[\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]
+\[\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]
 
 Therefore:
 
@@ -722,10 +719,10 @@ complete-data log-likelihood.
 correction derived by (\textbf{shimodaira1994?}) for PDIO and
 independently by Cavanaugh and Shumway (1998) for AICcd. However, our
 derivation is more general because it applies to the multiple imputation
-framework where \(\tilde{\theta}_{\text{obs}}\) is a posterior draw
-rather than a point estimate. The \(\text{tr}(\text{RIV})\) result holds
-under the congeniality and uncorrelatedness assumptions, regardless of
-the specific form of the posterior distribution.
+framework where \(\tilde{\phi}\) is a posterior draw rather than a point
+estimate. The \(\text{tr}(\text{RIV})\) result holds under the
+congeniality and uncorrelatedness assumptions, regardless of the
+specific form of the posterior distribution.
 
 \subsubsection{3.3.2 Term 2: Estimation
 Mismatch}\label{term-2-estimation-mismatch}
@@ -863,9 +860,8 @@ remains.
 
 The factor of \(\frac{1}{2}\) in the net bias arises from the quadratic
 curvature of the log-likelihood surface. The imputation bias increases
-linearly with the deviation
-\((\tilde{\theta}_{\text{obs}} - \theta^*)\), but the evaluation
-mismatch involves a quadratic form in
+linearly with the deviation \((\tilde{\phi} - \theta^*)\), but the
+evaluation mismatch involves a quadratic form in
 \((\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})\), yielding
 the \(\frac{1}{2}\) factor in the second-order Taylor expansion.
 
@@ -1179,11 +1175,10 @@ Under the uncongenial imputation model (X → M, X → Y), the empirical
 bias will \emph{not} equal ½tr(RIV). Because this imputation model
 assumes M and Y are conditionally independent given X---contradicting
 the true M → Y relationship---the congeniality assumption is violated.
-Specifically,
-\(\mathbb{E}[\tilde{\theta}_{\text{obs}}] \not\to \theta^*\), so the
+Specifically, \(\mathbb{E}[\tilde{\phi}] \not\to \theta^*\), so the
 decomposition
-\(\tilde{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}} + \Delta\theta\)
-with \(\mathbb{E}[\Delta\theta] = 0\) fails. This result will hold
+\(\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\) with
+\(\mathbb{E}[\Delta\tilde{\phi}] = 0\) fails. This result will hold
 regardless of the missing mechanism (MCAR, MAR, or MNAR), reinforcing
 that congeniality---not ignorability---is the critical assumption.
 
@@ -1194,8 +1189,8 @@ The saturated imputation model, while congenial, produces systematically
 larger tr(RIV) than the matched imputation model. This occurs because
 the saturated model has wider posterior variance---it estimates more
 parameters and thus has greater uncertainty. In terms of our
-decomposition, \(\text{Var}(\Delta\theta) > 0\) for the saturated model,
-inflating \(\text{Var}(\tilde{\theta}_{\text{obs}})\).
+decomposition, \(\text{Var}(\Delta\tilde{\phi}) > 0\) for the saturated
+model, inflating \(\text{Var}(\tilde{\phi})\).
 
 Critically, even with this inflated variance:
 
@@ -1209,8 +1204,8 @@ Critically, even with this inflated variance:
 
 This confirms the theoretical result from Section 3.3.1: inclusive
 imputation models do not distort the bias formula because
-\(\text{Var}(\Delta\theta)\) does not enter
-\(\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\).
+\(\text{Var}(\Delta\tilde{\phi})\) does not enter
+\(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\).
 
 \textbf{Result 4: The penalty term self-corrects for imputation model
 complexity.}
@@ -1281,7 +1276,7 @@ Bias)}\label{appendix-a}
 This appendix provides a complete derivation of the imputation bias term
 presented in Section 3.3.1. We show that:
 
-\[\text{Term 1} = \mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\right)\]
+\[\text{Term 1} = \mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]
 
 and under the congeniality and uncorrelatedness assumptions, this
 simplifies to \(\text{tr}(\text{RIV})\).
@@ -1292,7 +1287,7 @@ We use the log-likelihood factorization
 \(\ell_{\text{com}} = \ell_{\text{obs}} + \ell_{\text{mis}|\text{obs}}\).
 The Q-function can be written as:
 
-\[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}}) = \ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) + \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\]
+\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) = \ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) + \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\]
 
 while the complete-data log-likelihood is:
 
@@ -1301,11 +1296,11 @@ while the complete-data log-likelihood is:
 The \(\ell_{\text{obs}}(\hat{\theta}_{\text{obs}})\) terms are identical
 and cancel, leaving:
 
-\[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]
+\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]
 
 Therefore:
 
-\[\text{Term 1} = \mathbb{E}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\]
+\[\text{Term 1} = \mathbb{E}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\]
 
 where the outer expectation is over
 \((Y^{\text{obs}}, Y^{\text{mis}}) \sim p(Y|\theta^*)\).
@@ -1315,37 +1310,35 @@ Expectations}\label{a.2-simplifying-the-nested-expectations}
 
 Write the full expectation explicitly:
 
-\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\right]\]
+\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\right]\]
 
 Note that
 \(\hat{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}}(Y^{\text{obs}})\)
-and
-\(\tilde{\theta}_{\text{obs}} = \tilde{\theta}_{\text{obs}}(Y^{\text{obs}})\)
-are functions of \(Y^{\text{obs}}\) only.
+and \(\tilde{\phi} = \tilde{\phi}(Y^{\text{obs}})\) are functions of
+\(Y^{\text{obs}}\) only.
 
 Since
-\(\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\)
+\(\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\)
 is a function of \(Y^{\text{obs}}\) only (we've integrated out
 \(Y^{\text{mis}}\)), the middle expectation
 \(\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}[\cdot]\) acts only
 on the second term:
 
-\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]
+\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]
 
 where we use the shorthand
 \(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\).
 
 This is the difference in expected log-likelihood when imputing under
-\(\tilde{\theta}_{\text{obs}}\) versus under the true \(\theta^*\).
+\(\tilde{\phi}\) versus under the true \(\theta^*\).
 
 \subsection{A.3 Taylor Expansion of the
 Expectation}\label{a.3-taylor-expansion-of-the-expectation}
 
-We expand \(\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[g]\) around
-\(\tilde{\theta}_{\text{obs}} = \theta^*\) for any function
-\(g(Y^{\text{mis}})\):
+We expand \(\mathbb{E}_{\tilde{\phi}}[g]\) around
+\(\tilde{\phi} = \theta^*\) for any function \(g(Y^{\text{mis}})\):
 
-\[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*}\]
+\[\mathbb{E}_{\tilde{\phi}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\phi} - \theta^*)^T \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*}\]
 
 For exponential family models, this derivative can be expressed using
 the score function. The score of the conditional distribution is:
@@ -1373,7 +1366,7 @@ Setting}\label{a.4-applying-to-our-setting}
 
 With \(g = \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\):
 
-\[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]
+\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]
 
 \subsection{A.5 Expanding the
 Log-Likelihood}\label{a.5-expanding-the-log-likelihood}
@@ -1434,54 +1427,53 @@ At the maximum \(\theta = \theta^*\), the derivative with respect to
 
 From Sections A.4--A.6:
 
-\[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]
+\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]
 
 Taking the expectation over \(Y^{\text{obs}}\):
 
-\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]
+\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]
 
 \subsection{A.8 Converting to Trace
 Form}\label{a.8-converting-to-trace-form}
 
 Using the trace identity \(a^T B c = \text{tr}(B c a^T)\):
 
-\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathbb{E}[(\hat{\theta}_{\text{obs}} - \theta^*)(\tilde{\theta}_{\text{obs}} - \theta^*)^T]\right)\]
+\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathbb{E}[(\hat{\theta}_{\text{obs}} - \theta^*)(\tilde{\phi} - \theta^*)^T]\right)\]
 
-Since both \(\hat{\theta}_{\text{obs}}\) and
-\(\tilde{\theta}_{\text{obs}}\) are asymptotically unbiased for
-\(\theta^*\), the expectation equals the covariance:
+Since both \(\hat{\theta}_{\text{obs}}\) and \(\tilde{\phi}\) are
+asymptotically unbiased for \(\theta^*\), the expectation equals the
+covariance:
 
-\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\right)\]
+\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]
 
 This is our main result in general form.
 
 \subsection{A.9 Simplification Under Key
 Assumptions}\label{a.9-simplification-under-key-assumptions}
 
-To simplify
-\(\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\),
-we decompose the posterior draw as:
+To simplify \(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\), we
+decompose the posterior draw as:
 
-\[\tilde{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}} + \Delta\theta\]
+\[\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\]
 
-where \(\Delta\theta\) represents the deviation of the posterior draw
-from the observed-data MLE.
+where \(\Delta\tilde{\phi}\) represents the deviation of the posterior
+draw from the observed-data MLE.
 
 \textbf{Assumption 1 (Congeniality):} The imputation model is congenial
 with the analysis model
 (\textbf{mengMultipleimputationInferencesUncongenial1994?}), meaning
 both target the same parameter:
-\(\mathbb{E}[\tilde{\theta}_{\text{obs}}] \to \theta^*\) as
-\(n \to \infty\). This ensures that \(\mathbb{E}[\Delta\theta] = 0\)
-asymptotically.
+\(\mathbb{E}[\tilde{\phi}] \to \theta^*\) as \(n \to \infty\). This
+ensures that \(\mathbb{E}[\Delta\tilde{\phi}] = 0\) asymptotically.
 
-\textbf{Assumption 2 (Uncorrelatedness):} The deviation \(\Delta\theta\)
-is uncorrelated with \(\hat{\theta}_{\text{obs}}\):
-\(\text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = 0\).
+\textbf{Assumption 2 (Uncorrelatedness):} The deviation
+\(\Delta\tilde{\phi}\) is uncorrelated with
+\(\hat{\theta}_{\text{obs}}\):
+\(\text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = 0\).
 
 Under these assumptions:
 
-\[\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]
+\[\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]
 
 Therefore:
 
