@@ -503,3 +503,286 @@ visualize_bias_validation <- function(validation_df, output_dir = "simulations/0
 
   cat(sprintf("Saved bias validation visualizations to %s\n", output_dir))
 }
+
+
+# ============================================================================
+# Term Decomposition Validation
+# ============================================================================
+# Empirically verify Terms 1-3 from the Taylor expansion in the derivation
+# to identify the source of the 2×tr(RIV) discrepancy.
+# ============================================================================
+
+#' Validate Term Decomposition of Imputation Bias
+#'
+#' Empirically computes Terms 1-3 from the Taylor expansion to verify which
+#' term(s) contribute to the observed 2×tr(RIV) bias.
+#'
+#' @param n Integer. Sample size
+#' @param p Integer. Number of variables
+#' @param true_structure Character. "CS", "Toeplitz", or "Unstructured"
+#' @param rho Numeric. Correlation parameter
+#' @param missing_rate Numeric. Proportion of missing data
+#' @param M Integer. Number of imputations
+#' @param n_reps Integer. Number of replications
+#' @param base_seed Integer. Base seed for reproducibility
+#' @param use_parallel Logical. Whether to use parallel processing
+#' @return data.frame with columns for each term and diagnostic values
+#' @details
+#'   For each replication, computes:
+#'   - Total = Q̄_MI(θ̂) - ℓ_com(θ̂) [the bias we observe]
+#'   - Term1 = Q̄_MI(θ*) - ℓ_com(θ*) [should be ≈ 0]
+#'   - Term2 = (θ̂-θ*)ᵀ[score_diff] [should be ≈ tr(RIV)]
+#'   - Term3 = -½(θ̂-θ*)ᵀ[hessian_diff](θ̂-θ*) [should be negligible]
+#'   - Taylor Sum = Term1 + Term2 + Term3
+#'   - Residual = Total - Taylor Sum
+#'
+#'   If Taylor Sum ≈ Total, the expansion is valid. Then examine which term(s)
+#'   account for the extra tr(RIV) observed in the bias.
+validate_term_decomposition <- function(
+  n = 200,
+  p = 10,
+  true_structure = "Toeplitz",
+  rho = 0.5,
+  missing_rate = 0.6,
+  M = 100,
+  n_reps = 100,
+  base_seed = 54321,
+  use_parallel = FALSE
+) {
+
+  cat("=== Term Decomposition Validation ===\n")
+  cat(sprintf("n=%d, p=%d, structure=%s, rho=%.2f, missing=%.0f%%, M=%d, reps=%d\n",
+              n, p, true_structure, rho, missing_rate * 100, M, n_reps))
+
+  # Generate true parameters
+  Sigma_true <- generate_covariance(p = p, structure = true_structure, sigma2 = 1, rho = rho)
+  mu_true <- rep(0, p)
+
+  # Compute Q (number of parameters) for the unstructured natural parameterization
+  Q_natural <- p + p * (p + 1) / 2  # μ + vech(Σ)
+
+  cat(sprintf("True parameters: Q_natural=%d (μ=%d, Σ=%d)\n",
+              as.integer(Q_natural), p, as.integer(p * (p + 1) / 2)))
+
+  # Inner function for one replication
+  run_replication <- function(rep_idx, seed_val) {
+    # Set seed for this replication
+    set.seed(seed_val)
+
+    # Generate complete data
+    data_complete <- generate_mvn_data(n, mu_true, Sigma_true, seed = seed_val)
+
+    # Impose missingness
+    miss_result <- impose_missingness(
+      data = data_complete,
+      missing_rate = missing_rate,
+      pattern = "monotone",
+      prop_complete = 0.4,
+      seed = seed_val + 1000
+    )
+    data_miss <- miss_result$data_miss
+
+    # Generate imputations using MLE parameters
+    impute_result <- impute_wrapper(
+      data_miss = data_miss,
+      scenario = "MLE",
+      structure = true_structure,
+      M = M,
+      seed_base = seed_val + 2000
+    )
+    completed_datasets <- impute_result$completed_datasets
+
+    # Fit model to observed data to get θ̂_obs
+    fit_obs <- fit_lavaan_model(data_miss, structure = true_structure, return_vcov = TRUE)
+    if (!fit_obs$converged) {
+      warning(paste("Replication", rep_idx, ": observed-data fit did not converge"))
+      return(NULL)
+    }
+
+    mu_hat <- fit_obs$mu_hat
+    Sigma_hat <- fit_obs$Sigma_hat
+
+    # Compute tr(RIV) via Rubin's variance components
+    riv_result <- tryCatch(
+      {
+        compute_rubin_variance(completed_datasets, structure = true_structure)
+      },
+      error = function(e) {
+        warning(paste("Replication", rep_idx, ": compute_rubin_variance failed -", e$message))
+        return(NULL)
+      }
+    )
+
+    if (is.null(riv_result)) {
+      return(NULL)
+    }
+
+    tr_RIV <- riv_result$tr_RIV
+
+    # Compute TOTAL bias: Q̄_MI(θ̂) - ℓ_com(θ̂)
+    theta_hat_list <- list(mu_hat = mu_hat, Sigma_hat = Sigma_hat)
+    Q_MI_at_hat <- compute_Q_function(theta_hat_list, completed_datasets)
+    ell_com_at_hat <- compute_complete_loglik(data_complete, mu_hat, Sigma_hat)
+    total_bias <- Q_MI_at_hat - ell_com_at_hat
+
+    # Compute Term 1: Q̄_MI(θ*) - ℓ_com(θ*)
+    term1 <- tryCatch(
+      {
+        compute_term1(completed_datasets, data_complete, mu_true, Sigma_true)
+      },
+      error = function(e) {
+        warning(paste("Replication", rep_idx, ": compute_term1 failed -", e$message))
+        return(NA)
+      }
+    )
+
+    # Compute Term 2: (θ̂ - θ*)ᵀ [E[S_com(θ*)|θ̃] - S_com(θ*)]
+    term2 <- tryCatch(
+      {
+        compute_term2(completed_datasets, data_complete, mu_true, Sigma_true, mu_hat, Sigma_hat)
+      },
+      error = function(e) {
+        warning(paste("Replication", rep_idx, ": compute_term2 failed -", e$message))
+        return(NA)
+      }
+    )
+
+    # Compute Term 3: -½(θ̂ - θ*)ᵀ [E[J_com(θ*)|θ̃] - J_com(θ*)] (θ̂ - θ*)
+    term3 <- tryCatch(
+      {
+        compute_term3(completed_datasets, data_complete, mu_true, Sigma_true, mu_hat, Sigma_hat)
+      },
+      error = function(e) {
+        warning(paste("Replication", rep_idx, ": compute_term3 failed -", e$message))
+        return(NA)
+      }
+    )
+
+    # Taylor sum and residual
+    taylor_sum <- term1 + term2 + term3
+    residual <- total_bias - taylor_sum
+
+    return(data.frame(
+      replication = rep_idx,
+      n = n,
+      p = p,
+      Q_natural = Q_natural,
+      M = M,
+      missing_rate = missing_rate,
+      true_structure = true_structure,
+      total_bias = total_bias,
+      term1 = term1,
+      term2 = term2,
+      term3 = term3,
+      taylor_sum = taylor_sum,
+      residual = residual,
+      tr_RIV = tr_RIV,
+      converged = fit_obs$converged,
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  # Generate seeds for replications
+  rep_seeds <- generate_seeds(n_reps, base_seed = base_seed)
+
+  # Run replications with progress bar
+  if (use_parallel && requireNamespace("future.apply", quietly = TRUE)) {
+    cat("Running term decomposition in parallel...\n")
+    cat("(Progress bar not available in parallel mode)\n")
+
+    results_list <- future.apply::future_lapply(1:n_reps, function(i) {
+      run_replication(i, rep_seeds[i])
+    }, future.seed = TRUE)
+  } else {
+    if (use_parallel) {
+      warning("Parallel processing requested but not available; running sequentially")
+    }
+    cat("Running term decomposition sequentially...\n")
+
+    # Use progressr for progress bar if available
+    if (requireNamespace("progressr", quietly = TRUE)) {
+      progressr::handlers("txtprogressbar")
+
+      results_list <- progressr::with_progress({
+        p <- progressr::progressor(steps = n_reps)
+        lapply(1:n_reps, function(i) {
+          result <- run_replication(i, rep_seeds[i])
+          p()  # Signal progress after completion
+          result
+        })
+      })
+    } else {
+      results_list <- lapply(1:n_reps, function(i) {
+        run_replication(i, rep_seeds[i])
+      })
+    }
+  }
+
+  # Filter out failed replications
+  results_list <- results_list[!sapply(results_list, is.null)]
+  n_success <- length(results_list)
+
+  if (n_success == 0) {
+    stop("All replications failed")
+  }
+
+  if (n_success < n_reps) {
+    warning(sprintf("%d out of %d replications failed", n_reps - n_success, n_reps))
+  }
+
+  # Combine results
+  validation_df <- do.call(rbind, results_list)
+
+  # Print summary
+  cat("\n=== Term Decomposition Summary ===\n")
+  cat(sprintf("Successful replications: %d / %d\n\n", n_success, n_reps))
+
+  # Compute summary statistics
+  mean_tr_RIV <- mean(validation_df$tr_RIV, na.rm = TRUE)
+
+  summary_stats <- data.frame(
+    Metric = c("Total Bias", "Term 1", "Term 2", "Term 3", "Taylor Sum", "Residual", "tr(RIV)"),
+    Mean = c(
+      mean(validation_df$total_bias, na.rm = TRUE),
+      mean(validation_df$term1, na.rm = TRUE),
+      mean(validation_df$term2, na.rm = TRUE),
+      mean(validation_df$term3, na.rm = TRUE),
+      mean(validation_df$taylor_sum, na.rm = TRUE),
+      mean(validation_df$residual, na.rm = TRUE),
+      mean_tr_RIV
+    ),
+    SD = c(
+      sd(validation_df$total_bias, na.rm = TRUE),
+      sd(validation_df$term1, na.rm = TRUE),
+      sd(validation_df$term2, na.rm = TRUE),
+      sd(validation_df$term3, na.rm = TRUE),
+      sd(validation_df$taylor_sum, na.rm = TRUE),
+      sd(validation_df$residual, na.rm = TRUE),
+      sd(validation_df$tr_RIV, na.rm = TRUE)
+    )
+  )
+
+  # Add ratio to tr(RIV)
+  summary_stats$Ratio_to_trRIV <- summary_stats$Mean / mean_tr_RIV
+
+  print(summary_stats)
+
+  cat("\n=== Interpretation ===\n")
+  term2_ratio <- mean(validation_df$term2, na.rm = TRUE) / mean_tr_RIV
+  term3_ratio <- mean(validation_df$term3, na.rm = TRUE) / mean_tr_RIV
+  residual_ratio <- abs(mean(validation_df$residual, na.rm = TRUE)) / abs(mean(validation_df$total_bias, na.rm = TRUE))
+
+  cat(sprintf("Term 2 / tr(RIV) = %.2f (theory predicts 1.0)\n", term2_ratio))
+  cat(sprintf("Term 3 / tr(RIV) = %.2f (theory predicts ~0)\n", term3_ratio))
+  cat(sprintf("Residual / Total = %.2f%% (Taylor approximation error)\n", residual_ratio * 100))
+
+  if (abs(term3_ratio) > 0.5) {
+    cat("\n** Term 3 is NOT negligible - Step 15 may be incorrect **\n")
+  }
+
+  if (term2_ratio > 1.5) {
+    cat("\n** Term 2 > 1.5×tr(RIV) - Steps 14-16 may have an error **\n")
+  }
+
+  return(validation_df)
+}

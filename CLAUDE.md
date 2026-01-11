@@ -4,16 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **statistical methodology research project** focused on corrected information criteria for model selection under multiple imputation (MI). The project develops theoretical foundations and practical methods for properly penalizing model complexity when selecting among candidate models fitted to multiply-imputed datasets.
+This is a **statistical methodology research project** developing a principled derivation of information criteria (AIC, BIC) for multiply-imputed data. The goal is **complete-data replication**—deriving IC that answers "what would I have concluded had my data been complete?"
 
-### Key Research Problem
-Existing model selection methods (AIC, BIC) when applied to imputed data incur an **imputation bias** that scales with model complexity, favoring overfitting. The project derives corrected penalties that properly account for this bias.
+### Key Research Contribution
+The project provides a theoretically sound derivation showing that the Q-function (pooled deviance across imputations) is biased for the complete-data log-likelihood at the complete-data MLE. This bias equals ½tr(RIV), leading to corrected penalties that better replicate complete-data inference.
 
-### Directories
-- **`claude/`**: Research documentation and paper drafts
-  - `paper_outline_v4.md`: Formal research paper structure with full methodology, theory, and key results
-  - `mi_deviance_bias_derivation.html`: Interactive technical document with step-by-step mathematical derivations
-- **`simulations/`**: Directory for simulation code and results (currently empty; will contain R/Python simulation studies)
+### Directory Structure (Post-Reorganization)
+
+```
+MI-IC/
+├── manuscript/                          # Article in production
+│   ├── mi-ic-article.qmd               # Main manuscript file
+│   ├── references.bib                  # Bibliography (linked to Zotero)
+│   ├── figures/                        # Publication-ready figures
+│   └── tables/                         # Publication-ready tables
+├── simulations/                        # Simulation code
+│   ├── study1-bollen-sem/              # Study 1: SEM with missing data + MI
+│   ├── study2-lpa/                     # Study 2: Latent Profile Analysis
+│   ├── premise-tests/                  # Archived premise/verification simulations
+│   │   ├── 000-premise-very-basic-Y/
+│   │   └── 00-premise-basic-Y/
+│   └── utils/                          # Shared R utilities
+├── empirical-example/                  # Real data analysis
+├── supplementary/                      # Supplementary materials (if needed)
+├── claude/                             # Working drafts & development
+│   ├── derivations/                    # Mathematical derivations
+│   │   ├── mi_deviance_bias_derivation_v3_3.qmd  # Current version
+│   │   ├── mi_deviance_bias_derivation_v3_3.html
+│   │   ├── mi_deviance_bias_derivation_v3_3_files/
+│   │   └── archive/                    # Older versions (v2, v2_1)
+│   ├── outlines/                       # Article outlines
+│   │   └── article_outline.qmd         # Detailed article structure plan
+│   └── notes/                          # Other working notes
+├── submission/                         # Submission materials
+└── CLAUDE.md                           # This file
+```
+
+**Key File Locations:**
+- **Main manuscript**: `manuscript/mi-ic-article.qmd`
+- **Current derivation**: `claude/derivations/mi_deviance_bias_derivation_v3_3.qmd`
+- **Article outline**: `claude/outlines/article_outline.qmd`
+- **Bibliography**: `manuscript/references.bib` (link to Zotero MI-IC collection)
 
 ## Development Setup
 
@@ -36,31 +67,29 @@ R
 ## Project Architecture
 
 ### Theoretical Foundation
-The core methodology is based on decomposing total bias when using multiply-imputed data for model selection:
+The target is **AIC_com**—the AIC that would have been computed at the complete-data MLE θ̂_com. The bias of the Q-function (pooled MI deviance) decomposes as:
 
 ```
-Total Bias = Imputation Bias + Optimism
-           = tr(RIV) + Q + tr(RIV)    [for AIC]
-           = tr(RIV) + (Q log N)/2    [for BIC, approximation]
+Total Bias = E[Q̄_MI(θ̂_obs)] - E[ℓ_com(θ̂_com)]
+           = Term 1 (Imputation Bias) + Term 2 (Estimation Mismatch)
+           = tr(RIV) + (-½tr(RIV))
+           = ½tr(RIV)
 ```
 
 Where:
-- **Imputation Bias**: Arises from double dipping (using data to estimate parameters, then generate imputations from those estimates)
-- **Optimism**: Standard Efron-type bias from training/test split
+- **Term 1 (Imputation Bias)**: tr(RIV) — arises from imputing with estimated parameters
+- **Term 2 (Estimation Mismatch)**: -½tr(RIV) — loss from evaluating at θ̂_obs instead of θ̂_com
 - **RIV** = Relative Increase in Variance = `(1 + 1/M) * W^{-1} * B`
-  - W = within-imputation variance
-  - B = between-imputation variance
-  - M = number of imputations
 
 ### Corrected Criteria
-The key results are:
-- **MI-AIC**: Penalty = `2Q + 4*tr(RIV)`
-- **MI-BIC**: Penalty = `Q*log(N) + 2*tr(RIV)`
+The bias correction applies to the deviance, not the penalty structure:
+- **MI-AIC**: Penalty = `2Q + tr(RIV)`
+- **MI-BIC**: Penalty = `Q*log(N) + tr(RIV)`
 
 Both are **directly computable from standard MI output** (W and B matrices).
 
 ### Comparison to Existing Methods
-The project shows that AICcd, PDIO, and Claeskels & Consentino's methods underpenalize by omitting the imputation bias correction term. See paper section 7 for detailed comparison.
+AICcd (Cavanaugh & Shumway) has penalty `2Q + 2tr(RIV)`. The difference arises because AICcd targets predictive performance at θ̂_obs, not replication of complete-data inference at θ̂_com.
 
 ## Mathematical Notation & Key Relationships
 
@@ -73,25 +102,65 @@ The project shows that AICcd, PDIO, and Claeskels & Consentino's methods underpe
 - `ℐ_com`, `ℐ_obs`, `ℐ_mis|obs` = Fisher information matrices
 - `W^{-1}` should be regularized if model is high-dimensional
 
-## Integration with Paper Outline
+## Target Journals
+- *Structural Equation Modeling: A Multidisciplinary Journal*
+- *Psychological Methods*
 
-The `paper_outline_v4.md` file contains:
-1. **Abstract** summarizing the core problem and solution
-2. **Sections 1-2**: Setup, notation, and foundational definitions
-3. **Section 3**: Derivation of imputation bias formula
-4. **Sections 4-5**: MI-AIC and MI-BIC derivations
-5. **Section 6**: Extension to missing covariates (conditional criteria)
-6. **Section 7**: Comparison to existing methods
-7. **Section 8**: Simulation study design
-8. **Section 9**: Discussion and practical guidance
+## Article Development Workflow
 
-The HTML document provides step-by-step derivations not in the outline.
+### Phase 0: File Organization ✓ (COMPLETE)
+- Established clean directory structure separating article production from development
+- Moved outline and derivations to working directories
+- Created manuscript placeholder with YAML header and section stubs
+- Archived older derivation versions
 
-## Future Work Hints
+### Phase 1: Theory Development (IN PROGRESS)
+1. **Verify derivation**: Ensure `claude/derivations/mi_deviance_bias_derivation_v3_3.qmd` is complete and rigorous
+2. **Draft introduction**: Section 1 of `manuscript/mi-ic-article.qmd`
+3. **Draft background**: Section 2 of manuscript
+4. **Draft theory**: Section 3 of manuscript (use v3_3.qmd derivation as basis)
 
-Based on Section 8, when developing simulation code, expect to:
-- Generate synthetic data with nested model structures
-- Implement MAR (Missing At Random) missingness mechanisms
-- Compare selection replication rates across methods
-- Test varying sample sizes (N ∈ {100, 500, 1000}) and missing rates (10%, 30%, 50%)
-- Verify that MI-AIC/MI-BIC achieve higher replication of complete-data decisions than existing methods
+### Phase 2: Empirical Validation (PENDING)
+5. **Study 1 (SEM)**: Implement in `simulations/study1-bollen-sem/`
+   - Replicate Bollen et al. (2014) design with missing data + MI
+   - Compute all IC variants (complete-data, ad hoc, MI-AIC, MI-BIC, AICcd)
+   - Generate results tables and figures
+
+6. **Study 2 (LPA)**: Implement in `simulations/study2-lpa/`
+   - Design mixture model simulation with specified parameters
+   - Compute all IC variants
+   - Generate results tables and figures
+
+7. **Empirical Example**: Implement in `empirical-example/`
+   - Identify public behavioral science dataset
+   - Apply all IC methods
+   - Create results tables for Section 5 of manuscript
+
+### Phase 3: Writing & Finalization (PENDING)
+8. **Write simulations section**: Section 4 of manuscript (with embedded results)
+9. **Write empirical example section**: Section 5 of manuscript
+10. **Write discussion**: Section 6 of manuscript
+11. **Finalize references**: Export from Zotero MI-IC collection to `manuscript/references.bib`
+12. **Create publication figures**: Place in `manuscript/figures/`
+
+## Simulation Studies
+
+### Study 1: SEM (Replicating Bollen et al. 2014)
+- **Location**: `simulations/study1-bollen-sem/`
+- **Design**: 3-factor CFA with 9 indicators
+- **Sample sizes**: N = 100, 250, 500, 1000, 5000
+- **Missing rates**: 10%, 25%, 40% MCAR
+- **Imputations**: M = 20
+- **Replications**: 1000 per condition
+- **Methods compared**: Complete-data IC, Ad hoc, MI-AIC, MI-BIC, AICcd
+- **Output**: Selection accuracy tables, IC distributions, figures
+
+### Study 2: LPA (Mixture Modeling)
+- **Location**: `simulations/study2-lpa/`
+- **Design**: 3-class LPA with 5-6 continuous indicators
+- **Sample sizes**: N = 200, 500, 1000
+- **Missing rates**: 15%, 30% MAR
+- **Imputations**: M = 20
+- **Replications**: 500 per condition
+- **Methods compared**: Complete-data IC, Ad hoc, MI-AIC, MI-BIC, AICcd
+- **Output**: Class enumeration accuracy, figures

@@ -405,3 +405,255 @@ compute_information_criteria <- function(logLik, Q, n, tr_RIV = NULL) {
 
   return(result)
 }
+
+
+# ============================================================================
+# Term Decomposition Functions for Bias Verification
+# ============================================================================
+# These functions compute Terms 1-3 from the Taylor expansion in the derivation
+# to empirically verify which term(s) contribute to the 2×tr(RIV) bias.
+# ============================================================================
+
+#' Half-Vectorization of a Symmetric Matrix
+#'
+#' Extracts the lower triangular elements (including diagonal) of a matrix
+#'
+#' @param M Numeric matrix (should be symmetric)
+#' @return Numeric vector of length p(p+1)/2 where p = nrow(M)
+#' @examples
+#'   Sigma <- matrix(c(1, 0.5, 0.5, 1), 2, 2)
+#'   vech(Sigma)  # returns c(1, 0.5, 1)
+vech <- function(M) {
+  M[lower.tri(M, diag = TRUE)]
+}
+
+
+#' Inverse Half-Vectorization
+#'
+#' Reconstructs a symmetric matrix from its half-vectorization
+#'
+#' @param v Numeric vector of length p(p+1)/2
+#' @param p Integer. Dimension of the output matrix
+#' @return Symmetric p x p matrix
+#' @examples
+#'   v <- c(1, 0.5, 1)
+#'   vech_inv(v, 2)  # returns matrix(c(1, 0.5, 0.5, 1), 2, 2)
+vech_inv <- function(v, p) {
+  M <- matrix(0, p, p)
+  M[lower.tri(M, diag = TRUE)] <- v
+  M <- M + t(M) - diag(diag(M))
+  return(M)
+}
+
+
+#' Compute MVN Score (Gradient) Using Numerical Differentiation
+#'
+#' Computes the score vector ∂ℓ/∂θ where θ = (μ, vech(Σ))
+#'
+#' @param data Numeric matrix. n x p data matrix (no NAs)
+#' @param mu Numeric vector. Mean parameter (length p)
+#' @param Sigma Numeric matrix. Covariance parameter (p x p)
+#' @return Numeric vector of length p + p(p+1)/2
+#' @details
+#'   Uses numDeriv::grad() for numerical differentiation.
+#'   The parameter vector is ordered as: (μ₁, ..., μₚ, vech(Σ))
+compute_mvn_score <- function(data, mu, Sigma) {
+
+  if (!requireNamespace("numDeriv", quietly = TRUE)) {
+    stop("Package 'numDeriv' required for numerical differentiation")
+  }
+
+  # Source fit_models.R if not loaded
+  if (!exists("compute_complete_loglik", mode = "function")) {
+    source("simulations/utils/fit_models.R")
+  }
+
+  p <- length(mu)
+
+  # Pack parameters into single vector: c(mu, vech(Sigma))
+  theta <- c(mu, vech(Sigma))
+
+  # Objective: log-likelihood as function of theta
+  loglik_fn <- function(theta_vec) {
+    mu_vec <- theta_vec[1:p]
+    Sigma_mat <- vech_inv(theta_vec[(p + 1):length(theta_vec)], p)
+
+    # Check for positive definiteness
+    eig_vals <- eigen(Sigma_mat, symmetric = TRUE, only.values = TRUE)$values
+    if (any(eig_vals <= 0)) {
+      return(-Inf)
+    }
+
+    compute_complete_loglik(data, mu_vec, Sigma_mat)
+  }
+
+  # Numerical gradient
+  score <- numDeriv::grad(loglik_fn, theta)
+
+  return(score)
+}
+
+
+#' Compute MVN Observed Information Using Numerical Differentiation
+#'
+#' Computes the observed information J = -∂²ℓ/∂θ² where θ = (μ, vech(Σ))
+#'
+#' @param data Numeric matrix. n x p data matrix (no NAs)
+#' @param mu Numeric vector. Mean parameter (length p)
+#' @param Sigma Numeric matrix. Covariance parameter (p x p)
+#' @return Numeric matrix of dimension (p + p(p+1)/2) x (p + p(p+1)/2)
+#' @details
+#'   Uses numDeriv::hessian() for numerical differentiation.
+#'   Returns the OBSERVED information (negative Hessian), not Fisher information.
+compute_mvn_hessian <- function(data, mu, Sigma) {
+
+  if (!requireNamespace("numDeriv", quietly = TRUE)) {
+    stop("Package 'numDeriv' required for numerical differentiation")
+  }
+
+  # Source fit_models.R if not loaded
+  if (!exists("compute_complete_loglik", mode = "function")) {
+    source("simulations/utils/fit_models.R")
+  }
+
+  p <- length(mu)
+
+  # Pack parameters into single vector: c(mu, vech(Sigma))
+  theta <- c(mu, vech(Sigma))
+
+  # Objective: log-likelihood as function of theta
+  loglik_fn <- function(theta_vec) {
+    mu_vec <- theta_vec[1:p]
+    Sigma_mat <- vech_inv(theta_vec[(p + 1):length(theta_vec)], p)
+
+    # Check for positive definiteness
+    eig_vals <- eigen(Sigma_mat, symmetric = TRUE, only.values = TRUE)$values
+    if (any(eig_vals <= 0)) {
+      return(-Inf)
+    }
+
+    compute_complete_loglik(data, mu_vec, Sigma_mat)
+  }
+
+  # Numerical Hessian, then negate to get observed information
+  hess <- numDeriv::hessian(loglik_fn, theta)
+  obs_info <- -hess
+
+  return(obs_info)
+}
+
+
+#' Compute Term 1 of Taylor Expansion
+#'
+#' Term 1 = Q̄_MI(θ*) - ℓ_com(θ*)
+#' The difference in log-likelihood at TRUE parameters between imputed and complete data
+#'
+#' @param completed_datasets List of M completed datasets
+#' @param data_complete Numeric matrix. True complete data (n x p)
+#' @param mu_true Numeric vector. True mean parameter
+#' @param Sigma_true Numeric matrix. True covariance parameter
+#' @return Numeric scalar. Term 1 value
+#' @details
+#'   This term should be approximately 0 according to the derivation (Step 12).
+#'   If it's significantly non-zero, there may be an error in that step.
+compute_term1 <- function(completed_datasets, data_complete, mu_true, Sigma_true) {
+
+  # Source fit_models.R if not loaded
+  if (!exists("compute_complete_loglik", mode = "function")) {
+    source("simulations/utils/fit_models.R")
+  }
+
+  # Q̄_MI(θ*) = average log-likelihood at true params over imputed datasets
+  Q_at_true <- mean(sapply(completed_datasets, function(d) {
+    compute_complete_loglik(d, mu_true, Sigma_true)
+  }))
+
+  # ℓ_com(θ*) = log-likelihood at true params on true complete data
+  ell_at_true <- compute_complete_loglik(data_complete, mu_true, Sigma_true)
+
+  return(Q_at_true - ell_at_true)
+}
+
+
+#' Compute Term 2 of Taylor Expansion
+#'
+#' Term 2 = (θ̂ - θ*)ᵀ [E[S_com(θ*)|θ̃] - S_com(θ*)]
+#' Score difference weighted by parameter estimation error
+#'
+#' @param completed_datasets List of M completed datasets
+#' @param data_complete Numeric matrix. True complete data (n x p)
+#' @param mu_true Numeric vector. True mean parameter
+#' @param Sigma_true Numeric matrix. True covariance parameter
+#' @param mu_hat Numeric vector. Estimated mean parameter
+#' @param Sigma_hat Numeric matrix. Estimated covariance parameter
+#' @return Numeric scalar. Term 2 value
+#' @details
+#'   According to the derivation (Steps 13-14), this should equal tr(RIV).
+#'   If it's approximately 2×tr(RIV), there may be an error in Steps 14-16.
+compute_term2 <- function(completed_datasets, data_complete,
+                          mu_true, Sigma_true, mu_hat, Sigma_hat) {
+
+  # Parameter difference: θ̂ - θ*
+  theta_hat <- c(mu_hat, vech(Sigma_hat))
+  theta_star <- c(mu_true, vech(Sigma_true))
+  theta_diff <- theta_hat - theta_star
+
+  # E[S_com(θ*)] averaged over imputations
+  score_imputed_list <- lapply(completed_datasets, function(d) {
+    compute_mvn_score(d, mu_true, Sigma_true)
+  })
+  score_imputed_avg <- Reduce(`+`, score_imputed_list) / length(completed_datasets)
+
+  # S_com(θ*) on true complete data
+  score_true <- compute_mvn_score(data_complete, mu_true, Sigma_true)
+
+  # Score difference
+  score_diff <- score_imputed_avg - score_true
+
+  # Dot product: (θ̂ - θ*)ᵀ (score_diff)
+  term2 <- sum(theta_diff * score_diff)
+
+  return(term2)
+}
+
+
+#' Compute Term 3 of Taylor Expansion
+#'
+#' Term 3 = -½(θ̂ - θ*)ᵀ [E[J_com(θ*)|θ̃] - J_com(θ*)] (θ̂ - θ*)
+#' Hessian (observed information) difference in quadratic form
+#'
+#' @param completed_datasets List of M completed datasets
+#' @param data_complete Numeric matrix. True complete data (n x p)
+#' @param mu_true Numeric vector. True mean parameter
+#' @param Sigma_true Numeric matrix. True covariance parameter
+#' @param mu_hat Numeric vector. Estimated mean parameter
+#' @param Sigma_hat Numeric matrix. Estimated covariance parameter
+#' @return Numeric scalar. Term 3 value
+#' @details
+#'   According to the derivation (Step 15), this should be O(N^{-3/2}) and negligible.
+#'   If it's approximately tr(RIV), Step 15 incorrectly dismisses this term.
+compute_term3 <- function(completed_datasets, data_complete,
+                          mu_true, Sigma_true, mu_hat, Sigma_hat) {
+
+  # Parameter difference: θ̂ - θ*
+  theta_hat <- c(mu_hat, vech(Sigma_hat))
+  theta_star <- c(mu_true, vech(Sigma_true))
+  theta_diff <- theta_hat - theta_star
+
+  # E[J_com(θ*)] averaged over imputations
+  hessian_imputed_list <- lapply(completed_datasets, function(d) {
+    compute_mvn_hessian(d, mu_true, Sigma_true)
+  })
+  hessian_imputed_avg <- Reduce(`+`, hessian_imputed_list) / length(completed_datasets)
+
+  # J_com(θ*) on true complete data
+  hessian_true <- compute_mvn_hessian(data_complete, mu_true, Sigma_true)
+
+  # Hessian difference
+  hessian_diff <- hessian_imputed_avg - hessian_true
+
+  # Quadratic form: -½(θ̂ - θ*)ᵀ (hessian_diff) (θ̂ - θ*)
+  term3 <- -0.5 * as.numeric(t(theta_diff) %*% hessian_diff %*% theta_diff)
+
+  return(term3)
+}
