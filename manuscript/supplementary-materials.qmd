@@ -1,0 +1,915 @@
+---
+title: "Supplementary Materials"
+subtitle: "Information Criteria for Multiply-Imputed Data: A Complete-Data Replication Framework"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    code-fold: true
+    self-contained: true
+  pdf:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    geometry: margin=1in
+    fontsize: 11pt
+bibliography: references.bib
+---
+
+# Simulation Study 1: Validating the Bias Formula
+
+## Purpose and Overview
+
+The primary goal of Simulation Study 1 is to validate the theoretical result that the bias of the Q-function (the expected complete-data log-likelihood under the imputation posterior) relative to the complete-data log-likelihood evaluated at the complete-data MLE equals $\frac{1}{2}\text{tr}(\text{RIV})$, where RIV denotes the Relative Increase in Variance due to missing data.
+
+Specifically, we decompose the total bias as:
+$$
+\underbrace{\mathbb{E}\left[\bar{Q}_{MI}(\hat{\theta}_{obs})\right] - \mathbb{E}\left[\ell_{com}(\hat{\theta}_{com})\right]}_{\text{Total Bias}} = \underbrace{Q(\hat{\theta}_{obs}|\hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{obs})}_{\text{Term 1: Imputation Bias}} + \underbrace{\ell_{com}(\hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{com})}_{\text{Term 2: Estimation Mismatch}}
+$$
+
+Under ignorable missingness (MCAR or MAR), we expect:
+
+- Term 1 $\approx \text{tr}(\text{RIV})$
+- Term 2 $\approx -\frac{1}{2}\text{tr}(\text{RIV})$
+- Total Bias $\approx \frac{1}{2}\text{tr}(\text{RIV})$
+
+To isolate Monte Carlo error from theoretical validation, we employ a simple mediation model where the Q-function can be computed analytically via closed-form posterior distributions. This provides exact results equivalent to $M \to \infty$ imputations.
+
+## Data Generating Process
+
+### Mediation Model
+
+We adopt a simple three-variable mediation model:
+$$
+\begin{aligned}
+X &\sim \mathcal{N}(0, 1) \\
+M &= aX + \varepsilon_M, \quad \varepsilon_M \sim \mathcal{N}(0, \sigma^2_M) \\
+Y &= bM + \varepsilon_Y, \quad \varepsilon_Y \sim \mathcal{N}(0, \sigma^2_Y)
+\end{aligned}
+$$
+
+where $X$ is exogenous, $M$ is the mediator, and $Y$ is the outcome. The parameter vector is $\theta = (a, b, \sigma^2_M, \sigma^2_Y)^\top$.
+
+### Implied Joint Distribution
+
+The model implies a multivariate normal distribution on $(X, M, Y)^\top$:
+$$
+\begin{pmatrix} X \\ M \\ Y \end{pmatrix} \sim \mathcal{N}_3\left( \begin{pmatrix} 0 \\ 0 \\ 0 \end{pmatrix}, \boldsymbol{\Sigma} \right)
+$$
+
+where the covariance matrix is:
+$$
+\boldsymbol{\Sigma} = \begin{pmatrix}
+1 & a & ab \\
+a & a^2 + \sigma^2_M & b(a^2 + \sigma^2_M) \\
+ab & b(a^2 + \sigma^2_M) & b^2(a^2 + \sigma^2_M) + \sigma^2_Y
+\end{pmatrix}
+$$
+
+### Simulation Parameters
+
+For all conditions, we set:
+
+| Parameter | Value |
+|-----------|-------|
+| $a$ | 0.5 |
+| $b$ | 0.5 |
+| $\sigma^2_M$ | 1.0 |
+| $\sigma^2_Y$ | 1.0 |
+| $n$ | 500 |
+| Replications | 10,000 |
+
+## Missing Data Mechanisms
+
+We implement monotone missingness patterns where $Y$ is missing alone or both $M$ and $Y$ are missing (but never $M$ alone). This is controlled by a latent propensity score $z_i$ for each observation.
+
+### Missingness Patterns
+
+For each observation $i$, define indicator $R_i \in \{1, 2, 3\}$:
+
+| Pattern | $X$ | $M$ | $Y$ | Condition |
+|---------|-----|-----|-----|-----------|
+| 1 (Complete) | ✓ | ✓ | ✓ | $z_i \leq c_1$ |
+| 2 (Y missing) | ✓ | ✓ | — | $c_1 < z_i \leq c_2$ |
+| 3 (M, Y missing) | ✓ | — | — | $z_i > c_2$ |
+
+where $c_1 = \Phi^{-1}(q_1)$ and $c_2 = \Phi^{-1}(q_2)$ are cut scores derived from quantiles $q_1$ and $q_2$ of the standard normal distribution.
+
+### Propensity Score Specifications
+
+The propensity score $z_i$ determines missingness and varies by mechanism:
+
+**MCAR (Missing Completely at Random)**
+$$
+z_i \sim \mathcal{N}(0, 1)
+$$
+The propensity is pure noise, independent of all variables.
+
+**MAR (Missing at Random)**
+$$
+z_i = \gamma \cdot \frac{X_i - \bar{X}}{s_X} + \epsilon_i, \quad \epsilon_i \sim \mathcal{N}(0, 1 - \gamma^2)
+$$
+where $\gamma = 0.5$. The propensity depends on $X$, which is always observed. By construction, $z_i \sim \mathcal{N}(0, 1)$ marginally.
+
+**MNAR (Missing Not at Random)**
+$$
+z_i = \gamma \cdot \frac{Y_i - \bar{Y}}{s_Y} + \epsilon_i, \quad \epsilon_i \sim \mathcal{N}(0, 1 - \gamma^2)
+$$
+where $\gamma = 0.5$. The propensity depends on $Y$, which itself becomes missing. Higher values of $Y$ are more likely to be missing.
+
+### Missingness Rates
+
+With $q_1 = 0.50$ and $q_2 = 0.75$:
+
+- Approximately 50% of cases are complete (Pattern 1)
+- Approximately 25% have $Y$ missing only (Pattern 2)
+- Approximately 25% have both $M$ and $Y$ missing (Pattern 3)
+
+## Likelihood Functions
+
+### Complete-Data Log-Likelihood
+
+The complete-data log-likelihood factors according to the mediation model:
+$$
+\ell_{com}(\theta) = \ell(M|X; a, \sigma^2_M) + \ell(Y|M; b, \sigma^2_Y)
+$$
+
+Explicitly:
+$$
+\ell_{com}(\theta) = -\frac{n}{2}\log(2\pi\sigma^2_M) - \frac{1}{2\sigma^2_M}\sum_{i=1}^{n}(M_i - aX_i)^2 - \frac{n}{2}\log(2\pi\sigma^2_Y) - \frac{1}{2\sigma^2_Y}\sum_{i=1}^{n}(Y_i - bM_i)^2
+$$
+
+### Observed-Data Log-Likelihood (FIML)
+
+Under the assumption of ignorable missingness, the observed-data log-likelihood is obtained by integrating over missing values. For each missingness pattern, we have:
+
+**Pattern 1 (Complete: $X, M, Y$ observed)**
+$$
+\ell_i^{(1)}(\theta) = \log f(M_i | X_i; a, \sigma^2_M) + \log f(Y_i | M_i; b, \sigma^2_Y)
+$$
+
+**Pattern 2 (Y missing: $X, M$ observed)**
+
+Integrating over $Y$:
+$$
+\ell_i^{(2)}(\theta) = \log f(M_i | X_i; a, \sigma^2_M) + \log \int f(Y | M_i; b, \sigma^2_Y) \, dY
+$$
+
+Since $\int f(Y|M) \, dY = 1$, this simplifies to:
+$$
+\ell_i^{(2)}(\theta) = \log f(M_i | X_i; a, \sigma^2_M)
+$$
+
+**Pattern 3 (M and Y missing: only $X$ observed)**
+
+Integrating over $(M, Y)$:
+$$
+\ell_i^{(3)}(\theta) = \log \iint f(M | X_i; a, \sigma^2_M) \cdot f(Y | M; b, \sigma^2_Y) \, dY \, dM = 0
+$$
+
+since the integral equals 1 and $\log(1) = 0$. These cases contribute no information to the likelihood.
+
+The total observed-data log-likelihood is:
+$$
+\ell_{obs}(\theta) = \sum_{i \in \mathcal{R}_1} \ell_i^{(1)}(\theta) + \sum_{i \in \mathcal{R}_2} \ell_i^{(2)}(\theta)
+$$
+
+where $\mathcal{R}_k$ denotes the set of observations with pattern $k$.
+
+## Analytical Q-Function
+
+The Q-function is the expected complete-data log-likelihood, where the expectation is taken over the conditional distribution of missing data given observed data and current parameter estimates:
+$$
+Q(\theta | \tilde{\theta}) = \mathbb{E}_{Y_{mis}|Y_{obs}, \tilde{\theta}}\left[ \ell_{com}(\theta; Y_{com}) \right]
+$$
+
+### Decomposition by Pattern
+
+We can decompose the Q-function by missingness pattern:
+$$
+Q(\theta | \tilde{\theta}) = \sum_{i \in \mathcal{R}_1} Q_i^{(1)}(\theta) + \sum_{i \in \mathcal{R}_2} Q_i^{(2)}(\theta | \tilde{\theta}) + \sum_{i \in \mathcal{R}_3} Q_i^{(3)}(\theta | \tilde{\theta})
+$$
+
+**Pattern 1 (Complete cases):** No integration required.
+$$
+Q_i^{(1)}(\theta) = \log f(M_i | X_i; a, \sigma^2_M) + \log f(Y_i | M_i; b, \sigma^2_Y)
+$$
+
+**Pattern 2 (Y missing):** Integrate over $Y_i | X_i, M_i, \tilde{\theta}$.
+
+**Pattern 3 (M and Y missing):** Integrate over $(M_i, Y_i) | X_i, \tilde{\theta}$.
+
+### Imputation Model Specifications
+
+The Q-function depends on how missing values are imputed—specifically, the posterior distribution $p(Y_{mis} | Y_{obs}, \tilde{\theta})$ assumed by the imputation model. We consider three specifications to illustrate how congeniality affects the bias formula.
+
+#### Imputation Model A: Matches Data Generating Process (Congenial)
+
+The imputation model correctly specifies the mediation structure:
+$$
+\begin{aligned}
+M | X &\sim \mathcal{N}(aX, \sigma^2_M) \\
+Y | M &\sim \mathcal{N}(bM, \sigma^2_Y)
+\end{aligned}
+$$
+
+This model is *congenial* because it matches the analysis model (and the true DGP).
+
+**Pattern 2: $Y$ Missing, $(X, M)$ Observed**
+
+Given that $Y \perp X | M$ in this model:
+$$
+Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{b}M_i, \tilde{\sigma}^2_Y)
+$$
+
+The required moments are:
+$$
+\begin{aligned}
+\mathbb{E}[Y_i | X_i, M_i] &= \tilde{b}M_i \\
+\mathbb{E}[Y_i^2 | X_i, M_i] &= \tilde{\sigma}^2_Y + (\tilde{b}M_i)^2
+\end{aligned}
+$$
+
+**Pattern 3: $(M, Y)$ Missing, $X$ Observed**
+
+The joint posterior follows from the model structure:
+$$
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{a}\tilde{b}X_i \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M & \tilde{b}\tilde{\sigma}^2_M \\ \tilde{b}\tilde{\sigma}^2_M & \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y \end{pmatrix} \right)
+$$
+
+The required moments are:
+$$
+\begin{aligned}
+\mathbb{E}[M_i | X_i] &= \tilde{a}X_i \\
+\mathbb{E}[M_i^2 | X_i] &= \tilde{\sigma}^2_M + (\tilde{a}X_i)^2 \\
+\mathbb{E}[Y_i | X_i] &= \tilde{a}\tilde{b}X_i \\
+\mathbb{E}[Y_i^2 | X_i] &= \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}\tilde{b}X_i)^2 \\
+\mathbb{E}[M_i Y_i | X_i] &= \tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2
+\end{aligned}
+$$
+
+#### Imputation Model B: Simpler Than DGP (Uncongenial)
+
+The imputation model ignores the $M \to Y$ relationship by fixing $b = 0$:
+$$
+\begin{aligned}
+M | X &\sim \mathcal{N}(aX, \sigma^2_M) \\
+Y &\sim \mathcal{N}(\mu_Y, \tau^2_Y) \quad \text{(marginal, ignoring } M \text{)}
+\end{aligned}
+$$
+
+where $\mu_Y$ and $\tau^2_Y$ are estimated from observed $Y$ values. This model is *uncongenial* because the true DGP has $b = 0.5 \neq 0$.
+
+**Pattern 2: $Y$ Missing, $(X, M)$ Observed**
+
+Despite observing $M$, the imputation model ignores it:
+$$
+Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\tilde{\mu}_Y, \tilde{\tau}^2_Y)
+$$
+
+The required moments are:
+$$
+\begin{aligned}
+\mathbb{E}[Y_i | X_i, M_i] &= \tilde{\mu}_Y \\
+\mathbb{E}[Y_i^2 | X_i, M_i] &= \tilde{\tau}^2_Y + \tilde{\mu}_Y^2
+\end{aligned}
+$$
+
+This discards information from $M$ that would improve prediction of $Y$.
+
+**Pattern 3: $(M, Y)$ Missing, $X$ Observed**
+
+Under the uncongenial model, $M$ and $Y$ are imputed independently:
+$$
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \begin{pmatrix} \tilde{a}X_i \\ \tilde{\mu}_Y \end{pmatrix}, \begin{pmatrix} \tilde{\sigma}^2_M & 0 \\ 0 & \tilde{\tau}^2_Y \end{pmatrix} \right)
+$$
+
+The zero off-diagonal reflects the (incorrect) assumption that $M$ and $Y$ are conditionally independent given $X$. The required moments are:
+$$
+\begin{aligned}
+\mathbb{E}[M_i | X_i] &= \tilde{a}X_i \\
+\mathbb{E}[M_i^2 | X_i] &= \tilde{\sigma}^2_M + (\tilde{a}X_i)^2 \\
+\mathbb{E}[Y_i | X_i] &= \tilde{\mu}_Y \\
+\mathbb{E}[Y_i^2 | X_i] &= \tilde{\tau}^2_Y + \tilde{\mu}_Y^2 \\
+\mathbb{E}[M_i Y_i | X_i] &= \tilde{a}X_i \cdot \tilde{\mu}_Y \quad \text{(no covariance term)}
+\end{aligned}
+$$
+
+#### Imputation Model C: Saturated MVN (Congenial)
+
+The imputation model assumes a general multivariate normal on $(X, M, Y)$ without imposing the mediation structure:
+$$
+\begin{pmatrix} X \\ M \\ Y \end{pmatrix} \sim \mathcal{N}_3\left( \hat{\boldsymbol{\mu}}, \hat{\boldsymbol{\Sigma}} \right)
+$$
+
+where $\hat{\boldsymbol{\mu}}$ and $\hat{\boldsymbol{\Sigma}}$ are estimated from the observed data (e.g., via EM or FIML). This model has 9 free parameters (3 means, 6 unique covariance elements) compared to 4 in the mediation model.
+
+This model is *congenial* because, as $n \to \infty$, $\hat{\boldsymbol{\Sigma}}$ converges to the true population covariance matrix implied by the DGP. The saturated model does not impose the correct structure, but it captures the correct covariance asymptotically.
+
+**Pattern 2: $Y$ Missing, $(X, M)$ Observed**
+
+Using standard MVN conditioning on both $X$ and $M$:
+$$
+Y_i | X_i, M_i, \tilde{\theta} \sim \mathcal{N}(\mu_{Y|XM}, \sigma^2_{Y|XM})
+$$
+
+where:
+$$
+\begin{aligned}
+\mu_{Y|XM} &= \hat{\mu}_Y + \hat{\boldsymbol{\Sigma}}_{Y,(X,M)} \hat{\boldsymbol{\Sigma}}_{(X,M)}^{-1} \begin{pmatrix} X_i - \hat{\mu}_X \\ M_i - \hat{\mu}_M \end{pmatrix} \\
+\sigma^2_{Y|XM} &= \hat{\sigma}^2_Y - \hat{\boldsymbol{\Sigma}}_{Y,(X,M)} \hat{\boldsymbol{\Sigma}}_{(X,M)}^{-1} \hat{\boldsymbol{\Sigma}}_{(X,M),Y}
+\end{aligned}
+$$
+
+Here $\hat{\boldsymbol{\Sigma}}_{Y,(X,M)} = (\hat{\sigma}_{XY}, \hat{\sigma}_{MY})$ is the $1 \times 2$ covariance of $Y$ with $(X, M)$, and $\hat{\boldsymbol{\Sigma}}_{(X,M)}$ is the $2 \times 2$ covariance matrix of $(X, M)$.
+
+Note that this conditions on *both* $X$ and $M$, whereas Model A conditions only on $M$ (since $Y \perp X | M$ in the mediation structure). The saturated model uses the additional information from $X$.
+
+**Pattern 3: $(M, Y)$ Missing, $X$ Observed**
+
+Using MVN conditioning on $X$ only:
+$$
+\begin{pmatrix} M_i \\ Y_i \end{pmatrix} \Bigg| X_i, \tilde{\theta} \sim \mathcal{N}_2\left( \boldsymbol{\mu}_{(M,Y)|X}, \boldsymbol{\Sigma}_{(M,Y)|X} \right)
+$$
+
+where:
+$$
+\begin{aligned}
+\boldsymbol{\mu}_{(M,Y)|X} &= \begin{pmatrix} \hat{\mu}_M \\ \hat{\mu}_Y \end{pmatrix} + \frac{1}{\hat{\sigma}^2_X} \begin{pmatrix} \hat{\sigma}_{XM} \\ \hat{\sigma}_{XY} \end{pmatrix} (X_i - \hat{\mu}_X) \\
+\boldsymbol{\Sigma}_{(M,Y)|X} &= \begin{pmatrix} \hat{\sigma}^2_M & \hat{\sigma}_{MY} \\ \hat{\sigma}_{MY} & \hat{\sigma}^2_Y \end{pmatrix} - \frac{1}{\hat{\sigma}^2_X} \begin{pmatrix} \hat{\sigma}_{XM} \\ \hat{\sigma}_{XY} \end{pmatrix} \begin{pmatrix} \hat{\sigma}_{XM} & \hat{\sigma}_{XY} \end{pmatrix}
+\end{aligned}
+$$
+
+The required moments follow from standard bivariate normal formulas applied to this conditional distribution.
+
+#### Summary: Congeniality and the Bias Formula
+
+| Model | Structure | Congenial? | Bias Formula Holds? |
+|-------|-----------|------------|---------------------|
+| A: Matches DGP | $M|X$, $Y|M$ | Yes | Yes (under MCAR/MAR) |
+| B: Simpler | $M|X$, $Y$ marginal | No | No |
+| C: Saturated | Full MVN | Yes (asymptotically) | Yes (under MCAR/MAR) |
+
+The key insight is that *congeniality*—not structural correctness—determines whether the bias formula holds. Model C is overparameterized relative to the true DGP but still congenial because it nests the true model.
+
+### Explicit Q-Function Expression (Model A)
+
+We present the Q-function expressions for Model A (imputation model matches DGP). Substituting the posterior moments into the complete-data log-likelihood:
+
+**Pattern 1 contribution (complete cases):**
+$$
+Q_i^{(1)} = -\frac{1}{2}\log(2\pi\sigma^2_M) - \frac{(M_i - aX_i)^2}{2\sigma^2_M} - \frac{1}{2}\log(2\pi\sigma^2_Y) - \frac{(Y_i - bM_i)^2}{2\sigma^2_Y}
+$$
+
+**Pattern 2 contribution ($Y$ missing):**
+
+Let $\mu_{Y|M} = \tilde{b}M_i$ and $v_{Y|M} = \tilde{\sigma}^2_Y$. Then:
+$$
+\mathbb{E}\left[(Y_i - bM_i)^2 | M_i\right] = v_{Y|M} + (\mu_{Y|M} - bM_i)^2
+$$
+
+So:
+$$
+Q_i^{(2)} = -\frac{1}{2}\log(2\pi\sigma^2_M) - \frac{(M_i - aX_i)^2}{2\sigma^2_M} - \frac{1}{2}\log(2\pi\sigma^2_Y) - \frac{v_{Y|M} + (\mu_{Y|M} - bM_i)^2}{2\sigma^2_Y}
+$$
+
+**Pattern 3 contribution ($M$ and $Y$ missing):**
+
+Define:
+$$
+\begin{aligned}
+\mu_M &= \tilde{a}X_i, \quad v_M = \tilde{\sigma}^2_M \\
+\mu_Y &= \tilde{a}\tilde{b}X_i, \quad v_Y = \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y \\
+\mu_{MY} &= \text{Cov}(M_i, Y_i | X_i) + \mu_M \mu_Y = \tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2
+\end{aligned}
+$$
+
+The expected squared residuals are:
+$$
+\begin{aligned}
+\mathbb{E}\left[(M_i - aX_i)^2 | X_i\right] &= v_M + (\mu_M - aX_i)^2 \\
+\mathbb{E}\left[(Y_i - bM_i)^2 | X_i\right] &= \mathbb{E}[Y_i^2] - 2b\mathbb{E}[M_iY_i] + b^2\mathbb{E}[M_i^2] \\
+&= (v_Y + \mu_Y^2) - 2b\mu_{MY} + b^2(v_M + \mu_M^2)
+\end{aligned}
+$$
+
+### Q-Function Under Alternative Imputation Models
+
+**Model B (Uncongenial):** The Q-function expressions have the same structure, but with different posterior moments. For Pattern 2, $\mu_{Y|M} = \tilde{\mu}_Y$ (ignoring $M$) and $v_{Y|M} = \tilde{\tau}^2_Y$. For Pattern 3, the cross-moment $\mathbb{E}[M_i Y_i | X_i] = \tilde{a}X_i \cdot \tilde{\mu}_Y$ lacks the covariance term, leading to systematically different Q values.
+
+**Model C (Saturated):** The Q-function uses the MVN conditional moments derived above. For Pattern 2, the conditional mean $\mu_{Y|XM}$ depends on both $X$ and $M$ through the regression coefficients implied by $\hat{\boldsymbol{\Sigma}}$. Asymptotically, these converge to the same values as Model A since the true covariance structure is recovered.
+
+## Proper Bayesian MI: Expectation Over the Posterior
+
+### Improper vs. Proper Multiple Imputation
+
+The Q-function expressions in the previous section compute $Q(\theta | \tilde{\theta})$ at a **fixed** imputation parameter $\tilde{\theta}$. In practice, there are two approaches:
+
+**Improper MI:** Set $\tilde{\theta} = \hat{\theta}_{obs}$ (the observed-data MLE). This treats $\tilde{\theta}$ as fixed and known.
+
+**Proper Bayesian MI:** Draw $\tilde{\theta} \sim p(\theta | Y_{obs})$ from the posterior distribution, then compute the **expected** Q-function:
+$$
+\mathbb{E}_{\tilde{\theta}}\left[Q(\theta | \tilde{\theta})\right] = \int Q(\theta | \tilde{\theta}) \, p(\tilde{\theta} | Y_{obs}) \, d\tilde{\theta}
+$$
+
+The proper Bayesian approach accounts for **parameter uncertainty** in the imputation model. Under large samples with a congenial model, $\tilde{\theta} \dot{\sim} \mathcal{N}(\hat{\theta}_{obs}, \mathcal{I}_{obs}^{-1})$.
+
+### Delta Method for Computing $\mathbb{E}_{\tilde{\theta}}[Q]$
+
+Since the Q-function is smooth in $\tilde{\theta}$, we use a second-order Taylor expansion around $\hat{\theta}_{obs}$:
+$$
+Q(\theta | \tilde{\theta}) \approx Q(\theta | \hat{\theta}) + \nabla_{\tilde{\theta}} Q(\theta | \hat{\theta})^\top (\tilde{\theta} - \hat{\theta}) + \frac{1}{2} (\tilde{\theta} - \hat{\theta})^\top H_Q(\theta | \hat{\theta}) (\tilde{\theta} - \hat{\theta})
+$$
+
+where $H_Q = \partial^2 Q / \partial \tilde{\theta} \partial \tilde{\theta}^\top$ is the Hessian of $Q$ with respect to the imputation parameters $\tilde{\theta}$.
+
+Taking expectations with $\tilde{\theta} \sim \mathcal{N}(\hat{\theta}, V_\theta)$ where $V_\theta = \mathcal{I}_{obs}^{-1}$:
+$$
+\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] \approx Q(\theta | \hat{\theta}) + \frac{1}{2} \text{tr}\left(H_Q \cdot V_\theta\right)
+$$
+
+The first-order term vanishes because $\mathbb{E}[\tilde{\theta} - \hat{\theta}] = 0$. The Hessian correction captures the curvature of $Q$ with respect to imputation parameter uncertainty.
+
+### Key Simplification: Monotone Missingness
+
+With monotone missingness, all $\tilde{\theta}$-dependent terms in the Q-function are **quadratic** (not rational functions). This occurs because:
+
+- Pattern 1 (complete): No dependence on $\tilde{\theta}$
+- Pattern 2 (Y missing): The expected squared residual $\mathbb{E}[(Y - bM)^2 | M, \tilde{\theta}]$ is quadratic in $\tilde{b}$
+- Pattern 3 (both missing): The expected squared residuals are quadratic in $\tilde{a}$ and $\tilde{b}$
+
+Since all terms are quadratic, the Hessians are **constant** (independent of $\tilde{\theta}$), making the delta method expansion exact.
+
+### Hessian Derivations by Pattern
+
+#### Pattern 1: Complete Observations
+
+No missing data, so $Q_i^{(1)}(\theta)$ does not depend on $\tilde{\theta}$:
+$$
+H_i^{(1)} = \mathbf{0}_{4 \times 4}
+$$
+
+#### Pattern 2: Y Missing, M Observed
+
+The Y-residual component of $Q_i^{(2)}$ is:
+$$
+-\frac{\mathbb{E}[(Y_i - bM_i)^2 | M_i, \tilde{\theta}]}{2\sigma^2_Y} = -\frac{\tilde{\sigma}^2_Y + (\tilde{b}M_i - bM_i)^2}{2\sigma^2_Y}
+$$
+
+Expanding $(\tilde{b} - b)^2 M_i^2$:
+$$
+-\frac{\tilde{\sigma}^2_Y + (\tilde{b} - b)^2 M_i^2}{2\sigma^2_Y}
+$$
+
+Taking second derivatives with respect to $\tilde{b}$:
+$$
+\frac{\partial^2}{\partial \tilde{b}^2}\left[-\frac{(\tilde{b} - b)^2 M_i^2}{2\sigma^2_Y}\right] = -\frac{M_i^2}{\sigma^2_Y}
+$$
+
+The Hessian for observation $i$ in Pattern 2 is:
+$$
+H_i^{(2)} = \begin{pmatrix} 0 & 0 & 0 & 0 \\ 0 & -M_i^2/\sigma^2_Y & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \end{pmatrix}
+$$
+
+Only the $(b, b)$ element is non-zero.
+
+#### Pattern 3: Both M and Y Missing
+
+**M-residual component:**
+$$
+-\frac{\mathbb{E}[(M_i - aX_i)^2 | X_i, \tilde{\theta}]}{2\sigma^2_M} = -\frac{\tilde{\sigma}^2_M + (\tilde{a}X_i - aX_i)^2}{2\sigma^2_M}
+$$
+
+Second derivative with respect to $\tilde{a}$:
+$$
+\frac{\partial^2}{\partial \tilde{a}^2}\left[-\frac{(\tilde{a} - a)^2 X_i^2}{2\sigma^2_M}\right] = -\frac{X_i^2}{\sigma^2_M}
+$$
+
+**Y-residual component:**
+
+The expected squared residual is:
+$$
+\mathbb{E}[(Y_i - bM_i)^2 | X_i, \tilde{\theta}] = \tilde{b}^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}\tilde{b}X_i)^2 - 2b(\tilde{b}\tilde{\sigma}^2_M + \tilde{a}^2\tilde{b}X_i^2) + b^2(\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2)
+$$
+
+This simplifies to:
+$$
+= (\tilde{b} - b)^2\tilde{\sigma}^2_M + \tilde{\sigma}^2_Y + (\tilde{a}(\tilde{b} - b)X_i)^2
+$$
+
+Taking second derivatives:
+$$
+\frac{\partial^2}{\partial \tilde{b}^2}\left[-\frac{(\tilde{b} - b)^2\tilde{\sigma}^2_M + (\tilde{a}(\tilde{b} - b)X_i)^2}{2\sigma^2_Y}\right] = -\frac{\tilde{\sigma}^2_M + \tilde{a}^2 X_i^2}{\sigma^2_Y}
+$$
+
+At the evaluation point $\tilde{\theta} = \hat{\theta}$:
+$$
+\frac{\partial^2}{\partial \tilde{a} \partial \tilde{b}}\left[-\frac{(\tilde{a}(\tilde{b} - b)X_i)^2}{2\sigma^2_Y}\right]\Bigg|_{\tilde{b}=b} = 0
+$$
+
+The cross-derivative vanishes when evaluated at $\tilde{b} = b$.
+
+The Hessian for observation $i$ in Pattern 3 is:
+$$
+H_i^{(3)} = \begin{pmatrix} -X_i^2/\sigma^2_M & 0 & 0 & 0 \\ 0 & -(\hat{\sigma}^2_M + \hat{a}^2 X_i^2)/\sigma^2_Y & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \end{pmatrix}
+$$
+
+### Aggregated Hessian Correction
+
+The total Hessian correction is:
+$$
+\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] - Q(\theta | \hat{\theta}) = \frac{1}{2} \sum_{i=1}^{n} \text{tr}(H_i \cdot V_\theta)
+$$
+
+Breaking this down by pattern:
+
+**Pattern 2 contribution:**
+$$
+\Delta^{(2)} = \frac{1}{2} \sum_{i \in \mathcal{R}_2} \left(-\frac{M_i^2}{\sigma^2_Y}\right) \cdot V_\theta[b,b] = -\frac{V_\theta[b,b]}{2\sigma^2_Y} \sum_{i \in \mathcal{R}_2} M_i^2
+$$
+
+**Pattern 3 contribution:**
+$$
+\Delta^{(3)} = \frac{1}{2} \sum_{i \in \mathcal{R}_3} \left[ \left(-\frac{X_i^2}{\sigma^2_M}\right) V_\theta[a,a] + \left(-\frac{\hat{\sigma}^2_M + \hat{a}^2 X_i^2}{\sigma^2_Y}\right) V_\theta[b,b] \right]
+$$
+
+**Total correction:**
+$$
+\mathbb{E}_{\tilde{\theta}}[Q] - Q(\theta | \hat{\theta}) = \Delta^{(2)} + \Delta^{(3)}
+$$
+
+### The Correction is Always Negative
+
+Since the Hessian matrices $H_i$ are **negative semi-definite** (all diagonal elements are non-positive) and $V_\theta$ is positive definite, the trace $\text{tr}(H_i \cdot V_\theta) \leq 0$ for all $i$.
+
+Therefore:
+$$
+\mathbb{E}_{\tilde{\theta}}[Q(\theta | \tilde{\theta})] \leq Q(\theta | \hat{\theta})
+$$
+
+**Interpretation:** Parameter uncertainty in $\tilde{\theta}$ systematically **reduces** the expected Q-function. The improper MI estimate $Q(\theta | \hat{\theta})$ is an **upper bound** on the proper Bayesian MI estimate.
+
+### Connection to the Bias Formula
+
+The theoretical derivation shows that:
+
+**Improper MI (Term 1):**
+$$
+Q(\hat{\theta}_{obs} | \hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV})
+$$
+
+**Proper Bayesian MI (Term 1):**
+$$
+\mathbb{E}_{\tilde{\theta}}[Q(\hat{\theta}_{obs} | \tilde{\theta})] - \ell_{com}(\hat{\theta}_{obs}) \approx \text{tr}(\text{RIV}) + \frac{1}{2}\text{tr}(H_Q \cdot V_\theta)
+$$
+
+The Hessian correction captures the additional term from integrating over the posterior of $\tilde{\theta}$. Under congeniality, both approaches lead to the same bias formula because the covariance structure between $\tilde{\theta}$ and $\hat{\theta}$ is correctly accounted for (see main derivation in the manuscript).
+
+### Practical Computation
+
+For simulation validation, we compute:
+
+1. **Improper Q:** $Q(\hat{\theta}_{obs} | \hat{\theta}_{obs})$ using the analytical expressions
+2. **Posterior covariance:** $V_\theta = \mathcal{I}_{obs}^{-1}$ from the Hessian of the observed-data log-likelihood
+3. **Hessian correction:** $\Delta = \Delta^{(2)} + \Delta^{(3)}$ using the formulas above
+4. **Proper Q:** $Q_{proper} = Q_{improper} + \Delta$
+
+This provides exact results (no Monte Carlo error) for comparing improper vs. proper Bayesian MI.
+
+## Information Matrices and tr(RIV)
+
+### Definition of tr(RIV)
+
+The trace of the Relative Increase in Variance matrix quantifies the information loss due to missing data. As the number of imputations $M \to \infty$:
+$$
+\text{tr}(\text{RIV}) = \text{tr}\left( \mathcal{I}_{com} \cdot \mathcal{I}_{obs}^{-1} \right) - Q
+$$
+
+where:
+
+- $\mathcal{I}_{com}$ is the complete-data Fisher information matrix (evaluated at $\hat{\theta}_{com}$)
+- $\mathcal{I}_{obs}$ is the observed-data Fisher information matrix (evaluated at $\hat{\theta}_{obs}$)
+- $Q$ is the number of parameters
+
+### Computation from Hessians
+
+In practice, we estimate the information matrices from the Hessians of the negative log-likelihoods:
+$$
+\begin{aligned}
+\hat{\mathcal{I}}_{com} &= -\frac{\partial^2 \ell_{com}(\theta)}{\partial \theta \partial \theta^\top} \Bigg|_{\theta = \hat{\theta}_{com}} \\
+\hat{\mathcal{I}}_{obs} &= -\frac{\partial^2 \ell_{obs}(\theta)}{\partial \theta \partial \theta^\top} \Bigg|_{\theta = \hat{\theta}_{obs}}
+\end{aligned}
+$$
+
+Both are obtained via numerical optimization with Hessian computation.
+
+### Connection to Rubin's Rules
+
+Under standard MI with $M$ imputations, Rubin's variance formula gives:
+$$
+T = \bar{W} + \left(1 + \frac{1}{M}\right)B
+$$
+
+where $\bar{W}$ is the within-imputation variance and $B$ is the between-imputation variance. The RIV matrix is:
+$$
+\text{RIV} = \left(1 + \frac{1}{M}\right) \bar{W}^{-1} B
+$$
+
+As $M \to \infty$, this converges to $\bar{W}^{-1}B$, which equals $\mathcal{I}_{com}\mathcal{I}_{obs}^{-1} - I_Q$ under regularity conditions.
+
+### Analytical tr(RIV) for the Mediation Model
+
+#### True tr(RIV) from Fisher Information
+
+The "true" tr(RIV) is determined by the complete-data and observed-data Fisher information matrices, which are properties of the likelihood—not the imputation model. For the mediation model:
+
+**Complete-data Fisher information** (block-diagonal since $M|X$ and $Y|M$ share no parameters):
+$$
+\mathcal{I}_{com} = \text{diag}\left( \frac{\sum_i X_i^2}{\sigma^2_M}, \; \frac{\sum_i M_i^2}{\sigma^2_Y}, \; \frac{n}{2\sigma^4_M}, \; \frac{n}{2\sigma^4_Y} \right)
+$$
+
+**Observed-data Fisher information** (only complete and pattern-2 cases contribute):
+$$
+\mathcal{I}_{obs} = \text{diag}\left( \frac{\sum_{i \in \mathcal{R}_1 \cup \mathcal{R}_2} X_i^2}{\sigma^2_M}, \; \frac{\sum_{i \in \mathcal{R}_1} M_i^2}{\sigma^2_Y}, \; \frac{n_1 + n_2}{2\sigma^4_M}, \; \frac{n_1}{2\sigma^4_Y} \right)
+$$
+
+where $n_1 = |\mathcal{R}_1|$ (complete), $n_2 = |\mathcal{R}_2|$ (Y missing), $n_3 = |\mathcal{R}_3|$ (both missing).
+
+**True tr(RIV):**
+$$
+\text{tr}(\text{RIV})_{true} = \frac{\sum_i X_i^2}{\sum_{i \in \mathcal{R}_1 \cup \mathcal{R}_2} X_i^2} + \frac{\sum_i M_i^2}{\sum_{i \in \mathcal{R}_1} M_i^2} + \frac{n}{n_1 + n_2} + \frac{n}{n_1} - 4
+$$
+
+Under MCAR with equal variances across patterns, this simplifies to:
+$$
+\text{tr}(\text{RIV})_{true} \approx 2 \cdot \frac{n}{n - n_3} + 2 \cdot \frac{n}{n_1} - 4
+$$
+
+#### Imputation-Based tr(RIV) via Rubin's Rules
+
+The imputation-based estimate $\text{tr}(\bar{W}^{-1}B)$ depends on the between-imputation variance $B$, which in turn depends on:
+
+1. **The imputation model** (determines posterior variance of $Y_{mis}|Y_{obs}$)
+2. **Proper vs. improper MI** (determines whether $\tilde{\theta}$ is drawn from posterior or fixed)
+
+We derive $B$ using the law of total variance. For proper MI:
+$$
+B = \mathbb{E}_{\tilde{\theta}}\left[\text{Var}(\hat{\theta}^{(m)} | \tilde{\theta})\right] + \text{Var}_{\tilde{\theta}}\left[\mathbb{E}(\hat{\theta}^{(m)} | \tilde{\theta})\right]
+$$
+
+For improper MI (fixing $\tilde{\theta} = \hat{\theta}_{obs}$), only the first term remains:
+$$
+B_{improper} = \text{Var}(\hat{\theta}^{(m)} | \tilde{\theta} = \hat{\theta}_{obs})
+$$
+
+#### Model A: Congenial (Matches DGP)
+
+**Improper MI:**
+
+The posterior variances are:
+- Pattern 2: $\text{Var}(Y_i | M_i, \hat{\theta}) = \hat{\sigma}^2_Y$
+- Pattern 3: $\text{Var}(M_i | X_i, \hat{\theta}) = \hat{\sigma}^2_M$, $\text{Var}(Y_i | X_i, \hat{\theta}) = \hat{b}^2\hat{\sigma}^2_M + \hat{\sigma}^2_Y$
+
+The between-imputation variance for $\hat{b}$ from pattern-2 observations:
+$$
+B_{bb}^{(A, improper)} = \frac{\hat{\sigma}^2_Y}{\left(\sum_j M_j^2\right)^2} \sum_{i \in \mathcal{R}_2} M_i^2
+$$
+
+The between-imputation variance for $\hat{a}$ from pattern-3 observations:
+$$
+B_{aa}^{(A, improper)} = \frac{\hat{\sigma}^2_M}{\left(\sum_j X_j^2\right)^2} \sum_{i \in \mathcal{R}_3} X_i^2
+$$
+
+**Proper MI:**
+
+The additional variance from $\tilde{\theta}$ uncertainty adds:
+$$
+B_{bb}^{(A, proper)} = B_{bb}^{(A, improper)} + \text{Var}_{\tilde{\theta}}[\tilde{b}] \cdot \frac{\sum_{i \in \mathcal{R}_2} M_i^2}{\left(\sum_j M_j^2\right)^2}
+$$
+
+where $\text{Var}_{\tilde{\theta}}[\tilde{b}] = V_\theta[b,b] = \mathcal{I}_{obs}^{-1}[b,b]$.
+
+**Result:** Under congeniality, $\text{tr}(\bar{W}^{-1}B) \to \text{tr}(\text{RIV})_{true}$ as $M \to \infty$ for both proper and improper MI (they converge to the same limit).
+
+#### Model B: Uncongenial (Ignores $M \to Y$)
+
+**Improper MI:**
+
+Pattern 2 uses the marginal variance $\tau^2_Y = \text{Var}(Y)$ instead of $\sigma^2_Y = \text{Var}(Y|M)$:
+$$
+B_{bb}^{(B, improper)} = \frac{\hat{\tau}^2_Y}{\left(\sum_j M_j^2\right)^2} \sum_{i \in \mathcal{R}_2} M_i^2
+$$
+
+Since $\tau^2_Y = b^2(a^2 + \sigma^2_M) + \sigma^2_Y > \sigma^2_Y$:
+$$
+B_{bb}^{(B, improper)} > B_{bb}^{(A, improper)}
+$$
+
+Pattern 3 assumes $\text{Cov}(M, Y | X) = 0$ instead of $b\sigma^2_M$, which **underestimates** the joint uncertainty.
+
+**Proper MI:**
+
+Adding $\tilde{\theta}$ uncertainty does not fix the fundamental model misspecification:
+$$
+B^{(B, proper)} \neq B^{(A, proper)}
+$$
+
+**Result:** $\text{tr}(\bar{W}^{-1}B)$ is biased for $\text{tr}(\text{RIV})_{true}$ regardless of proper/improper MI. The bias depends on the degree of uncongeniality.
+
+#### Model C: Saturated MVN (Congenial Asymptotically)
+
+**Improper MI:**
+
+The saturated model estimates all covariances from data. Asymptotically:
+$$
+\hat{\sigma}^2_{Y|XM} \to \sigma^2_Y \quad \text{and} \quad \widehat{\text{Cov}}(M,Y|X) \to b\sigma^2_M
+$$
+
+Therefore:
+$$
+B^{(C, improper)} \to B^{(A, improper)} \quad \text{as } n \to \infty
+$$
+
+**Proper MI:**
+
+The additional uncertainty from estimating the full $3 \times 3$ covariance matrix is larger than for Model A (more parameters), but this vanishes as $n \to \infty$:
+$$
+B^{(C, proper)} \to B^{(A, proper)} \quad \text{as } n \to \infty
+$$
+
+**Result:** $\text{tr}(\bar{W}^{-1}B) \to \text{tr}(\text{RIV})_{true}$ asymptotically for both proper and improper MI.
+
+#### Summary Table: Imputation-Based tr(RIV)
+
+| Model | Improper MI | Proper MI | Converges to True? |
+|-------|-------------|-----------|-------------------|
+| A (Congenial) | $\text{tr}(\bar{W}^{-1}B_A)$ | $\text{tr}(\bar{W}^{-1}B_A) + O(1/n)$ | Yes |
+| B (Uncongenial) | $\text{tr}(\bar{W}^{-1}B_B) \neq \text{true}$ | $\text{tr}(\bar{W}^{-1}B_B) \neq \text{true}$ | No |
+| C (Saturated) | $\text{tr}(\bar{W}^{-1}B_C) + O(1/n)$ | $\text{tr}(\bar{W}^{-1}B_C) + O(1/n)$ | Yes (asymptotically) |
+
+The $O(1/n)$ terms represent finite-sample bias that vanishes as $n \to \infty$. For Model B, the bias persists regardless of sample size because the model is fundamentally misspecified.
+
+### Derivation from Posterior Variance (Direct Approach)
+
+The between-imputation variance $B$ arises directly from the posterior variance of the missing data under the imputation model. This provides an alternative derivation that makes the role of the imputation model explicit.
+
+#### From Posterior Variance to Between-Imputation Variance
+
+Let $\hat{\theta}^{(m)}$ denote the estimate from the $m$-th imputed dataset. Each imputation draws $Y_{mis}^{(m)}$ from the posterior:
+$$
+Y_{mis}^{(m)} \sim p(Y_{mis} | Y_{obs}, \tilde{\theta})
+$$
+
+The between-imputation variance is:
+$$
+B = \text{Var}\left(\hat{\theta}^{(m)} | Y_{obs}\right)
+$$
+
+Using a first-order Taylor expansion around $\mathbb{E}[Y_{mis} | Y_{obs}]$:
+$$
+\hat{\theta}^{(m)} \approx \hat{\theta}(\mathbb{E}[Y_{mis}]) + \frac{\partial \hat{\theta}}{\partial Y_{mis}} \left(Y_{mis}^{(m)} - \mathbb{E}[Y_{mis}]\right)
+$$
+
+Therefore:
+$$
+B \approx \frac{\partial \hat{\theta}}{\partial Y_{mis}} \, \text{Var}(Y_{mis} | Y_{obs}, \tilde{\theta}) \, \left(\frac{\partial \hat{\theta}}{\partial Y_{mis}}\right)^\top
+$$
+
+This shows that $B$ is a **linear transformation** of the posterior variance from the imputation model.
+
+#### Application to the Mediation Model
+
+For the mediation model, consider how the posterior variance affects estimation of $b$.
+
+**Pattern 2 ($Y$ missing, $M$ observed):** The OLS estimator for $b$ is:
+$$
+\hat{b} = \frac{\sum_i M_i Y_i}{\sum_i M_i^2}
+$$
+
+For observation $i$ with $Y_i$ missing, the sensitivity is:
+$$
+\frac{\partial \hat{b}}{\partial Y_i} = \frac{M_i}{\sum_j M_j^2}
+$$
+
+Under **Model A** (congenial), $\text{Var}(Y_i | M_i) = \tilde{\sigma}^2_Y$. The contribution to $B_{bb}$ from pattern-2 observations is:
+$$
+B_{bb}^{(2)} = \sum_{i \in \mathcal{R}_2} \left(\frac{M_i}{\sum_j M_j^2}\right)^2 \tilde{\sigma}^2_Y = \frac{\tilde{\sigma}^2_Y}{\left(\sum_j M_j^2\right)^2} \sum_{i \in \mathcal{R}_2} M_i^2
+$$
+
+Under **Model B** (uncongenial), $\text{Var}(Y_i | M_i) = \tilde{\tau}^2_Y$ (the marginal variance, which is larger since it doesn't condition on $M$). This inflates $B$ because:
+$$
+\tilde{\tau}^2_Y = \text{Var}(Y) > \text{Var}(Y | M) = \tilde{\sigma}^2_Y
+$$
+
+Under **Model C** (saturated), $\text{Var}(Y_i | X_i, M_i) = \sigma^2_{Y|XM}$, which conditions on both $X$ and $M$. Asymptotically, $\sigma^2_{Y|XM} \approx \tilde{\sigma}^2_Y$ since $Y \perp X | M$ in the true DGP.
+
+#### Pattern 3: Joint Posterior Covariance
+
+For observations with both $M$ and $Y$ missing, the joint posterior covariance $\boldsymbol{\Sigma}_{(M,Y)|X}$ propagates to $B$ through both $\hat{a}$ and $\hat{b}$:
+$$
+B \approx \mathbf{J} \, \boldsymbol{\Sigma}_{(M,Y)|X} \, \mathbf{J}^\top
+$$
+
+where $\mathbf{J} = \partial(\hat{a}, \hat{b}, \hat{\sigma}^2_M, \hat{\sigma}^2_Y)^\top / \partial(M, Y)$ is the Jacobian of the estimator with respect to the missing values.
+
+The off-diagonal element $\text{Cov}(M, Y | X)$ in the posterior is:
+
+- **Model A**: $\tilde{b}\tilde{\sigma}^2_M$ (captures true M-Y dependence)
+- **Model B**: $0$ (incorrectly assumes independence)
+- **Model C**: $\hat{\sigma}_{MY} - \hat{\sigma}_{XM}\hat{\sigma}_{XY}/\hat{\sigma}^2_X$ (recovers true covariance asymptotically)
+
+The uncongenial Model B underestimates the posterior covariance, leading to an underestimated $B$ and thus biased inference.
+
+#### Summary: Imputation Model → Posterior Variance → B → tr(RIV)
+
+$$
+\text{Imputation Model} \longrightarrow \text{Var}(Y_{mis} | Y_{obs}) \longrightarrow B \longrightarrow \text{tr}(\text{RIV}) = \text{tr}(\bar{W}^{-1}B)
+$$
+
+This chain makes explicit why congeniality matters:
+
+| Model | Posterior Variance | Effect on $B$ | Effect on tr(RIV) |
+|-------|-------------------|---------------|-------------------|
+| A (Congenial) | Correct | Correct | Correct |
+| B (Uncongenial) | Too large (Pattern 2) / Missing covariance (Pattern 3) | Biased | Biased |
+| C (Saturated) | Correct (asymptotically) | Correct | Correct |
+
+The Hessian-based computation $\text{tr}(\mathcal{I}_{com}\mathcal{I}_{obs}^{-1}) - Q$ provides a shortcut that bypasses explicit calculation of $B$, but the underlying mechanism is the same: missing information is determined by how precisely we can predict $Y_{mis}$ from $Y_{obs}$.
+
+## Bias Decomposition and Evaluation Criteria
+
+### Theoretical Expectations
+
+Under ignorable missingness (MCAR or MAR) with a congenial imputation model:
+
+| Quantity | Definition | Expected Value |
+|----------|------------|----------------|
+| Term 1 | $Q(\hat{\theta}_{obs}|\hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{obs})$ | $\text{tr}(\text{RIV})$ |
+| Term 2 | $\ell_{com}(\hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{com})$ | $-\frac{1}{2}\text{tr}(\text{RIV})$ |
+| Total | Term 1 + Term 2 | $\frac{1}{2}\text{tr}(\text{RIV})$ |
+
+### Evaluation Ratios
+
+For each replication $r$, we compute:
+$$
+\begin{aligned}
+\text{Ratio}_1^{(r)} &= \frac{\text{Term 1}^{(r)}}{\text{tr}(\text{RIV})^{(r)}} \\
+\text{Ratio}_2^{(r)} &= \frac{\text{Term 2}^{(r)}}{-\frac{1}{2}\text{tr}(\text{RIV})^{(r)}} \\
+\text{Ratio}_{Total}^{(r)} &= \frac{\text{Total Bias}^{(r)}}{\frac{1}{2}\text{tr}(\text{RIV})^{(r)}}
+\end{aligned}
+$$
+
+We evaluate validation by examining the mean ratios across replications. The bias formula is considered validated if mean ratios fall within 10% of 1.0.
+
+### Parameter Recovery
+
+As a secondary check, we examine bias in the FIML parameter estimates:
+$$
+\text{Bias}(\hat{a}) = \frac{1}{R}\sum_{r=1}^{R}(\hat{a}^{(r)} - a_{true}), \quad \text{Bias}(\hat{b}) = \frac{1}{R}\sum_{r=1}^{R}(\hat{b}^{(r)} - b_{true})
+$$
+
+Under MCAR and MAR, FIML should yield approximately unbiased estimates. Under MNAR, parameter estimates may be biased depending on the strength of the mechanism.
+
+## Simulation Design Summary
+
+| Design Element | Specification |
+|----------------|---------------|
+| Model | Simple mediation: $M = aX + \varepsilon_M$, $Y = bM + \varepsilon_Y$ |
+| Parameters | $a = b = 0.5$, $\sigma^2_M = \sigma^2_Y = 1$ |
+| Sample size | $n = 500$ |
+| Replications | $R = 10{,}000$ |
+| Missingness mechanisms | MCAR, MAR, MNAR (monotone) |
+| Missingness rates | $\sim$50% complete, $\sim$25% Y-only missing, $\sim$25% M+Y missing |
+| Propensity strength ($\gamma$) | 0.5 for MAR and MNAR |
+| Optimization | BFGS with numerical Hessians |
+| Software | R 4.5.1 |
+
+---
+
+# Simulation Study 2: [Placeholder]
+
+*To be completed.*
+
+---
+
+# Empirical Example: [Placeholder]
+
+*To be completed.*
+
+---
+
+# Additional Derivations
+
+## Derivation of the Bias Formula
+
+*Reference to main manuscript derivation or expanded version here.*
+
+## Proof of tr(RIV) as Missing Information
+
+*Additional theoretical material as needed.*
+
+---
+
+# References

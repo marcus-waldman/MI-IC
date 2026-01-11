@@ -1,0 +1,640 @@
+---
+title: "Information Criteria for Multiply-Imputed Data: A Principled Approach for Complete-Data Replication"
+author:
+  - name: Marcus R. Waldman
+    affiliations:
+      - name: University of Colorado Anschutz Medical Campus
+        department: Department of Biostatistics and Informatics
+        address: Colorado School of Public Health
+date: last-modified
+format:
+  pdf:
+    documentclass: article
+    keep-tex: true
+    number-sections: true
+    citation-location: document
+  html:
+    toc: true
+    toc-depth: 3
+bibliography: references.bib
+abstract: |
+  Model selection via information criteria (AIC, BIC) is fundamental to quantitative research, yet standard approaches break down when data contain missing values. Applied researchers using multiple imputation (MI) typically average IC values across imputations—a procedure lacking theoretical justification—or use methods like AICcd that target predictive performance rather than what researchers actually want: replication of the inference they would have made had their data been complete. This article introduces the *complete-data replication* principle and derives corrected information criteria that target this goal. We show that the pooled deviance across imputations (the Q-function) is biased for the complete-data log-likelihood, with bias equal to ½tr(RIV), where RIV is the relative increase in variance from Rubin's combining rules. This leads to corrected formulas—MI-AIC and MI-BIC—that require only standard MI output and represent minimal modification to current practice. We clarify why our approach differs from AICcd (which uses 2tr(RIV) rather than tr(RIV)) by showing they target different inferential goals. Simulation studies in structural equation modeling and latent profile analysis demonstrate that the corrected criteria better replicate complete-data model selection decisions. Practical guidance for implementation is provided.
+keywords:
+  - multiple imputation
+  - information criteria
+  - AIC
+  - BIC
+  - model selection
+  - missing data
+  - Q-function
+---
+
+# 1. Introduction {#sec-intro}
+
+Model selection via information criteria (IC) such as AIC [@akaikehirotuguNewLookStatistical1974] and BIC [@schwarzgideonEstimatingDimensionModel1978] are fundamental to quantitative research across the behavioral sciences. These criteria are most frequently used for evaluating nonnested models, providing a principled basis for balancing fit against complexity. For example, in mixture modeling, IC guide class enumeration decisions [@nylundasparouhovmuthenDecidingNumberClasses2007; @masynLatentClassAnalysis2013a], while in structural equation modeling, they inform choices among alternative factor structures and tests of measurement invariance [@kuiperAICtypeTheoryBasedModel2022; @linhuangwengSelectingPathModels2017; @vriezeModelSelectionPsychological2012; @huangAsymptoticsAICBIC2017], as well as decisions about cross-loadings and residual covariances [@linhuangwengSelectingPathModels2017; @bollenBICAlternativeBayesian2014]. At the same time, missing data are nearly ubiquitous in applied research. Multiple imputation (MI) has emerged as the dominant approach for handling missing data [@rubindonaldb.MultipleImputationNonresponse1987; @schaferMissingDataOur2002; @grahamMissingDataAnalysis2009], offering a framework that is both principled and convenient for propagating uncertainty from the imputation process through to final inferences.
+
+Despite the widespread use of both IC and MI, there is no consensus on how to properly pool them. Applied researchers and the software they use typically average IC values across imputations—a procedure lacking both theoretical justification and a clear inferential target. Although theoretical work on IC for missing data exists, such as the AIC with a correction for missing data (AICcd) proposed by @cavanaughAkaikeInformationCriterion1998, these methods have not been implemented in standard SEM software and target predictive performance at the observed-data maximum likelihood estimate rather than what applied researchers typically seek: replication of the inference they would have made had their data been complete. This leaves a fundamental question unresolved: *What information criteria would researchers have computed had their data been complete?* Although asymptotic theory establishes that IC will select the correct model structure as sample size grows [@akaikehirotuguNewLookStatistical1974; @schwarzgideonEstimatingDimensionModel1978; @huangAsymptoticsAICBIC2017], this provides no guidance for the finite-sample behavior of IC under MI or when all candidate models are approximations—the most common situation in practice.
+
+The primary purpose of this article is to introduce the *complete-data replication* principle and derive information criteria that answer this question by targeting what AIC and BIC would have been at the complete-data maximum likelihood estimate. We show that the pooled deviance across imputations is biased for the complete-data log-likelihood, with bias equal to ½tr(RIV), where RIV is the relative increase in variance from Rubin's rules [@rubindonaldb.MultipleImputationNonresponse1987]. Although this result builds on the connection between MI and the Q-function from EM-based approaches, our contribution extends this work to the MI framework where imputations are drawn from a posterior distribution rather than a point estimate. This leads to corrected formulas—MI-AIC and MI-BIC—that require only standard MI output. We clarify why our approach differs from AICcd by showing they target different inferential goals, conduct simulation studies in structural equation modeling and latent profile analysis to demonstrate that the corrected criteria better replicate complete-data model selection decisions, and provide practical guidance for implementation.
+
+The next section reviews information criteria and multiple imputation, establishing notation and the complete-data replication principle. Section 3 presents the theoretical derivation of the bias in the Q-function and the corrected IC formulas. Section 4 describes two simulation studies that evaluate performance when the true model is among the candidates and when all models are approximations. Section 5 presents an empirical example, and Section 6 concludes with a discussion of implications and recommendations.
+
+------------------------------------------------------------------------
+
+# 2. Background: Model Selection and Missing Data {#sec-background}
+
+## 2.1 AIC & BIC
+
+The Akaike Information Criterion (AIC; @akaikehirotuguNewLookStatistical1974) and Bayesian Information Criterion (BIC; @schwarzgideonEstimatingDimensionModel1978) are model selection tools that estimate the expected predictive performance of candidate models. Both are based on the Kullback-Leibler (KL) divergence, a measure of the distance between a fitted model and the true data-generating model [@cavanaughAkaikeInformationCriterion2019]. AIC provides an asymptotically unbiased estimator of the expected KL-divergence, while BIC approximates the Bayes factor for model comparison under certain prior specifications.
+
+AIC is defined as:
+
+$$\text{AIC} = -2\ell(\hat{\theta}) + 2q$$
+
+BIC is defined as:
+
+$$\text{BIC} = -2\ell(\hat{\theta}) + q\log(n)$$
+
+where $\ell(\hat{\theta})$ is the log-likelihood evaluated at the maximum likelihood estimate (MLE), $q$ is the number of parameters, and $n$ is the sample size. The penalty terms ($2q$ for AIC, $q\log(n)$ for BIC) correct for overfitting by penalizing model complexity. Lower values indicate better models.
+
+While both criteria target predictive performance, they differ in their asymptotic properties. AIC optimizes expected prediction error, while BIC is consistent for selecting the true model when it is among the candidates [@huangAsymptoticsAICBIC2017]. In latent class and mixture modeling contexts, BIC tends to outperform AIC in selecting the correct number of classes [@nylundasparouhovmuthenDecidingNumberClasses2007].
+
+Both AIC and BIC assume complete data when computing the log-likelihood at the MLE. When data contain missing values, this assumption no longer holds, motivating the need for modified IC formulas.
+
+## 2.2 Multiple Imputation Framework
+
+Multiple imputation (MI; @rubindonaldb.MultipleImputationNonresponse1987) is a widely-used approach to treat missing data that is both principled and convenient. It is principled because it reflects uncertainty about the missing values through the imputation distribution and, fundamentally, marginalizes across the complete-data likelihood to approximate the observed-data likelihood.[^1] It is convenient because it separates the imputation step from the analysis step, allowing analysts to use standard complete-data methods after imputation [@schaferMissingDataOur2002; @grahamMissingDataAnalysis2009]. The MI procedure consists of three steps:
+
+[^1]: MI validity requires the missing data mechanism to be ignorable (i.e., missing at random, MAR) and the parameters of the missingness mechanism to be a priori independent of the parameters of the analysis model [@rubindonaldb.MultipleImputationNonresponse1987].
+
+1.  For $m = 1, \ldots, M$: Generate one random imputation of the missing values under a specified distribution
+2.  Fit the model of interest to each imputed dataset
+3.  Pool the resulting parameter estimates and inferences
+
+For the theoretical results in this article, we assume imputations are *Bayesianly proper* [@schaferAnalysisIncompleteMultivariate1997a]—that is, the imputed values are drawn from a posterior predictive distribution that accounts for uncertainty in both the missing data and the parameters of the imputation model. This distinguishes proper MI from simpler imputation methods that condition on point estimates of parameters.
+
+The Bayesian foundation of multiple imputation is to make inference from the observed-data posterior distribution, $p(\theta | Y_{\text{obs}})$. By generating multiple draws from the posterior predictive distribution of the missing data and analyzing each completed dataset, MI approximates this observed-data posterior. The goal is to obtain parameter estimates and uncertainty quantification that would arise from directly analyzing the observed-data posterior, without explicitly deriving its analytical form.
+
+### 2.2.1 Rubin's Pooling Rules
+
+Rubin's rules [@rubindonaldb.MultipleImputationNonresponse1987] provide the framework for combining estimates across imputations. These combining rules are derived under the assumption that the observed-data posterior can be approximated as a normal distribution, allowing for straightforward pooling of point estimates and variances. For a scalar parameter with point estimate $\hat{\theta}_m$ from imputed dataset $m$:
+
+-   **Pooled estimate**: $\bar{\theta} = M^{-1}\sum_{m=1}^M \hat{\theta}_m$
+-   **Within-imputation variance**: $W = M^{-1}\sum_{m=1}^M V_m$, where $V_m$ is the variance estimate from dataset $m$
+-   **Between-imputation variance**: $B = \frac{1}{M-1}\sum_{m=1}^M(\hat{\theta}_m - \bar{\theta})^2$
+-   **Total variance**: $T = W + (1 + M^{-1})B$
+-   **Relative Increase in Variance**: $\text{RIV} = (1 + M^{-1})B / W$
+
+The within-imputation variance $W$ reflects the average uncertainty within each imputed dataset—the variability that would remain even if the missing values were known. The between-imputation variance $B$ captures the variability across imputations, reflecting uncertainty about what the missing values actually are. The total variance $T$ combines these sources, with the term $(1 + M^{-1})B$ providing a finite-sample correction for using $M$ rather than infinite imputations. The relative increase in variance (RIV) quantifies how much additional uncertainty is introduced by the missingness, expressed as a proportion of the within-imputation variance. Conceptually, RIV connects to the missing information principle: it estimates the ratio of missing information to observed information, $\mathcal{I}_{\text{mis}|\text{obs}} / \mathcal{I}_{\text{obs}}$.
+
+### 2.2.2 The Q-Function and MI
+
+The connection between MI and the EM algorithm [@dempstera.p.;lairdn.m.;rubind.b.MaximumLikelihoodIncomplete1977] provides important theoretical context for our derivation. The EM algorithm iterates between an E-step (computing the expected complete-data log-likelihood given current parameter estimates) and an M-step (maximizing this expectation). The Q-function is the expected complete-data log-likelihood:
+
+$$Q(\theta|\theta_t) = E[\ell_{\text{com}}(\theta) | Y_{\text{obs}}, \theta_t]$$
+
+where $\ell_{\text{com}}(\theta)$ is the log-likelihood for the complete data (observed plus imputed), and the expectation is over the distribution of the missing data given the observed data and current parameters $\theta_t$. In traditional EM, this expectation is evaluated either analytically or through numerical integration.
+
+Stochastic EM (NEEDS CITATION) provides a bridge between traditional EM and multiple imputation. Rather than computing the expectation analytically, Stochastic EM approximates the E-step by drawing samples from the conditional distribution of the missing data. The Q-function is then approximated as an average of complete-data log-likelihoods across these draws. Multiple imputation extends this stochastic approach by additionally drawing parameters from their posterior distribution, rather than conditioning on point estimates as in Stochastic EM. This Bayesian treatment of parameter uncertainty distinguishes *Bayesianly proper* MI [@schaferAnalysisIncompleteMultivariate1997a] from deterministic or stochastic EM approaches.
+
+Central to this framework is the *missing information principle* [@orchardMissingInformationPrinciple1972a; @schaferAnalysisIncompleteMultivariate1997a], which decomposes the complete-data observed information matrix (derived from the Hessian) as:
+
+$$\mathcal{I}_{\text{com}} = \mathcal{I}_{\text{obs}} + \mathcal{I}_{\text{mis}|\text{obs}}$$
+
+This decomposition reveals that the observed-data information ($\mathcal{I}_{\text{obs}}$) is less than the complete-data information ($\mathcal{I}_{\text{com}}$) by an amount equal to the missing information ($\mathcal{I}_{\text{mis}|\text{obs}}$). The ratio $\mathcal{I}_{\text{mis}|\text{obs}} / \mathcal{I}_{\text{obs}}$ quantifies the information loss due to missingness, which connects directly to RIV in Rubin's rules. This article extends theoretical results developed in the Q-function and EM literature to the Bayesianly proper MI framework, where the target is replication of complete-data inference rather than observed-data maximization.
+
+## 2.3 Existing Approaches to IC Under Missing Data
+
+### 2.3.1 Ad Hoc Averaging
+
+The most common approach in applied practice is to compute IC for each imputed dataset separately, then average across imputations:
+
+$$\text{IC}_{\text{adhoc}} = M^{-1}\sum_{m=1}^M \text{IC}_m$$
+
+This approach has intuitive appeal—it treats IC values like parameter estimates and applies the same averaging used for point estimates. It is also what standard MI software packages compute by default, making it the path of least resistance for applied researchers. However, this procedure lacks theoretical justification. It is unclear what quantity the averaged IC estimates, and the approach conflates two sources of variability: the within-imputation uncertainty captured by each $\text{IC}_m$ and the between-imputation variability reflecting missing-data uncertainty. Despite these limitations, ad hoc averaging remains widespread in practice due to its simplicity and default availability in software.
+
+### 2.3.2 PDIO and AICcd
+
+The first theoretically grounded correction for information criteria under incomplete data was derived by @shimodaira1994, who proposed PDIO (predictive divergence for indirect observation models). Shimodaira showed that for models where observations are only available indirectly—including missing data, latent variable models, and mixture distributions—the AIC penalty should be $\text{tr}(I_X I_Y^{-1})$ rather than simply $q$, where $I_X$ is the complete-data Fisher information and $I_Y$ is the observed-data Fisher information. Using the missing information principle, this can be rewritten as $\text{tr}(I_X I_Y^{-1}) = q + \text{tr}(\text{RIV})$, yielding a penalty of $2q + 2\text{tr}(\text{RIV})$ on the AIC scale.
+
+@cavanaughAkaikeInformationCriterion1998 independently derived an equivalent result, which they termed AICcd (AIC with correction for incomplete data):
+
+$$\text{AICcd} = -2\bar{Q} + 2q + 2\text{tr}(\text{RIV})$$
+
+where $\bar{Q}$ is the pooled log-likelihood across imputations. Both PDIO and AICcd target the expected predictive performance of the model at the observed-data MLE $\hat{\theta}_{\text{obs}}$. The penalty term $2\text{tr}(\text{RIV})$ accounts for the additional degrees of freedom consumed by estimating parameters in the presence of missing data—it is double the trace of the missing information ratio because it corrects for both the bias from in-sample optimization and the information loss from missingness. Importantly, PDIO and AICcd answer a different question than the one posed in this article. While they target predictive performance given the observed-data structure, our MI-AIC targets replication of what the researcher would have computed had the data been complete. Both are theoretically valid for their respective inferential goals, but they optimize different objectives.
+
+### 2.3.3 Other Methods
+
+An alternative strategy is to avoid imputation altogether by using full information maximum likelihood (FIML), which directly maximizes the observed-data likelihood and allows standard IC formulas to be applied [@laiUsingInformationCriteria2021]. While FIML and MI are both valid approaches, they involve different computational strategies and may yield different IC values for the same model. A key observation across existing methods is that none explicitly target complete-data replication—the inference a researcher would have made had there been no missing data. This is the gap our approach fills.
+
+------------------------------------------------------------------------
+
+# 3. Theory: Deriving Corrected IC for Complete-Data Replication {#sec-theory}
+
+## 3.1 Defining the Target
+
+When researchers use multiple imputation to handle missing data, a natural question arises: which model would I have selected had my data been complete? This framing treats MI as a device to approximate complete-data inference, allowing researchers to make decisions that replicate what they would have concluded without missingness. Our target is therefore $\text{AIC}_{\text{com}}$, the AIC that would have been computed had the data been complete:
+
+$$\text{AIC}_{\text{com}} = -2\ell_{\text{com}}(\hat{\theta}_{\text{com}}) + 2q$$
+
+where $\hat{\theta}_{\text{com}}$ is the MLE under the complete-data model, $\ell_{\text{com}}(\cdot)$ is the complete-data log-likelihood, and $q$ is the number of parameters.
+
+This target differs fundamentally from alternative approaches. For example, AICcd [@cavanaughAkaikeInformationCriterion1998] targets predictive performance evaluated at the observed-data MLE $\hat{\theta}_{\text{obs}}$, reflecting the goal of optimal prediction given the observed-data structure. In contrast, our goal is to replicate the inference a researcher would make if the data had no missing values—answering "what model would I select with complete data?" rather than "what model predicts best given my observed data?" Both targets are valid, but they serve different inferential purposes. For most applications in structural equation modeling and applied psychological research, complete-data replication is the more natural choice because researchers typically ask counterfactual questions about their substantive conclusions, not predictive questions conditional on the pattern of missingness.
+
+## 3.2 What MI Computes
+
+Multiple imputation provides $M$ completed datasets $Y_1^{\text{com}}, \ldots, Y_M^{\text{com}}$, each consisting of the observed data $Y^{\text{obs}}$ combined with imputed values for the missing data. For each completed dataset, we can compute the complete-data log-likelihood $\ell_{\text{com}}(\theta | Y_m^{\text{com}})$ and fit the model to obtain parameter estimates. The Q-function, introduced in Section 2.2.2, is the average of the complete-data log-likelihoods across imputations:
+
+$$\bar{Q}(\theta) = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\theta | Y_m^{\text{com}})$$
+
+In practice, we evaluate this Q-function at the observed-data MLE $\hat{\theta}_{\text{obs}}$—the parameter estimate obtained by pooling estimates across imputations using Rubin's rules.
+
+To understand the challenge, consider the parameter landscape. Let $\theta^*$ denote the true parameter value. The complete-data MLE $\hat{\theta}_{\text{com}}$ is the value that would maximize the complete-data log-likelihood if we had no missing values: $\hat{\theta}_{\text{com}} = \arg\max_\theta \ell_{\text{com}}(\theta | Y^{\text{com}})$. The observed-data MLE $\hat{\theta}_{\text{obs}}$ is the value obtained from the observed data (or equivalently, pooled across imputations), which maximizes $\ell_{\text{obs}}(\theta | Y^{\text{obs}})$. Finally, let $\tilde{\theta}_{\text{obs}}$ denote the imputation parameter—in Bayesianly proper MI, this is a draw from the posterior distribution $p(\theta|Y^{\text{obs}})$. This posterior draw distinguishes proper MI from deterministic approaches: each imputation uses a different $\tilde{\theta}_{\text{obs}}^{(m)}$ sampled from the posterior, rather than conditioning on a single point estimate as in the EM algorithm.
+
+The central question is: what is the bias when we use $\bar{Q}(\hat{\theta}_{\text{obs}})$ as a proxy for $\ell_{\text{com}}(\hat{\theta}_{\text{com}})$? We want the log-likelihood at the complete-data MLE, but MI gives us the Q-function at the observed-data MLE. The bias decomposes into two terms, which we derive in the next section.
+
+## 3.3 The Bias Decomposition
+
+The bias of $\bar{Q}$ as an estimate of $\ell_{\text{com}}(\hat{\theta}_{\text{com}})$ decomposes as:
+
+$$\text{Bias} = \mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})] = \underbrace{\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]}_{\text{Term 1: Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})]}_{\text{Term 2: Estimation Mismatch}}$$
+
+The notation $Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}})$ emphasizes that the Q-function depends on both: (1) the parameter $\hat{\theta}_{\text{obs}}$ at which we evaluate the log-likelihood, and (2) the imputation parameter $\tilde{\theta}_{\text{obs}}$ used to generate the imputed values. This distinguishes the MI framework from deterministic EM, where the Q-function is conditioned on a point estimate rather than a draw from the posterior.
+
+### 3.3.1 Term 1: Imputation Bias
+
+Term 1 quantifies the bias introduced by imputing missing data with a parameter $\tilde{\theta}_{\text{obs}}$ drawn from the posterior distribution $p(\theta|Y^{\text{obs}})$ rather than the true parameter $\theta^*$. A key insight is that if the imputation parameter were the true parameter, this term would be exactly zero by the law of iterated expectations:
+
+$$\mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\theta^*)] = \mathbb{E}[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]] = \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]$$
+
+The bias arises precisely because $\tilde{\theta}_{\text{obs}}$ is sampled from the posterior and therefore $\tilde{\theta}_{\text{obs}} \neq \theta^*$.
+
+**Derivation.** We use the log-likelihood factorization $\ell_{\text{com}} = \ell_{\text{obs}} + \ell_{\text{mis}|\text{obs}}$. Since $\ell_{\text{obs}}(\hat{\theta}_{\text{obs}})$ does not depend on $Y^{\text{mis}}$, the $\ell_{\text{obs}}$ terms cancel:
+
+$$Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})$$
+
+The bias arises entirely from imputing under $\tilde{\theta}_{\text{obs}}$ versus the true conditional distribution under $\theta^*$. Taking the full expectation and rearranging nested expectations:
+
+$$\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]$$
+
+where $\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]$. Taylor expanding around $\tilde{\theta}_{\text{obs}} = \theta^*$ and using properties of exponential family models, the difference becomes:
+
+$$\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]$$
+
+where $S_{\text{mis}|\text{obs}}(\theta^*)$ is the score function. Expanding $\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})$ around $\theta^*$ and applying Gibbs' inequality (the cross-entropy $\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]$ is maximized at $\theta = \theta^*$), the term $\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]$ vanishes, leaving:
+
+$$\text{Term 1} \approx \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]$$
+
+Using the trace identity $a^T B c = \text{tr}(B c a^T)$ and recognizing that both estimators are asymptotically unbiased:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\right)$$
+
+**Simplification under key assumptions.** To simplify $\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})$, we decompose the posterior draw as:
+
+$$\tilde{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}} + \Delta\theta$$
+
+where $\Delta\theta$ represents the deviation of the posterior draw from the observed-data MLE. This decomposition requires two assumptions:
+
+1.  **Congeniality** [@mengMultipleimputationInferencesUncongenial1994]: The imputation model is congenial with the analysis model, meaning both target the same parameter: $\mathbb{E}[\tilde{\theta}_{\text{obs}}] \to \theta^*$ as $n \to \infty$. This ensures that $\mathbb{E}[\Delta\theta] = 0$ asymptotically.
+
+2.  **Uncorrelatedness**: The deviation $\Delta\theta$ is uncorrelated with $\hat{\theta}_{\text{obs}}$: $\text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = 0$. This states that the direction of deviation from the MLE is uncorrelated with the MLE itself.
+
+Under these assumptions:
+
+$$\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}$$
+
+Therefore:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\right) = \text{tr}(\text{RIV})$$
+
+**Intuition.** Imputing missing data using parameters drawn from the posterior creates "artificial coherence" between the observed and imputed portions of the data. Because the posterior concentrates around values that fit the observed data well, the imputed values tend to align more closely with the observed data than they would if generated under the true $\theta^*$. This spurious coherence inflates the complete-data log-likelihood.
+
+**Relationship to prior work.** This result corresponds to the bias correction derived by @shimodaira1994 for PDIO and independently by @cavanaughAkaikeInformationCriterion1998 for AICcd. However, our derivation is more general because it applies to the multiple imputation framework where $\tilde{\theta}_{\text{obs}}$ is a posterior draw rather than a point estimate. The $\text{tr}(\text{RIV})$ result holds under the congeniality and uncorrelatedness assumptions, regardless of the specific form of the posterior distribution.
+
+### 3.3.2 Term 2: Estimation Mismatch
+
+Term 2 represents the loss in complete-data log-likelihood from evaluating at $\hat{\theta}_{\text{obs}}$ (the observed-data MLE) rather than at $\hat{\theta}_{\text{com}}$ (the complete-data MLE). Since $\hat{\theta}_{\text{com}}$ maximizes $\ell_{\text{com}}(\theta)$ by definition, we have $\ell_{\text{com}}(\hat{\theta}_{\text{com}}) \geq \ell_{\text{com}}(\hat{\theta}_{\text{obs}})$, which means Term 2 is non-positive. We now derive its exact value.
+
+**Taylor expansion.** Expanding $\ell_{\text{com}}(\hat{\theta}_{\text{obs}})$ in a second-order Taylor series around the maximizer $\hat{\theta}_{\text{com}}$:
+
+$$\ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \ell_{\text{com}}(\hat{\theta}_{\text{com}}) + \nabla\ell_{\text{com}}(\hat{\theta}_{\text{com}})^T(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) - \frac{1}{2}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})^T \mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}})(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) + o_p(n^{-3/2})$$
+
+where $\mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}}) = -\nabla^2\ell_{\text{com}}(\theta)|_{\theta=\hat{\theta}_{\text{com}}}$ is the observed information matrix at $\hat{\theta}_{\text{com}}$. Because $\hat{\theta}_{\text{com}}$ is the MLE, the score vanishes: $\nabla\ell_{\text{com}}(\hat{\theta}_{\text{com}}) = 0$. Therefore the first-order term disappears, leaving:
+
+$$\ell_{\text{com}}(\hat{\theta}_{\text{obs}}) - \ell_{\text{com}}(\hat{\theta}_{\text{com}}) = -\frac{1}{2}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})^T \mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}})(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) + o_p(n^{-3/2})$$
+
+**Taking expectations.** Under standard regularity conditions, the observed information converges in probability to the Fisher information: $\mathcal{J}_{\text{com}}(\hat{\theta}_{\text{com}}) \xrightarrow{p} \mathcal{I}_{\text{com}}(\theta^*)$. Replacing with Fisher information and taking expectations:
+
+$$\text{Term 2} = \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})] = -\frac{1}{2}\mathbb{E}\left[(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})^T \mathcal{I}_{\text{com}}(\theta^*)(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})\right] + O(n^{-3/2})$$
+
+Using the trace identity $a^T B a = \text{tr}(B a a^T)$ and recognizing that both MLEs are asymptotically unbiased for $\theta^*$:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}}(\theta^*) \cdot \text{Var}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})\right) + O(n^{-3/2})$$
+
+**Computing the variance of the difference.** To evaluate this expression, we need the variance decomposition:
+
+$$\text{Var}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Var}(\hat{\theta}_{\text{com}}) - 2\text{Cov}(\hat{\theta}_{\text{obs}}, \hat{\theta}_{\text{com}})$$
+
+The marginal variances are standard: $\text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}$ and $\text{Var}(\hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{com}}(\theta^*)^{-1}$. The key is computing the covariance.
+
+**Asymptotic linear representation.** By standard MLE theory, to leading order:
+
+$$\hat{\theta}_{\text{obs}} - \theta^* \approx \mathcal{I}_{\text{obs}}(\theta^*)^{-1} S_{\text{obs}}(\theta^*), \quad \hat{\theta}_{\text{com}} - \theta^* \approx \mathcal{I}_{\text{com}}(\theta^*)^{-1} S_{\text{com}}(\theta^*)$$
+
+where $S_{\text{obs}}(\theta^*)$ and $S_{\text{com}}(\theta^*)$ are the score functions evaluated at the true parameter. Therefore:
+
+$$\text{Cov}(\hat{\theta}_{\text{obs}}, \hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{obs}}^{-1} \text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{com}}(\theta^*)) \mathcal{I}_{\text{com}}^{-1}$$
+
+**Score covariance.** Since $S_{\text{com}}(\theta^*) = S_{\text{obs}}(\theta^*) + S_{\text{mis}|\text{obs}}(\theta^*)$:
+
+$$\text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{com}}(\theta^*)) = \text{Var}(S_{\text{obs}}(\theta^*)) + \text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{mis}|\text{obs}}(\theta^*))$$
+
+The key observation is that $\text{Cov}(S_{\text{obs}}, S_{\text{mis}|\text{obs}}) = 0$. To see this, condition on $Y^{\text{obs}}$: $S_{\text{obs}}(\theta^*)$ is a function of $Y^{\text{obs}}$ only (so it is constant given $Y^{\text{obs}}$), while $\mathbb{E}[S_{\text{mis}|\text{obs}}(\theta^*) | Y^{\text{obs}}] = 0$ by the score property. By the law of total covariance:
+
+$$\text{Cov}(S_{\text{obs}}, S_{\text{mis}|\text{obs}}) = \mathbb{E}[\text{Cov}(S_{\text{obs}}, S_{\text{mis}|\text{obs}}|Y^{\text{obs}})] + \text{Cov}(\mathbb{E}[S_{\text{obs}}|Y^{\text{obs}}], \mathbb{E}[S_{\text{mis}|\text{obs}}|Y^{\text{obs}}]) = 0 + 0 = 0$$
+
+Therefore:
+
+$$\text{Cov}(S_{\text{obs}}(\theta^*), S_{\text{com}}(\theta^*)) = \text{Var}(S_{\text{obs}}(\theta^*)) = \mathcal{I}_{\text{obs}}(\theta^*)$$
+
+**MLE covariance.** Substituting back:
+
+$$\text{Cov}(\hat{\theta}_{\text{obs}}, \hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{obs}}^{-1} \mathcal{I}_{\text{obs}} \mathcal{I}_{\text{com}}^{-1} = \mathcal{I}_{\text{com}}^{-1} = \text{Var}(\hat{\theta}_{\text{com}})$$
+
+This reveals that the covariance between the two MLEs equals the variance of the complete-data MLE. Intuitively, the observed-data MLE "fully overlaps" with the complete-data MLE in the information it provides.
+
+**Variance of the difference.** Using the variance decomposition:
+
+$$\text{Var}(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}}) = \mathcal{I}_{\text{obs}}^{-1} + \mathcal{I}_{\text{com}}^{-1} - 2\mathcal{I}_{\text{com}}^{-1} = \mathcal{I}_{\text{obs}}^{-1} - \mathcal{I}_{\text{com}}^{-1}$$
+
+This is positive semi-definite, as expected, since $\mathcal{I}_{\text{com}}^{-1} \preceq \mathcal{I}_{\text{obs}}^{-1}$ (the complete-data MLE has lower variance than the observed-data MLE).
+
+**Substituting back.** Returning to Term 2:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}} \cdot \left(\mathcal{I}_{\text{obs}}^{-1} - \mathcal{I}_{\text{com}}^{-1}\right)\right) = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}} \mathcal{I}_{\text{obs}}^{-1}\right) + \frac{1}{2}\text{tr}\left(\mathcal{I}_{\text{com}} \mathcal{I}_{\text{com}}^{-1}\right)$$
+
+The second term simplifies to $\frac{1}{2}\text{tr}(I_q) = \frac{q}{2}$, where $q$ is the number of parameters. For the first term, use the missing information principle $\mathcal{I}_{\text{com}} = \mathcal{I}_{\text{obs}} + \mathcal{I}_{\text{mis}|\text{obs}}$:
+
+$$\text{tr}\left(\mathcal{I}_{\text{com}} \mathcal{I}_{\text{obs}}^{-1}\right) = \text{tr}\left((\mathcal{I}_{\text{obs}} + \mathcal{I}_{\text{mis}|\text{obs}}) \mathcal{I}_{\text{obs}}^{-1}\right) = \text{tr}(I_q) + \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}} \mathcal{I}_{\text{obs}}^{-1}\right) = q + \text{tr}(\text{RIV})$$
+
+Therefore:
+
+$$\text{Term 2} = -\frac{1}{2}\left(q + \text{tr}(\text{RIV})\right) + \frac{q}{2} = -\frac{q}{2} - \frac{1}{2}\text{tr}(\text{RIV}) + \frac{q}{2} = -\frac{1}{2}\text{tr}(\text{RIV})$$
+
+**Interpretation.** Evaluating the complete-data log-likelihood at the observed-data MLE $\hat{\theta}_{\text{obs}}$ rather than at the complete-data MLE $\hat{\theta}_{\text{com}}$ incurs an expected loss of $\frac{1}{2}\text{tr}(\text{RIV})$. This loss partially offsets the positive bias from imputation (Term 1), which was $\text{tr}(\text{RIV})$. The factor of $\frac{1}{2}$ arises from the quadratic curvature of the log-likelihood surface.
+
+### 3.3.3 Total Bias
+
+Combining the two terms:
+
+$$\text{Bias} = \text{Term 1} + \text{Term 2} = \text{tr}(\text{RIV}) - \frac{1}{2}\text{tr}(\text{RIV}) = \frac{1}{2}\text{tr}(\text{RIV})$$
+
+The total bias is positive but only half of the imputation bias. This partial cancellation has a clear interpretation. Imputation with estimated parameters creates artificial coherence, inflating the Q-function by $\text{tr}(\text{RIV})$ (Term 1). However, because we evaluate at the observed-data MLE $\hat{\theta}_{\text{obs}}$ rather than the complete-data MLE $\hat{\theta}_{\text{com}}$, we incur a loss of $\frac{1}{2}\text{tr}(\text{RIV})$ (Term 2) due to not being at the maximizer. The net effect is that half of the imputation bias remains.
+
+The factor of $\frac{1}{2}$ in the net bias arises from the quadratic curvature of the log-likelihood surface. The imputation bias increases linearly with the deviation $(\tilde{\theta}_{\text{obs}} - \theta^*)$, but the evaluation mismatch involves a quadratic form in $(\hat{\theta}_{\text{obs}} - \hat{\theta}_{\text{com}})$, yielding the $\frac{1}{2}$ factor in the second-order Taylor expansion.
+
+The total bias is directly proportional to the relative increase in variance (RIV), which quantifies the fraction of information lost due to missingness. When there is little missing data, RIV is small and the bias correction is negligible. When missingness is substantial, RIV is large and the bias correction becomes important for accurate model selection.
+
+## 3.4 Corrected IC Formulas
+
+The bias of $\frac{1}{2}\text{tr}(\text{RIV})$ in the log-likelihood translates directly to a correction in the AIC penalty. Recall that AIC is defined as $-2\ell(\hat{\theta}) + 2q$, where the factor of 2 converts the log-likelihood to the deviance scale. Since the Q-function $\bar{Q}$ has bias $\frac{1}{2}\text{tr}(\text{RIV})$ for the complete-data log-likelihood, the deviance $-2\bar{Q}$ has bias $-2 \times \frac{1}{2}\text{tr}(\text{RIV}) = -\text{tr}(\text{RIV})$. To correct this bias, we add $\text{tr}(\text{RIV})$ to the penalty:
+
+$$\text{MI-AIC} = -2\bar{Q} + 2q + \text{tr}(\text{RIV})$$
+
+This formula targets $\text{AIC}_{\text{com}}$, the AIC that would have been computed with complete data.
+
+The same correction applies to BIC and other information criteria. BIC has penalty structure $q\log(n)$ instead of $2q$, but the bias still affects the deviance term $-2\ell$, not the penalty structure. Therefore:
+
+$$\text{MI-BIC} = -2\bar{Q} + q\log(n) + \text{tr}(\text{RIV})$$
+
+More generally, for any IC of the form $-2\ell + f(q, n)$, the MI-corrected version is $-2\bar{Q} + f(q,n) + \text{tr}(\text{RIV})$.
+
+**Practical computation.** All quantities in these formulas are directly computable from standard MI output. The Q-function $\bar{Q}$ is the average log-likelihood across imputations, and the correction term uses Rubin's within-imputation ($W$) and between-imputation ($B$) covariance matrices:
+
+$$\text{tr}(\text{RIV}) = \text{tr}\left((1 + M^{-1})W^{-1}B\right)$$
+
+This computation requires only the covariance matrices that MI software routinely provides, making the correction straightforward to implement in practice.
+
+**Regularity conditions.** These formulas assume standard asymptotic regularity: the model is correctly specified, the sample size $n$ is large enough for Fisher information to be well-defined, and the number of imputations $M$ is sufficient to make Monte Carlo error negligible. The within-imputation covariance matrix $W$ must be invertible; in high-dimensional settings where $W$ is near-singular, regularization (e.g., ridge-type adjustments) may be necessary before computing $W^{-1}B$.
+
+## 3.5 Comparison to PDIO and AICcd
+
+PDIO [@shimodaira1994] and AICcd [@cavanaughAkaikeInformationCriterion1998] represent earlier theoretically grounded approaches to IC under missing data. Both arrive at the same penalty:
+
+$$\text{PDIO} = \text{AICcd} = -2\bar{Q} + 2q + 2\text{tr}(\text{RIV})$$
+
+The penalty is $2\text{tr}(\text{RIV})$—twice our correction—because these methods target a different inferential goal. While we target $\text{AIC}_{\text{com}}$ (complete-data replication), PDIO and AICcd target predictive performance evaluated at the observed-data MLE $\hat{\theta}_{\text{obs}}$.
+
+The difference can be understood through our bias decomposition. Shimodaira's derivation shows that the total penalty for indirect observation models should be $\text{tr}(I_X I_Y^{-1}) = q + \text{tr}(\text{RIV})$, which on the AIC scale (multiplied by 2) gives $2q + 2\text{tr}(\text{RIV})$. This corresponds to our Term 1 plus the base penalty $q$. Our contribution is to further decompose the bias when targeting $\hat{\theta}_{\text{com}}$ rather than $\hat{\theta}_{\text{obs}}$: Term 2 (estimation mismatch) contributes $-\frac{1}{2}\text{tr}(\text{RIV})$, partially offsetting Term 1 and yielding a net correction of only $\text{tr}(\text{RIV})$. Both derivations are correct for their respective targets.
+
+Table 1 summarizes the comparison across methods:
+
+| Method | Penalty | Target Estimand | Use When... |
+|----|----|----|----|
+| Complete-data AIC | $2q$ | Prediction (complete data) | No missing data |
+| MI-AIC (ours) | $2q + \text{tr}(\text{RIV})$ | Complete-data replication | Asking "what model would I select with complete data?" |
+| PDIO/AICcd | $2q + 2\text{tr}(\text{RIV})$ | Prediction at $\hat{\theta}_{\text{obs}}$ | Asking "what model predicts best given observed structure?" |
+| Ad hoc average | $2q$ (incorrect) | Unclear | Should not be used—lacks theory |
+
+**Which method to use?** The choice depends on the research question. If the goal is to replicate the model selection decision one would make with complete data—the most common scenario in applied structural equation modeling and psychological research—use MI-AIC or MI-BIC. If the goal is to optimize predictive performance conditional on the observed-data structure, use PDIO or AICcd. The ad hoc approach of simply averaging IC across imputations lacks theoretical justification and should be avoided, as it conflates within- and between-imputation variability without a clear target estimand.
+
+All three corrected methods (MI-AIC, PDIO, and AICcd) are asymptotically valid and computationally straightforward, requiring only standard MI output. The key is choosing the method that matches the inferential question of interest.
+
+------------------------------------------------------------------------
+
+# 4. Simulation Studies {#sec-simulation}
+
+## 4.1 Overview
+
+Three simulation studies validate the theory and demonstrate practical performance:
+
+1.  **Study 1**: A simplified pedagogical simulation to build intuition about the bias formula and its key assumptions
+2.  **Study 2**: Replication of Bollen et al.'s (2014) SEM design with missing data and MI
+3.  **Study 3**: Latent profile analysis (LPA) simulation for mixture modeling context
+
+## 4.2 Study 1: Illustrating the Bias Formula and Key Assumptions
+
+### 4.2.1 Purpose
+
+Before evaluating model selection performance in realistic settings, we use a simplified simulation to build intuition about the bias formula derived in Section 3. This study addresses three questions:
+
+1. Does the bias formula (Bias = ½tr(RIV)) hold across different missing data mechanisms?
+2. What role does congeniality play in the bias formula?
+3. How do inclusive imputation models affect tr(RIV) and the penalty term?
+
+The key insight we aim to demonstrate is that *congeniality*—not ignorability—is the critical assumption for the bias formula. The missing data mechanism (MCAR, MAR, MNAR) affects whether point estimates are unbiased for the true parameter $\theta^*$, but it does not affect whether the relationship between the Q-function and complete-data log-likelihood follows our derivation. In contrast, when congeniality is violated, the bias formula breaks down regardless of the missing mechanism.
+
+### 4.2.2 Design
+
+**Data generating mechanism.** We simulate a simple three-variable mediation system with variables X, M, and Y. The true data generating mechanism is full mediation:
+
+- $X \sim N(0, 1)$
+- $M = \beta_{XM} X + \epsilon_M$, where $\epsilon_M \sim N(0, \sigma^2_M)$
+- $Y = \beta_{MY} M + \epsilon_Y$, where $\epsilon_Y \sim N(0, \sigma^2_Y)$
+
+Note that X has no direct effect on Y in the true model. We set $\beta_{XM} = 0.5$, $\beta_{MY} = 0.5$, and $\sigma^2_M = \sigma^2_Y = 0.75$ to yield standardized path coefficients of approximately 0.5.
+
+**Sample size and missingness.** Each simulated dataset has $N = 100$ observations. We induce substantial missingness: approximately 50% of observations are missing M, Y, or both. This high rate of missingness ensures that the bias and penalty terms are large enough to observe clearly.
+
+**Conditions.** We cross two factors in a 3 × 3 factorial design:
+
+*Missing data mechanism (3 levels):*
+
+- **MCAR**: Missingness is independent of all variables. Each observation has a 50% probability of being selected for missingness, with M, Y, or both missing at random among those selected.
+- **MAR**: Missingness depends on X (the fully observed variable). Observations with higher X values have higher probability of missingness on M and Y.
+- **MNAR**: Missingness depends on M or Y themselves. Observations with higher M values have higher probability of M being missing; similarly for Y.
+
+*Imputation model (3 levels):*
+
+- **Matched**: The imputation model matches the true data generating mechanism (X → M → Y). This is congenial with both analysis models.
+- **Saturated**: The imputation model assumes a fully saturated covariance structure among X, M, and Y. This is congenial but more inclusive than the true model, resulting in wider posterior variance.
+- **Uncongenial**: The imputation model assumes X → M and X → Y with M and Y conditionally independent given X. This is uncongenial because it contradicts the true M → Y relationship.
+
+**Analysis models.** For each imputed dataset, we fit two structural equation models:
+
+- **Model A (Full mediation)**: X → M → Y with no direct X → Y path. This is the true model.
+- **Model B (Partial mediation)**: X → M → Y with an additional direct X → Y path. This model is overparameterized relative to the true DGM.
+
+**Number of imputations and replications.** We generate $M = 20$ imputations per dataset and conduct 1,000 replications per condition.
+
+### 4.2.3 Outcomes
+
+For each replication, we compute:
+
+1. **Empirical bias**: $\bar{Q} - \ell_{\text{com}}(\hat{\theta}_{\text{com}})$, comparing the MI-pooled Q-function to the complete-data log-likelihood computed from the full data (before missingness was induced).
+
+2. **Theoretical bias**: $\frac{1}{2}\text{tr}(\text{RIV})$ computed from Rubin's combining rules.
+
+3. **Agreement**: The correspondence between empirical and theoretical bias across conditions.
+
+We examine these outcomes separately for each analysis model (full mediation vs. partial mediation) to understand how model complexity interacts with the imputation model.
+
+### 4.2.4 Expected Results
+
+**Result 1: The missing mechanism does not affect the bias formula.**
+
+Across MCAR, MAR, and MNAR conditions—holding the imputation model fixed at either Matched or Saturated (both congenial)—the empirical bias should approximately equal ½tr(RIV). The missing mechanism affects whether point estimates $\hat{\theta}_{\text{obs}}$ are unbiased for $\theta^*$, but not whether the bias decomposition from Section 3 holds. This demonstrates that ignorability is not the relevant assumption for our bias formula.
+
+**Result 2: Congeniality is essential for the bias formula.**
+
+Under the uncongenial imputation model (X → M, X → Y), the empirical bias will *not* equal ½tr(RIV). Because this imputation model assumes M and Y are conditionally independent given X—contradicting the true M → Y relationship—the congeniality assumption is violated. Specifically, $\mathbb{E}[\tilde{\theta}_{\text{obs}}] \not\to \theta^*$, so the decomposition $\tilde{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}} + \Delta\theta$ with $\mathbb{E}[\Delta\theta] = 0$ fails. This result will hold regardless of the missing mechanism (MCAR, MAR, or MNAR), reinforcing that congeniality—not ignorability—is the critical assumption.
+
+**Result 3: Inclusive imputation inflates tr(RIV) but preserves the bias formula.**
+
+The saturated imputation model, while congenial, produces systematically larger tr(RIV) than the matched imputation model. This occurs because the saturated model has wider posterior variance—it estimates more parameters and thus has greater uncertainty. In terms of our decomposition, $\text{Var}(\Delta\theta) > 0$ for the saturated model, inflating $\text{Var}(\tilde{\theta}_{\text{obs}})$.
+
+Critically, even with this inflated variance:
+
+- The bias formula still holds: empirical bias ≈ ½tr(RIV)
+- The larger tr(RIV) yields a correspondingly larger penalty term
+
+This confirms the theoretical result from Section 3.3.1: inclusive imputation models do not distort the bias formula because $\text{Var}(\Delta\theta)$ does not enter $\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})$.
+
+**Result 4: The penalty term self-corrects for imputation model complexity.**
+
+The inflated tr(RIV) under saturated imputation has an important implication: without proper penalization, the larger Q-function values from inclusive imputation could spuriously favor more complex analysis models. However, because the penalty term scales with tr(RIV), this tendency is offset. The MI-AIC and MI-BIC formulas automatically adjust for the additional uncertainty introduced by inclusive imputation.
+
+This foreshadows the role of proper penalization in Studies 2 and 3, where we evaluate actual model selection performance.
+
+### 4.2.5 Summary
+
+Study 1 establishes the empirical validity of the theoretical framework from Section 3:
+
+1. The bias = ½tr(RIV) relationship is robust to the missing data mechanism
+2. Congeniality is the critical assumption—violations cause the formula to fail
+3. Inclusive (but congenial) imputation models inflate tr(RIV), but the penalty self-corrects
+4. The distinction between ignorability (for valid point estimates) and congeniality (for the bias formula) is empirically confirmed
+
+These results provide the foundation for interpreting Studies 2 and 3, which evaluate model selection performance in more realistic settings.
+
+## 4.3 Study 2: Structural Equation Modeling
+
+\[Replication of Bollen et al. (2014) SEM design with missing data and MI — to be added\]
+
+## 4.4 Study 3: Latent Profile Analysis
+
+\[LPA simulation for mixture modeling context — to be added\]
+
+------------------------------------------------------------------------
+
+# 5. Empirical Example {#sec-empirical}
+
+\[Empirical example to be added\]
+
+------------------------------------------------------------------------
+
+# 6. Discussion {#sec-discussion}
+
+\[Discussion to be added\]
+
+<!-- TODO: Add section on fully inclusive imputation models -->
+
+<!-- Key point: A consequence of the uncorrelatedness assumption is that the variance of Δθ does not affect the bias correction. Practitioners often use "fully inclusive" imputation models with wider posterior variance to protect against bias from uncongenial models. This additional variance contributes to Var(θ̃) but does NOT appear in Cov(θ̃, θ̂), which determines Term 1. Therefore, as long as the imputation model is congenial and the uncorrelatedness assumption holds, inclusive imputation strategies do not change the asymptotic bias correction—they simply add noise that averages out across imputations. This justifies standard MI practice of using inclusive models for bias protection. -->
+
+------------------------------------------------------------------------
+
+# Appendix A: Detailed Derivation of Term 1 (Imputation Bias) {#appendix-a}
+
+This appendix provides a complete derivation of the imputation bias term presented in Section 3.3.1. We show that:
+
+$$\text{Term 1} = \mathbb{E}[Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\right)$$
+
+and under the congeniality and uncorrelatedness assumptions, this simplifies to $\text{tr}(\text{RIV})$.
+
+## A.1 Proof Strategy
+
+We use the log-likelihood factorization $\ell_{\text{com}} = \ell_{\text{obs}} + \ell_{\text{mis}|\text{obs}}$. The Q-function can be written as:
+
+$$Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}}) = \ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) + \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]$$
+
+while the complete-data log-likelihood is:
+
+$$\ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) + \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})$$
+
+The $\ell_{\text{obs}}(\hat{\theta}_{\text{obs}})$ terms are identical and cancel, leaving:
+
+$$Q(\hat{\theta}_{\text{obs}}|\tilde{\theta}_{\text{obs}}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})$$
+
+Therefore:
+
+$$\text{Term 1} = \mathbb{E}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]$$
+
+where the outer expectation is over $(Y^{\text{obs}}, Y^{\text{mis}}) \sim p(Y|\theta^*)$.
+
+## A.2 Simplifying the Nested Expectations
+
+Write the full expectation explicitly:
+
+$$\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}\left[\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\right]\right]$$
+
+Note that $\hat{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}}(Y^{\text{obs}})$ and $\tilde{\theta}_{\text{obs}} = \tilde{\theta}_{\text{obs}}(Y^{\text{obs}})$ are functions of $Y^{\text{obs}}$ only.
+
+Since $\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]$ is a function of $Y^{\text{obs}}$ only (we've integrated out $Y^{\text{mis}}$), the middle expectation $\mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta^*}[\cdot]$ acts only on the second term:
+
+$$\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}|\theta^*}\left[\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]$$
+
+where we use the shorthand $\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]$.
+
+This is the difference in expected log-likelihood when imputing under $\tilde{\theta}_{\text{obs}}$ versus under the true $\theta^*$.
+
+## A.3 Taylor Expansion of the Expectation
+
+We expand $\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[g]$ around $\tilde{\theta}_{\text{obs}} = \theta^*$ for any function $g(Y^{\text{mis}})$:
+
+$$\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*}$$
+
+For exponential family models, this derivative can be expressed using the score function. The score of the conditional distribution is:
+
+$$S_{\text{mis}|\text{obs}}(\theta) = \frac{\partial}{\partial \theta} \ell_{\text{mis}|\text{obs}}(\theta) = \frac{\partial}{\partial \theta} \log p(Y^{\text{mis}}|Y^{\text{obs}}, \theta)$$
+
+A fundamental property of score functions is that the expected score at the true parameter equals zero:
+
+$$\mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*)] = 0$$
+
+This follows from the fact that $\int p(Y^{\text{mis}}|Y^{\text{obs}}, \theta^*) \, dY^{\text{mis}} = 1$, and differentiating both sides with respect to $\theta$ gives zero.
+
+For exponential family models, the derivative of the expectation equals:
+
+$$\left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*} = \mathbb{E}_{\theta^*}[g \cdot S_{\text{mis}|\text{obs}}(\theta^*)]$$
+
+This is the covariance between $g$ and the score function (since $\mathbb{E}[S] = 0$).
+
+## A.4 Applying to Our Setting
+
+With $g = \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})$:
+
+$$\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]$$
+
+## A.5 Expanding the Log-Likelihood
+
+To evaluate $\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]$, we Taylor expand $\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})$ around $\theta^*$:
+
+$$\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \approx \ell_{\text{mis}|\text{obs}}(\theta^*) + (\hat{\theta}_{\text{obs}} - \theta^*)^T S_{\text{mis}|\text{obs}}(\theta^*)$$
+
+Substituting:
+
+$$\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] \approx \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + (\hat{\theta}_{\text{obs}} - \theta^*)^T \mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*) S_{\text{mis}|\text{obs}}(\theta^*)^T]$$
+
+The second term involves the Fisher information matrix. A fundamental result in likelihood theory is that the variance of the score equals the Fisher information:
+
+$$\mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*) S_{\text{mis}|\text{obs}}(\theta^*)^T] = \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)$$
+
+Therefore:
+
+$$\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] \approx \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)$$
+
+## A.6 The Key Cancellation (Gibbs' Inequality)
+
+We now show that $\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = 0$.
+
+This term can be recognized as the derivative of a cross-entropy:
+
+$$\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\right|_{\theta=\theta^*}$$
+
+The function $\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]$ is a cross-entropy:
+
+$$\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)] = \int p(Y^{\text{mis}}|Y^{\text{obs}},\theta) \log p(Y^{\text{mis}}|Y^{\text{obs}},\theta^*) \, dY^{\text{mis}}$$
+
+By **Gibbs' inequality** (equivalently, the non-negativity of KL-divergence), this cross-entropy is maximized when $\theta = \theta^*$. This is because:
+
+$$D_{KL}(p_{\theta^*} \| p_{\theta^*}) = 0 \leq D_{KL}(p_\theta \| p_{\theta^*}) \quad \text{for all } \theta$$
+
+where $D_{KL}(p \| q) = \mathbb{E}_p[\log p - \log q] \geq 0$ with equality iff $p = q$.
+
+At the maximum $\theta = \theta^*$, the derivative with respect to $\theta$ must vanish:
+
+$$\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = 0$$
+
+## A.7 Combining Results
+
+From Sections A.4–A.6:
+
+$$\mathbb{E}_{\tilde{\theta}_{\text{obs}}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)$$
+
+Taking the expectation over $Y^{\text{obs}}$:
+
+$$\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\theta}_{\text{obs}} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]$$
+
+## A.8 Converting to Trace Form
+
+Using the trace identity $a^T B c = \text{tr}(B c a^T)$:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathbb{E}[(\hat{\theta}_{\text{obs}} - \theta^*)(\tilde{\theta}_{\text{obs}} - \theta^*)^T]\right)$$
+
+Since both $\hat{\theta}_{\text{obs}}$ and $\tilde{\theta}_{\text{obs}}$ are asymptotically unbiased for $\theta^*$, the expectation equals the covariance:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})\right)$$
+
+This is our main result in general form.
+
+## A.9 Simplification Under Key Assumptions
+
+To simplify $\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}})$, we decompose the posterior draw as:
+
+$$\tilde{\theta}_{\text{obs}} = \hat{\theta}_{\text{obs}} + \Delta\theta$$
+
+where $\Delta\theta$ represents the deviation of the posterior draw from the observed-data MLE.
+
+**Assumption 1 (Congeniality):** The imputation model is congenial with the analysis model [@mengMultipleimputationInferencesUncongenial1994], meaning both target the same parameter: $\mathbb{E}[\tilde{\theta}_{\text{obs}}] \to \theta^*$ as $n \to \infty$. This ensures that $\mathbb{E}[\Delta\theta] = 0$ asymptotically.
+
+**Assumption 2 (Uncorrelatedness):** The deviation $\Delta\theta$ is uncorrelated with $\hat{\theta}_{\text{obs}}$: $\text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = 0$.
+
+Under these assumptions:
+
+$$\text{Cov}(\tilde{\theta}_{\text{obs}}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\theta, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}$$
+
+Therefore:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\right) = \text{tr}(\text{RIV})$$
+
+where the last equality uses the definition $\text{RIV} = \mathcal{I}_{\text{mis}|\text{obs}} \cdot \mathcal{I}_{\text{obs}}^{-1}$.
+
+## A.10 Summary
+
+The imputation bias equals $\text{tr}(\text{RIV})$ under two assumptions: (1) the imputation model is congenial with the analysis model, and (2) the deviation of the posterior draw from the MLE is uncorrelated with the MLE. These assumptions are satisfied by standard Bayesianly proper multiple imputation procedures. Importantly, the result holds regardless of the variance of the posterior draws—wider posterior variance (as in "fully inclusive" imputation models) does not affect the bias correction.
+
+------------------------------------------------------------------------
+
+# References {#references}
+
+\[References will be compiled from references.bib\]
