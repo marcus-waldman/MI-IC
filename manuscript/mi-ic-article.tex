@@ -600,6 +600,18 @@ MI from deterministic approaches: each imputation uses a different
 \(\tilde{\phi}^{(m)}\) sampled from the posterior, rather than
 conditioning on a single point estimate as in the EM algorithm.
 
+We use \(\tilde{\phi}\) to denote the \textbf{imputation model}
+parameter to distinguish it from \(\theta\), the \textbf{analysis model}
+parameter. This notational distinction is important because the
+imputation model and analysis model need not be the same---a situation
+known as \textbf{uncongeniality}
+(\textbf{mengMultipleimputationInferencesUncongenial1994?}). While our
+derivation assumes congeniality (both models target the same true
+parameter \(\theta^*\)), the notation keeps the conceptual distinction
+clear: \(\tilde{\phi}\) is drawn from the imputation model's posterior
+\(p(\phi|Y^{\text{obs}})\) to generate missing data, while \(\theta\)
+parameterizes the model we fit to the completed datasets.
+
 The central question is: what is the bias when we use
 \(\bar{Q}(\hat{\theta}_{\text{obs}})\) as a proxy for
 \(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\)? We want the
