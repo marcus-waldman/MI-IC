@@ -224,38 +224,46 @@ This reflects the fundamental difference in how the models use the observed data
 
 **Date:** January 11, 2026
 **Status:** ✅ **ALL MODELS PASSED**
+**Sample Size:** n = 200
 
 ### Model A (Congenial): PASS ✓
-- Q_MC = -14240.083 (4000 brms posterior samples)
-- Q_analytical = -14239.981 (analytical delta method)
-- Difference = 0.101
-- Monte Carlo SE = 0.645
-- z-score = 0.16 (threshold: 2.0)
+- Q_MC = -569.637 (4000 brms posterior samples)
+- Q_analytical = -569.474 (analytical delta method)
+- Difference = 0.164
+- Monte Carlo SE = 0.169
+- z-score = 0.97 (threshold: 2.0)
 - **Conclusion:** Analytical Hessian correction matches Monte Carlo integration
 
 ### Model B (Uncongenial): PASS ✓
-- Q_MC = -14987.304 (4000 brms posterior samples)
-- Q_analytical = -14987.181 (analytical delta method)
-- Difference = 0.123
-- Monte Carlo SE = 0.835
-- z-score = 0.15 (threshold: 2.0)
+- Q_MC = -606.802 (4000 brms posterior samples)
+- Q_analytical = -606.544 (analytical delta method)
+- Difference = 0.257
+- Monte Carlo SE = 0.228
+- z-score = 1.13 (threshold: 2.0)
 - **Conclusion:** Analytical Hessian correction for uncongenial model validated
 
 ### Model C (Saturated MVN): PASS ✓
-- Q_improper = -14223.239 (without Hessian correction)
-- Q_proper = -14225.792 (with Hessian correction)
-- Hessian correction = -2.553
-- **Conclusion:** Numerical Hessian via finite differences computed successfully
+- Q_MC = -571.435 (4000 brms posterior samples)
+- Q_analytical = -571.303 (analytical delta method)
+- Difference = 0.132
+- Monte Carlo SE = 0.174
+- z-score = 0.75 (threshold: 2.0)
+- **Conclusion:** Numerical Hessian validated against brms MC integration
 
 ### Overall Assessment
 
-All three imputation models are correctly implemented with proper Bayesian MI (delta method + Hessian corrections). The analytical integration approach matches Monte Carlo integration for Models A and B (z-scores << 2.0), and the numerical Hessian for Model C is functioning correctly.
+All three imputation models are correctly implemented with proper Bayesian MI (delta method + Hessian corrections). The analytical integration approach matches Monte Carlo integration for all three models (z-scores << 2.0).
 
 **Key Validation:**
-- ✅ Model A analytical Hessian: validated against brms MC integration
-- ✅ Model B analytical Hessian: validated against brms MC integration
-- ✅ Model C numerical Hessian: successfully computed via finite differences
+- ✅ Model A analytical Hessian: z = 0.97 (validated against brms MC)
+- ✅ Model B analytical Hessian: z = 1.13 (validated against brms MC)
+- ✅ Model C numerical Hessian: z = 0.75 (validated against brms MC)
 - ✅ All Hessian corrections are negative (as expected for log-likelihood)
+
+**Missingness Pattern (n=200, MCAR ~25%):**
+- Pattern 1 (complete): 88 (44.0%)
+- Pattern 2 (Y missing): 51 (25.5%)
+- Pattern 3 (M,Y missing): 61 (30.5%)
 
 ---
 
