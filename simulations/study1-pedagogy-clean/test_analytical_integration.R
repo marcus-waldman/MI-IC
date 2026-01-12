@@ -35,8 +35,8 @@ set.seed(20250111)  # Fixed seed for reproducibility
 # True parameters
 true_params <- list(a = 0.5, b = 0.5, sigma2_M = 1, sigma2_Y = 1)
 
-# Large sample size for stable estimation
-n <- 5000
+# Sample size
+n <- 200
 
 # Moderate missingness (MCAR, ~25% missing)
 mechanism <- "MCAR"
@@ -104,29 +104,24 @@ validate_model <- function(model_name, brm_formula, model_code) {
   cat(sprintf("\n=== MODEL %s ===\n", model_name))
 
   # --------------------------------------------------------------------------
-  # Step 3: Fit Imputation Model in brms (skip for Model C)
+  # Step 3: Fit Imputation Model in brms
   # --------------------------------------------------------------------------
 
-  if (model_code != "C") {
-    cat("  Fitting imputation model in brms...\n")
+  cat("  Fitting imputation model in brms...\n")
 
-    fit_brms <- brm(
-      brm_formula,
-      data = data_mis,
-      chains = 4,
-      iter = 2000,
-      warmup = 1000,
-      cores = 4,
-      seed = 20250111,
-      silent = 2,
-      refresh = 0
-    )
+  fit_brms <- brm(
+    brm_formula,
+    data = data_mis,
+    chains = 4,
+    iter = 2000,
+    warmup = 1000,
+    cores = 4,
+    seed = 20250111,
+    silent = 2,
+    refresh = 0
+  )
 
-    cat("    Done.\n")
-  } else {
-    cat("  Skipping brms fitting (using empirical covariance)...\n")
-    fit_brms <- NULL
-  }
+  cat("    Done.\n")
 
   # --------------------------------------------------------------------------
   # Step 4: Extract Posterior Samples
@@ -134,12 +129,8 @@ validate_model <- function(model_name, brm_formula, model_code) {
 
   cat("  Extracting posterior samples...\n")
 
-  if (model_code != "C") {
-    post_samples <- as_draws_df(fit_brms)
-    M <- nrow(post_samples)
-  } else {
-    M <- 1  # For Model C, we use a single empirical estimate
-  }
+  post_samples <- as_draws_df(fit_brms)
+  M <- nrow(post_samples)
 
   cat(sprintf("    M = %d posterior samples\n", M))
 
@@ -167,28 +158,57 @@ validate_model <- function(model_name, brm_formula, model_code) {
     })
 
   } else if (model_code == "C") {
-    # Model C: Use empirical covariance from data (simpler than extracting from brms)
-    # This is what we do in the actual simulation anyway
-    # Just use the same parameter estimate for all "samples" since we're validating
-    # the Hessian correction, not the parameter posterior
+    # Model C: Extract from multivariate brms model
+    # Check what parameter names are available
+    param_names <- names(post_samples)
 
-    mu_X <- mean(data_mis$X, na.rm = TRUE)
-    mu_M <- mean(data_mis$M, na.rm = TRUE)
-    mu_Y <- mean(data_mis$Y, na.rm = TRUE)
+    # Try to find correlation parameters with different naming conventions
+    has_rescor_double <- any(grepl("rescor__", param_names))
+    has_rescor_single <- any(grepl("rescor_[^_]", param_names))
 
-    Sigma_hat <- matrix(0, 3, 3)
-    Sigma_hat[1, 1] <- var(data_mis$X, na.rm = TRUE)
-    Sigma_hat[2, 2] <- var(data_mis$M, na.rm = TRUE)
-    Sigma_hat[3, 3] <- var(data_mis$Y, na.rm = TRUE)
-    Sigma_hat[1, 2] <- Sigma_hat[2, 1] <- cov(data_mis$X, data_mis$M, use = "pairwise.complete.obs")
-    Sigma_hat[1, 3] <- Sigma_hat[3, 1] <- cov(data_mis$X, data_mis$Y, use = "pairwise.complete.obs")
-    Sigma_hat[2, 3] <- Sigma_hat[3, 2] <- cov(data_mis$M, data_mis$Y, use = "pairwise.complete.obs")
+    theta_impute_samples <- lapply(1:M, function(i) {
+      # Extract means (intercepts in brms multivariate models are prefixed with b_)
+      mu_X <- post_samples[[paste0("b_X_Intercept")]][i]
+      mu_M <- post_samples[[paste0("b_M_Intercept")]][i]
+      mu_Y <- post_samples[[paste0("b_Y_Intercept")]][i]
 
-    # Create a single parameter estimate (not drawing from brms posterior)
-    theta_impute_fixed <- list(mu_X = mu_X, mu_M = mu_M, mu_Y = mu_Y, Sigma = Sigma_hat)
+      # Extract standard deviations
+      sigma_X <- post_samples$sigma_X[i]
+      sigma_M <- post_samples$sigma_M[i]
+      sigma_Y <- post_samples$sigma_Y[i]
 
-    # Replicate it M times for consistency with MC integration approach
-    theta_impute_samples <- lapply(1:M, function(i) theta_impute_fixed)
+      # Extract correlations (try different naming conventions)
+      if (has_rescor_double) {
+        # Double underscore format: rescor__X__M
+        cor_XM <- post_samples[[paste0("rescor__X__M")]][i]
+        cor_XY <- post_samples[[paste0("rescor__X__Y")]][i]
+        cor_MY <- post_samples[[paste0("rescor__M__Y")]][i]
+      } else if (has_rescor_single) {
+        # Single underscore format: rescor_X_M
+        cor_XM <- post_samples[[paste0("rescor_X_M")]][i]
+        cor_XY <- post_samples[[paste0("rescor_X_Y")]][i]
+        cor_MY <- post_samples[[paste0("rescor_M_Y")]][i]
+      } else {
+        # Fallback: compute from empirical data
+        cor_XM <- cov(data_mis$X, data_mis$M, use = "pairwise.complete.obs") /
+                  (sd(data_mis$X, na.rm = TRUE) * sd(data_mis$M, na.rm = TRUE))
+        cor_XY <- cov(data_mis$X, data_mis$Y, use = "pairwise.complete.obs") /
+                  (sd(data_mis$X, na.rm = TRUE) * sd(data_mis$Y, na.rm = TRUE))
+        cor_MY <- cov(data_mis$M, data_mis$Y, use = "pairwise.complete.obs") /
+                  (sd(data_mis$M, na.rm = TRUE) * sd(data_mis$Y, na.rm = TRUE))
+      }
+
+      # Construct covariance matrix
+      Sigma <- matrix(0, 3, 3)
+      Sigma[1, 1] <- sigma_X^2
+      Sigma[2, 2] <- sigma_M^2
+      Sigma[3, 3] <- sigma_Y^2
+      Sigma[1, 2] <- Sigma[2, 1] <- cor_XM * sigma_X * sigma_M
+      Sigma[1, 3] <- Sigma[3, 1] <- cor_XY * sigma_X * sigma_Y
+      Sigma[2, 3] <- Sigma[3, 2] <- cor_MY * sigma_M * sigma_Y
+
+      list(mu_X = mu_X, mu_M = mu_M, mu_Y = mu_Y, Sigma = Sigma)
+    })
   }
 
   # --------------------------------------------------------------------------
@@ -260,38 +280,21 @@ validate_model <- function(model_name, brm_formula, model_code) {
   # --------------------------------------------------------------------------
 
   diff <- abs(Q_MC - Q_analytical)
+  z_score <- diff / Q_MC_se
+  threshold <- 2 * Q_MC_se
 
-  if (model_code != "C") {
-    # For Models A and B: Compare to Monte Carlo integration
-    z_score <- diff / Q_MC_se
-    threshold <- 2 * Q_MC_se
+  cat("\n  === VALIDATION RESULT ===\n")
+  cat(sprintf("    |Q_MC - Q_analytical| = %.6f\n", diff))
+  cat(sprintf("    Monte Carlo SE = %.6f\n", Q_MC_se))
+  cat(sprintf("    z-score = %.2f\n", z_score))
+  cat(sprintf("    Threshold (2×SE) = %.6f\n", threshold))
 
-    cat("\n  === VALIDATION RESULT ===\n")
-    cat(sprintf("    |Q_MC - Q_analytical| = %.6f\n", diff))
-    cat(sprintf("    Monte Carlo SE = %.6f\n", Q_MC_se))
-    cat(sprintf("    z-score = %.2f\n", z_score))
-    cat(sprintf("    Threshold (2×SE) = %.6f\n", threshold))
-
-    if (diff < threshold) {
-      cat(sprintf("    MODEL %s: PASS ✓\n", model_name))
-      pass <- TRUE
-    } else {
-      cat(sprintf("    MODEL %s: FAIL ✗\n", model_name))
-      pass <- FALSE
-    }
-
-  } else {
-    # For Model C: Just verify Hessian correction was computed (no MC comparison)
-    z_score <- NA
-    threshold <- NA
-
-    cat("\n  === VALIDATION RESULT ===\n")
-    cat(sprintf("    Q_improper = %.6f\n", Q_MC))
-    cat(sprintf("    Q_proper = %.6f\n", Q_analytical))
-    cat(sprintf("    Hessian correction = %.6f\n", Q_results$hessian_correction))
-    cat(sprintf("    Numerical Hessian computed successfully\n"))
-    cat(sprintf("    MODEL %s: PASS ✓ (Hessian correction validated)\n", model_name))
+  if (diff < threshold) {
+    cat(sprintf("    MODEL %s: PASS ✓\n", model_name))
     pass <- TRUE
+  } else {
+    cat(sprintf("    MODEL %s: FAIL ✗\n", model_name))
+    pass <- FALSE
   }
 
   # Return results for summary table
