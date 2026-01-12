@@ -12,8 +12,10 @@
 #' @param cut1 Quantile for Y-only missing (default: 0.5)
 #' @param cut2 Quantile for M+Y missing (default: 0.75)
 #' @param true_params List with a, b, sigma2_M, sigma2_Y
+#' @param imputation_model One of "A", "B", "C" (default: "A")
 #' @return Named vector with results
-run_one_rep <- function(seed_data, seed_ampute, n, mechanism, gamma, cut1, cut2, true_params) {
+run_one_rep <- function(seed_data, seed_ampute, n, mechanism, gamma, cut1, cut2, true_params,
+                        imputation_model = "A") {
 
   # Generate data with data seed
   set.seed(seed_data)
@@ -61,8 +63,14 @@ run_one_rep <- function(seed_data, seed_ampute, n, mechanism, gamma, cut1, cut2,
   J <- diag(c(1, 1, theta_o[3], theta_o[4]))
   V_theta_orig <- J %*% V_theta %*% t(J)
 
+  # Estimate imputation model parameters
+  theta_impute <- estimate_imputation_params(data_mis, theta_o, model = imputation_model)
+
+  # Estimate posterior covariance for imputation parameters
+  V_theta_impute <- estimate_V_theta(data_mis, theta_impute, V_theta_orig, model = imputation_model)
+
   # Compute Q-function (both improper and proper)
-  Q_results <- compute_Q_analytical_proper(data_mis, theta_o, theta_o, V_theta_orig)
+  Q_results <- compute_Q_analytical_proper(data_mis, theta_o, theta_impute, V_theta_impute, model = imputation_model)
 
   # Complete-data log-likelihoods
   ell_com_at_com <- -fit_c$value
@@ -120,10 +128,12 @@ run_one_rep <- function(seed_data, seed_ampute, n, mechanism, gamma, cut1, cut2,
 #' @param cut1 Quantile for Y-only missing (default: 0.5)
 #' @param cut2 Quantile for M+Y missing (default: 0.75)
 #' @param true_params List with a, b, sigma2_M, sigma2_Y
+#' @param imputation_model One of "A", "B", "C" (default: "A")
 #' @param n_cores Number of cores for parallel processing (default: auto-detect)
 #' @return Data frame with results
 run_simulation <- function(seeds, n, mechanism = "MCAR", gamma = 0.5,
-                           cut1 = 0.5, cut2 = 0.75, true_params, n_cores = NULL) {
+                           cut1 = 0.5, cut2 = 0.75, true_params,
+                           imputation_model = "A", n_cores = NULL) {
 
   if (!requireNamespace("pbapply", quietly = TRUE)) {
     stop("Package 'pbapply' required. Install with: install.packages('pbapply')")
@@ -154,13 +164,19 @@ run_simulation <- function(seeds, n, mechanism = "MCAR", gamma = 0.5,
     "negloglik_observed",
     "compute_Q_analytical",
     "compute_Q_analytical_proper",
+    "estimate_imputation_params",
+    "estimate_V_theta",
+    "compute_hessian_correction_A",
+    "compute_hessian_correction_B",
+    "compute_hessian_correction_C",
     "seeds",
     "n",
     "mechanism",
     "gamma",
     "cut1",
     "cut2",
-    "true_params"
+    "true_params",
+    "imputation_model"
   ), envir = environment())
 
   # Run in parallel with progress bar
@@ -173,7 +189,8 @@ run_simulation <- function(seeds, n, mechanism = "MCAR", gamma = 0.5,
       gamma = gamma,
       cut1 = cut1,
       cut2 = cut2,
-      true_params = true_params
+      true_params = true_params,
+      imputation_model = imputation_model
     )
   }, cl = cl)
 
