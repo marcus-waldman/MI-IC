@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Marcus R. Waldman">
-<meta name="dcterms.date" content="2026-01-11">
+<meta name="dcterms.date" content="2026-03-17">
 <meta name="keywords" content="multiple imputation, information criteria, AIC, BIC, model selection, missing data, Q-function">
 
 <title>Information Criteria for Multiply-Imputed Data: A Principled Approach for Complete-Data Replication</title>
@@ -126,6 +126,7 @@ window.Quarto = {
   </ul></li>
   <li><a href="#corrected-ic-formulas" id="toc-corrected-ic-formulas" class="nav-link" data-scroll-target="#corrected-ic-formulas">3.4 Corrected IC Formulas</a></li>
   <li><a href="#comparison-to-pdio-and-aiccd" id="toc-comparison-to-pdio-and-aiccd" class="nav-link" data-scroll-target="#comparison-to-pdio-and-aiccd">3.5 Comparison to PDIO and AICcd</a></li>
+  <li><a href="#sec-three-term" id="toc-sec-three-term" class="nav-link" data-scroll-target="#sec-three-term">3.6 The Evaluation-Point Effect: A Three-Term Decomposition</a></li>
   </ul></li>
   <li><a href="#sec-simulation" id="toc-sec-simulation" class="nav-link" data-scroll-target="#sec-simulation">4. Simulation Studies</a>
   <ul class="collapse">
@@ -147,18 +148,30 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#a.1-proof-strategy" id="toc-a.1-proof-strategy" class="nav-link" data-scroll-target="#a.1-proof-strategy">A.1 Proof Strategy</a></li>
   <li><a href="#a.2-simplifying-the-nested-expectations" id="toc-a.2-simplifying-the-nested-expectations" class="nav-link" data-scroll-target="#a.2-simplifying-the-nested-expectations">A.2 Simplifying the Nested Expectations</a></li>
-  <li><a href="#a.3-taylor-expansion-of-the-expectation" id="toc-a.3-taylor-expansion-of-the-expectation" class="nav-link" data-scroll-target="#a.3-taylor-expansion-of-the-expectation">A.3 Taylor Expansion of the Expectation</a></li>
+  <li><a href="#a.3-second-order-taylor-expansion-of-the-expectation" id="toc-a.3-second-order-taylor-expansion-of-the-expectation" class="nav-link" data-scroll-target="#a.3-second-order-taylor-expansion-of-the-expectation">A.3 Second-Order Taylor Expansion of the Expectation</a></li>
   <li><a href="#a.4-applying-to-our-setting" id="toc-a.4-applying-to-our-setting" class="nav-link" data-scroll-target="#a.4-applying-to-our-setting">A.4 Applying to Our Setting</a></li>
   <li><a href="#a.5-expanding-the-log-likelihood" id="toc-a.5-expanding-the-log-likelihood" class="nav-link" data-scroll-target="#a.5-expanding-the-log-likelihood">A.5 Expanding the Log-Likelihood</a></li>
-  <li><a href="#a.6-the-key-cancellation-gibbs-inequality" id="toc-a.6-the-key-cancellation-gibbs-inequality" class="nav-link" data-scroll-target="#a.6-the-key-cancellation-gibbs-inequality">A.6 The Key Cancellation (Gibbs’ Inequality)</a></li>
+  <li><a href="#a.6-structure-of-the-three-contributions" id="toc-a.6-structure-of-the-three-contributions" class="nav-link" data-scroll-target="#a.6-structure-of-the-three-contributions">A.6 Structure of the Three Contributions</a></li>
   <li><a href="#a.7-combining-results" id="toc-a.7-combining-results" class="nav-link" data-scroll-target="#a.7-combining-results">A.7 Combining Results</a></li>
   <li><a href="#a.8-converting-to-trace-form" id="toc-a.8-converting-to-trace-form" class="nav-link" data-scroll-target="#a.8-converting-to-trace-form">A.8 Converting to Trace Form</a></li>
   <li><a href="#a.9-simplification-under-key-assumptions" id="toc-a.9-simplification-under-key-assumptions" class="nav-link" data-scroll-target="#a.9-simplification-under-key-assumptions">A.9 Simplification Under Key Assumptions</a></li>
   <li><a href="#a.10-summary" id="toc-a.10-summary" class="nav-link" data-scroll-target="#a.10-summary">A.10 Summary</a></li>
   </ul></li>
+  <li><a href="#appendix-b" id="toc-appendix-b" class="nav-link" data-scroll-target="#appendix-b">Appendix B: Three-Term Decomposition for Practical MI</a>
+  <ul class="collapse">
+  <li><a href="#b.1-setup" id="toc-b.1-setup" class="nav-link" data-scroll-target="#b.1-setup">B.1 Setup</a></li>
+  <li><a href="#b.2-taylor-expansion" id="toc-b.2-taylor-expansion" class="nav-link" data-scroll-target="#b.2-taylor-expansion">B.2 Taylor Expansion</a></li>
+  <li><a href="#b.3-using-the-mle-condition" id="toc-b.3-using-the-mle-condition" class="nav-link" data-scroll-target="#b.3-using-the-mle-condition">B.3 Using the MLE Condition</a></li>
+  <li><a href="#b.4-combining-linear-and-quadratic-terms" id="toc-b.4-combining-linear-and-quadratic-terms" class="nav-link" data-scroll-target="#b.4-combining-linear-and-quadratic-terms">B.4 Combining Linear and Quadratic Terms</a></li>
+  <li><a href="#b.5-identifying-the-score-contribution" id="toc-b.5-identifying-the-score-contribution" class="nav-link" data-scroll-target="#b.5-identifying-the-score-contribution">B.5 Identifying the Score Contribution</a></li>
+  <li><a href="#b.6-taking-expectations" id="toc-b.6-taking-expectations" class="nav-link" data-scroll-target="#b.6-taking-expectations">B.6 Taking Expectations</a></li>
+  <li><a href="#b.7-connecting-to-between-imputation-variance" id="toc-b.7-connecting-to-between-imputation-variance" class="nav-link" data-scroll-target="#b.7-connecting-to-between-imputation-variance">B.7 Connecting to Between-Imputation Variance</a></li>
+  <li><a href="#b.8-combined-practical-bias" id="toc-b.8-combined-practical-bias" class="nav-link" data-scroll-target="#b.8-combined-practical-bias">B.8 Combined Practical Bias</a></li>
+  <li><a href="#b.9-reconciliation-with-aiccd" id="toc-b.9-reconciliation-with-aiccd" class="nav-link" data-scroll-target="#b.9-reconciliation-with-aiccd">B.9 Reconciliation with AICcd</a></li>
+  </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="..\mi-ic-article.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="mi-ic-article.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -188,7 +201,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">January 11, 2026</p>
+      <p class="date">March 17, 2026</p>
     </div>
   </div>
   
@@ -278,8 +291,8 @@ window.Quarto = {
 <h3 class="anchored" data-anchor-id="pdio-and-aiccd">2.3.2 PDIO and AICcd</h3>
 <p>The first theoretically grounded correction for information criteria under incomplete data was derived by <span class="citation" data-cites="shimodaira1994">(<a href="#ref-shimodaira1994" role="doc-biblioref"><strong>shimodaira1994?</strong></a>)</span>, who proposed PDIO (predictive divergence for indirect observation models). Shimodaira showed that for models where observations are only available indirectly—including missing data, latent variable models, and mixture distributions—the AIC penalty should be <span class="math inline">\(\text{tr}(I_X I_Y^{-1})\)</span> rather than simply <span class="math inline">\(q\)</span>, where <span class="math inline">\(I_X\)</span> is the complete-data Fisher information and <span class="math inline">\(I_Y\)</span> is the observed-data Fisher information. Using the missing information principle, this can be rewritten as <span class="math inline">\(\text{tr}(I_X I_Y^{-1}) = q + \text{tr}(\text{RIV})\)</span>, yielding a penalty of <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span> on the AIC scale.</p>
 <p><span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">Cavanaugh and Shumway (<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">1998</a>)</span> independently derived an equivalent result, which they termed AICcd (AIC with correction for incomplete data):</p>
-<p><span class="math display">\[\text{AICcd} = -2\bar{Q} + 2q + 2\text{tr}(\text{RIV})\]</span></p>
-<p>where <span class="math inline">\(\bar{Q}\)</span> is the pooled log-likelihood across imputations. Both PDIO and AICcd target the expected predictive performance of the model at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>. The penalty term <span class="math inline">\(2\text{tr}(\text{RIV})\)</span> accounts for the additional degrees of freedom consumed by estimating parameters in the presence of missing data—it is double the trace of the missing information ratio because it corrects for both the bias from in-sample optimization and the information loss from missingness. Importantly, PDIO and AICcd answer a different question than the one posed in this article. While they target predictive performance given the observed-data structure, our MI-AIC targets replication of what the researcher would have computed had the data been complete. Both are theoretically valid for their respective inferential goals, but they optimize different objectives.</p>
+<p><span class="math display">\[\text{AICcd} = -2\bar{Q}_{\text{practical}} + 2q + 2\text{tr}(\text{RIV})\]</span></p>
+<p>where <span class="math inline">\(\bar{Q}_{\text{practical}} = M^{-1}\sum_m \ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\)</span> is the pooled log-likelihood across imputations, with each imputed dataset’s log-likelihood evaluated at its own MLE <span class="math inline">\(\hat{\theta}^{(m)}\)</span>. Both PDIO and AICcd target the expected predictive performance of the model at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>. The penalty term <span class="math inline">\(2\text{tr}(\text{RIV})\)</span> accounts for the additional degrees of freedom consumed by estimating parameters in the presence of missing data—it is double the trace of the missing information ratio because it corrects for both the bias from in-sample optimization and the information loss from missingness. Importantly, PDIO and AICcd answer a different question than the one posed in this article. While they target predictive performance given the observed-data structure, our MI-AIC targets replication of what the researcher would have computed had the data been complete. Both are theoretically valid for their respective inferential goals, but they optimize different objectives.</p>
 </section>
 <section id="other-methods" class="level3">
 <h3 class="anchored" data-anchor-id="other-methods">2.3.3 Other Methods</h3>
@@ -301,8 +314,9 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="what-mi-computes">3.2 What MI Computes</h2>
 <p>Multiple imputation provides <span class="math inline">\(M\)</span> completed datasets <span class="math inline">\(Y_1^{\text{com}}, \ldots, Y_M^{\text{com}}\)</span>, each consisting of the observed data <span class="math inline">\(Y^{\text{obs}}\)</span> combined with imputed values for the missing data. For each completed dataset, we can compute the complete-data log-likelihood <span class="math inline">\(\ell_{\text{com}}(\theta | Y_m^{\text{com}})\)</span> and fit the model to obtain parameter estimates. The Q-function, introduced in Section 2.2.2, is the average of the complete-data log-likelihoods across imputations:</p>
 <p><span class="math display">\[\bar{Q}(\theta) = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\theta | Y_m^{\text{com}})\]</span></p>
-<p>In practice, we evaluate this Q-function at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>—the parameter estimate obtained by pooling estimates across imputations using Rubin’s rules.</p>
+<p>In practice, we evaluate this Q-function at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>. In the MI framework, <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> is approximated by the Rubin’s rules pooled estimate <span class="math inline">\(\bar{\theta} = M^{-1}\sum_m \hat{\theta}^{(m)}\)</span>, which does not literally maximize <span class="math inline">\(\ell_{\text{obs}}\)</span>. The observed-data score <span class="math inline">\(\nabla\ell_{\text{obs}}(\bar{\theta})\)</span> is <span class="math inline">\(O_p(n^{-1/2})\)</span> rather than exactly zero, but this approximation is asymptotically valid since the residual is lower order than the leading terms in the bias decomposition. We use <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> and <span class="math inline">\(\bar{\theta}\)</span> interchangeably throughout, noting that the distinction is asymptotically negligible.</p>
 <p>To understand the challenge, consider the parameter landscape. Let <span class="math inline">\(\theta^*\)</span> denote the true parameter value. The complete-data MLE <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> is the value that would maximize the complete-data log-likelihood if we had no missing values: <span class="math inline">\(\hat{\theta}_{\text{com}} = \arg\max_\theta \ell_{\text{com}}(\theta | Y^{\text{com}})\)</span>. The observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> is the value obtained from the observed data (or equivalently, pooled across imputations), which maximizes <span class="math inline">\(\ell_{\text{obs}}(\theta | Y^{\text{obs}})\)</span>. Finally, let <span class="math inline">\(\tilde{\phi}\)</span> denote the imputation parameter—in Bayesianly proper MI, this is a draw from the posterior distribution <span class="math inline">\(p(\theta|Y^{\text{obs}})\)</span>. This posterior draw distinguishes proper MI from deterministic approaches: each imputation uses a different <span class="math inline">\(\tilde{\phi}^{(m)}\)</span> sampled from the posterior, rather than conditioning on a single point estimate as in the EM algorithm.</p>
+<p>We use <span class="math inline">\(\tilde{\phi}\)</span> to denote the <strong>imputation model</strong> parameter to distinguish it from <span class="math inline">\(\theta\)</span>, the <strong>analysis model</strong> parameter. This notational distinction is important because the imputation model and analysis model need not be the same—a situation known as <strong>uncongeniality</strong> <span class="citation" data-cites="mengMultipleimputationInferencesUncongenial1994">(<a href="#ref-mengMultipleimputationInferencesUncongenial1994" role="doc-biblioref"><strong>mengMultipleimputationInferencesUncongenial1994?</strong></a>)</span>. While our derivation assumes congeniality (both models target the same true parameter <span class="math inline">\(\theta^*\)</span>), the notation keeps the conceptual distinction clear: <span class="math inline">\(\tilde{\phi}\)</span> is drawn from the imputation model’s posterior <span class="math inline">\(p(\phi|Y^{\text{obs}})\)</span> to generate missing data, while <span class="math inline">\(\theta\)</span> parameterizes the model we fit to the completed datasets.</p>
 <p>The central question is: what is the bias when we use <span class="math inline">\(\bar{Q}(\hat{\theta}_{\text{obs}})\)</span> as a proxy for <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\)</span>? We want the log-likelihood at the complete-data MLE, but MI gives us the Q-function at the observed-data MLE. The bias decomposes into two terms, which we derive in the next section.</p>
 </section>
 <section id="the-bias-decomposition" class="level2">
@@ -319,12 +333,14 @@ window.Quarto = {
 <p><span class="math display">\[Q(\hat{\theta}_{\text{obs}}|\tilde{\phi}) - \ell_{\text{com}}(\hat{\theta}_{\text{obs}}) = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\]</span></p>
 <p>The bias arises entirely from imputing under <span class="math inline">\(\tilde{\phi}\)</span> versus the true conditional distribution under <span class="math inline">\(\theta^*\)</span>. Taking the full expectation and rearranging nested expectations:</p>
 <p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})]\right]\]</span></p>
-<p>where <span class="math inline">\(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\)</span>. Taylor expanding around <span class="math inline">\(\tilde{\phi} = \theta^*\)</span> and using properties of exponential family models, the difference becomes:</p>
-<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]</span></p>
-<p>where <span class="math inline">\(S_{\text{mis}|\text{obs}}(\theta^*)\)</span> is the score function. Expanding <span class="math inline">\(\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)</span> around <span class="math inline">\(\theta^*\)</span> and applying Gibbs’ inequality (the cross-entropy <span class="math inline">\(\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\)</span> is maximized at <span class="math inline">\(\theta = \theta^*\)</span>), the term <span class="math inline">\(\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\)</span> vanishes, leaving:</p>
-<p><span class="math display">\[\text{Term 1} \approx \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]</span></p>
+<p>where <span class="math inline">\(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\)</span>. Taylor expanding to second order around <span class="math inline">\(\tilde{\phi} = \theta^*\)</span> and using the score-function identity (under standard regularity conditions permitting differentiation under the integral), the difference becomes:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + \frac{1}{2}(\tilde{\phi} - \theta^*)^T H_{\phi\phi}(\tilde{\phi} - \theta^*)\]</span></p>
+<p>where <span class="math inline">\(S_{\text{mis}|\text{obs}}(\theta^*)\)</span> is the score function and <span class="math inline">\(H_{\phi\phi}\)</span> is the Hessian of <span class="math inline">\(\mathbb{E}_{\phi}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\)</span> with respect to <span class="math inline">\(\phi\)</span>, evaluated at <span class="math inline">\(\theta^*\)</span>. Expanding <span class="math inline">\(\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)</span> around <span class="math inline">\(\theta^*\)</span> decomposes the first-order term into:</p>
+<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] \approx \underbrace{\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]}_{\alpha} + \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]</span></p>
+<p>where <span class="math inline">\(\alpha = \text{Cov}_{\theta^*}(\ell_{\text{mis}|\text{obs}}(\theta^*),\, S_{\text{mis}|\text{obs}}(\theta^*))\)</span> equals the negative gradient of the conditional entropy and is <strong>not zero</strong> in general (e.g., for variance parameters in normal models). However, the <span class="math inline">\(O(1)\)</span> contributions of <span class="math inline">\(\alpha\)</span> and the second-order Hessian term <span class="math inline">\(H_{\phi\phi}\)</span> cancel at leading order, leaving <span class="math inline">\(O(n^{-1})\)</span> residual (see Appendix A.6 for details). The main contribution is therefore:</p>
+<p><span class="math display">\[\text{Term 1} \approx \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right] + O(n^{-1})\]</span></p>
 <p>Using the trace identity <span class="math inline">\(a^T B c = \text{tr}(B c a^T)\)</span> and recognizing that both estimators are asymptotically unbiased:</p>
-<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]</span></p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right) + O(n^{-1})\]</span></p>
 <p><strong>Simplification under key assumptions.</strong> To simplify <span class="math inline">\(\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\)</span>, we decompose the posterior draw as:</p>
 <p><span class="math display">\[\tilde{\phi} = \hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}\]</span></p>
 <p>where <span class="math inline">\(\Delta\tilde{\phi}\)</span> represents the deviation of the posterior draw from the observed-data MLE. This decomposition requires two assumptions:</p>
@@ -389,22 +405,23 @@ window.Quarto = {
 <section id="corrected-ic-formulas" class="level2">
 <h2 class="anchored" data-anchor-id="corrected-ic-formulas">3.4 Corrected IC Formulas</h2>
 <p>The bias of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> in the log-likelihood translates directly to a correction in the AIC penalty. Recall that AIC is defined as <span class="math inline">\(-2\ell(\hat{\theta}) + 2q\)</span>, where the factor of 2 converts the log-likelihood to the deviance scale. Since the Q-function <span class="math inline">\(\bar{Q}\)</span> has bias <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> for the complete-data log-likelihood, the deviance <span class="math inline">\(-2\bar{Q}\)</span> has bias <span class="math inline">\(-2 \times \frac{1}{2}\text{tr}(\text{RIV}) = -\text{tr}(\text{RIV})\)</span>. To correct this bias, we add <span class="math inline">\(\text{tr}(\text{RIV})\)</span> to the penalty:</p>
-<p><span class="math display">\[\text{MI-AIC} = -2\bar{Q} + 2q + \text{tr}(\text{RIV})\]</span></p>
-<p>This formula targets <span class="math inline">\(\text{AIC}_{\text{com}}\)</span>, the AIC that would have been computed with complete data.</p>
+<p><span class="math display">\[\text{MI-AIC} = -2\bar{Q}(\bar{\theta}) + 2q + \text{tr}(\text{RIV})\]</span></p>
+<p>where <span class="math inline">\(\bar{Q}(\bar{\theta}) = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\bar{\theta} | Y_m^{\text{com}})\)</span> is the Q-function evaluated at the pooled estimate <span class="math inline">\(\bar{\theta}\)</span>. This formula targets <span class="math inline">\(\text{AIC}_{\text{com}}\)</span>, the AIC that would have been computed with complete data.</p>
 <p>The same correction applies to BIC and other information criteria. BIC has penalty structure <span class="math inline">\(q\log(n)\)</span> instead of <span class="math inline">\(2q\)</span>, but the bias still affects the deviance term <span class="math inline">\(-2\ell\)</span>, not the penalty structure. Therefore:</p>
-<p><span class="math display">\[\text{MI-BIC} = -2\bar{Q} + q\log(n) + \text{tr}(\text{RIV})\]</span></p>
-<p>More generally, for any IC of the form <span class="math inline">\(-2\ell + f(q, n)\)</span>, the MI-corrected version is <span class="math inline">\(-2\bar{Q} + f(q,n) + \text{tr}(\text{RIV})\)</span>.</p>
-<p><strong>Practical computation.</strong> All quantities in these formulas are directly computable from standard MI output. The Q-function <span class="math inline">\(\bar{Q}\)</span> is the average log-likelihood across imputations, and the correction term uses Rubin’s within-imputation (<span class="math inline">\(W\)</span>) and between-imputation (<span class="math inline">\(B\)</span>) covariance matrices:</p>
+<p><span class="math display">\[\text{MI-BIC} = -2\bar{Q}(\bar{\theta}) + q\log(n) + \text{tr}(\text{RIV})\]</span></p>
+<p>More generally, for any IC of the form <span class="math inline">\(-2\ell + f(q, n)\)</span>, the MI-corrected version is <span class="math inline">\(-2\bar{Q}(\bar{\theta}) + f(q,n) + \text{tr}(\text{RIV})\)</span>.</p>
+<p><strong>Practical computation.</strong> All quantities in these formulas are directly computable from standard MI output. The correction term uses Rubin’s within-imputation (<span class="math inline">\(W\)</span>) and between-imputation (<span class="math inline">\(B\)</span>) covariance matrices:</p>
 <p><span class="math display">\[\text{tr}(\text{RIV}) = \text{tr}\left((1 + M^{-1})W^{-1}B\right)\]</span></p>
-<p>This computation requires only the covariance matrices that MI software routinely provides, making the correction straightforward to implement in practice.</p>
+<p>A critical implementation detail: MI-AIC requires that each imputed dataset’s log-likelihood be evaluated at the <em>pooled</em> estimate <span class="math inline">\(\bar{\theta}\)</span>, not at the per-imputation MLE <span class="math inline">\(\hat{\theta}^{(m)}\)</span>. That is, the analyst must re-evaluate <span class="math inline">\(\ell_{\text{com}}(\bar{\theta} | Y_m^{\text{com}})\)</span> for each <span class="math inline">\(m\)</span>, rather than using the log-likelihood values <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\)</span> that standard MI software reports after fitting each imputed dataset. If instead one uses the per-imputation log-likelihoods <span class="math inline">\(\bar{Q}_{\text{practical}} = M^{-1}\sum_m \ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\)</span>, an additional bias of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> is introduced, and the appropriate penalty becomes <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span>—precisely AICcd (see Section 3.6 for details). The choice of evaluation strategy thus determines which penalty is appropriate.</p>
 <p><strong>Regularity conditions.</strong> These formulas assume standard asymptotic regularity: the model is correctly specified, the sample size <span class="math inline">\(n\)</span> is large enough for Fisher information to be well-defined, and the number of imputations <span class="math inline">\(M\)</span> is sufficient to make Monte Carlo error negligible. The within-imputation covariance matrix <span class="math inline">\(W\)</span> must be invertible; in high-dimensional settings where <span class="math inline">\(W\)</span> is near-singular, regularization (e.g., ridge-type adjustments) may be necessary before computing <span class="math inline">\(W^{-1}B\)</span>.</p>
 </section>
 <section id="comparison-to-pdio-and-aiccd" class="level2">
 <h2 class="anchored" data-anchor-id="comparison-to-pdio-and-aiccd">3.5 Comparison to PDIO and AICcd</h2>
 <p>PDIO <span class="citation" data-cites="shimodaira1994">(<a href="#ref-shimodaira1994" role="doc-biblioref"><strong>shimodaira1994?</strong></a>)</span> and AICcd <span class="citation" data-cites="cavanaughAkaikeInformationCriterion1998">(<a href="#ref-cavanaughAkaikeInformationCriterion1998" role="doc-biblioref">Cavanaugh and Shumway 1998</a>)</span> represent earlier theoretically grounded approaches to IC under missing data. Both arrive at the same penalty:</p>
-<p><span class="math display">\[\text{PDIO} = \text{AICcd} = -2\bar{Q} + 2q + 2\text{tr}(\text{RIV})\]</span></p>
+<p><span class="math display">\[\text{PDIO} = \text{AICcd} = -2\bar{Q}_{\text{practical}} + 2q + 2\text{tr}(\text{RIV})\]</span></p>
 <p>The penalty is <span class="math inline">\(2\text{tr}(\text{RIV})\)</span>—twice our correction—because these methods target a different inferential goal. While we target <span class="math inline">\(\text{AIC}_{\text{com}}\)</span> (complete-data replication), PDIO and AICcd target predictive performance evaluated at the observed-data MLE <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>.</p>
 <p>The difference can be understood through our bias decomposition. Shimodaira’s derivation shows that the total penalty for indirect observation models should be <span class="math inline">\(\text{tr}(I_X I_Y^{-1}) = q + \text{tr}(\text{RIV})\)</span>, which on the AIC scale (multiplied by 2) gives <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span>. This corresponds to our Term 1 plus the base penalty <span class="math inline">\(q\)</span>. Our contribution is to further decompose the bias when targeting <span class="math inline">\(\hat{\theta}_{\text{com}}\)</span> rather than <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>: Term 2 (estimation mismatch) contributes <span class="math inline">\(-\frac{1}{2}\text{tr}(\text{RIV})\)</span>, partially offsetting Term 1 and yielding a net correction of only <span class="math inline">\(\text{tr}(\text{RIV})\)</span>. Both derivations are correct for their respective targets.</p>
+<p>However, the difference between MI-AIC and AICcd is not solely a matter of inferential goals. As we show in Section 3.6, there is also an <em>evaluation-point</em> distinction: MI-AIC requires evaluating the Q-function at the pooled estimate <span class="math inline">\(\bar{\theta}\)</span>, whereas standard MI practice (and AICcd) evaluates each imputed dataset’s log-likelihood at the per-imputation MLE <span class="math inline">\(\hat{\theta}^{(m)}\)</span>. This implementation difference accounts for an additional <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> in bias, and together with the inferential-target distinction, explains the full factor-of-2 difference in penalties.</p>
 <p>Table 1 summarizes the comparison across methods:</p>
 <table class="caption-top table">
 <colgroup>
@@ -416,40 +433,89 @@ window.Quarto = {
 <thead>
 <tr class="header">
 <th>Method</th>
+<th><span class="math inline">\(\bar{Q}\)</span> Evaluation</th>
 <th>Penalty</th>
 <th>Target Estimand</th>
-<th>Use When…</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Complete-data AIC</td>
+<td>—</td>
 <td><span class="math inline">\(2q\)</span></td>
 <td>Prediction (complete data)</td>
-<td>No missing data</td>
 </tr>
 <tr class="even">
 <td>MI-AIC (ours)</td>
+<td>At pooled <span class="math inline">\(\bar{\theta}\)</span></td>
 <td><span class="math inline">\(2q + \text{tr}(\text{RIV})\)</span></td>
 <td>Complete-data replication</td>
-<td>Asking “what model would I select with complete data?”</td>
 </tr>
 <tr class="odd">
 <td>PDIO/AICcd</td>
+<td>At per-imputation <span class="math inline">\(\hat{\theta}^{(m)}\)</span></td>
 <td><span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span></td>
 <td>Prediction at <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span></td>
-<td>Asking “what model predicts best given observed structure?”</td>
 </tr>
 <tr class="even">
 <td>Ad hoc average</td>
+<td>At per-imputation <span class="math inline">\(\hat{\theta}^{(m)}\)</span></td>
 <td><span class="math inline">\(2q\)</span> (incorrect)</td>
-<td>Unclear</td>
-<td>Should not be used—lacks theory</td>
+<td>Unclear—lacks theory</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Which method to use?</strong> The choice depends on the research question. If the goal is to replicate the model selection decision one would make with complete data—the most common scenario in applied structural equation modeling and psychological research—use MI-AIC or MI-BIC. If the goal is to optimize predictive performance conditional on the observed-data structure, use PDIO or AICcd. The ad hoc approach of simply averaging IC across imputations lacks theoretical justification and should be avoided, as it conflates within- and between-imputation variability without a clear target estimand.</p>
+<p><strong>Which method to use?</strong> The choice depends on the research question and implementation. If the goal is to replicate the model selection decision one would make with complete data—the most common scenario in applied structural equation modeling and psychological research—use MI-AIC or MI-BIC, and re-evaluate each imputed dataset’s log-likelihood at the pooled <span class="math inline">\(\bar{\theta}\)</span>. If the goal is to optimize predictive performance conditional on the observed-data structure, or if re-evaluating at <span class="math inline">\(\bar{\theta}\)</span> is impractical, use PDIO or AICcd with the per-imputation log-likelihoods. The ad hoc approach of simply averaging IC across imputations lacks theoretical justification and should be avoided.</p>
 <p>All three corrected methods (MI-AIC, PDIO, and AICcd) are asymptotically valid and computationally straightforward, requiring only standard MI output. The key is choosing the method that matches the inferential question of interest.</p>
+</section>
+<section id="sec-three-term" class="level2">
+<h2 class="anchored" data-anchor-id="sec-three-term">3.6 The Evaluation-Point Effect: A Three-Term Decomposition</h2>
+<p>The derivation in Section 3.3 assumes that the Q-function is evaluated at a single pooled estimate <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>. In standard MI practice, however, analysts typically evaluate each imputed dataset’s log-likelihood at its own MLE <span class="math inline">\(\hat{\theta}^{(m)}\)</span> and then average:</p>
+<p><span class="math display">\[\bar{Q}_{\text{practical}} = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\]</span></p>
+<p>This differs from the theoretical Q-function <span class="math inline">\(\bar{Q}(\bar{\theta}) = M^{-1}\sum_m \ell_{\text{com}}(\bar{\theta} | Y_m^{\text{com}})\)</span> because each <span class="math inline">\(\hat{\theta}^{(m)}\)</span> is closer to the maximum of its own <span class="math inline">\(\ell_{\text{com}}(\cdot | Y_m^{\text{com}})\)</span> than the pooled <span class="math inline">\(\bar{\theta}\)</span> is. This introduces additional upward bias.</p>
+<p><strong>Three-term decomposition.</strong> The practical bias—from <span class="math inline">\(\bar{Q}_{\text{practical}}\)</span> to <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\)</span>—decomposes as:</p>
+<p><span class="math display">\[\text{Bias}_{\text{practical}} = \underbrace{\mathbb{E}[\bar{Q}_{\text{practical}}] - \mathbb{E}[\bar{Q}(\hat{\theta}_{\text{obs}})]}_{\text{Term 0}} + \underbrace{\mathbb{E}[\bar{Q}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})]}_{\text{Term 1}} + \underbrace{\mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}[\ell_{\text{com}}(\hat{\theta}_{\text{com}})]}_{\text{Term 2}}\]</span></p>
+<p>Terms 1 and 2 were derived in Sections 3.3.1 and 3.3.2 (yielding <span class="math inline">\(\text{tr}(\text{RIV})\)</span> and <span class="math inline">\(-\frac{1}{2}\text{tr}(\text{RIV})\)</span>, respectively). Term 0 captures the additional bias from evaluating at varying per-imputation MLEs rather than at a common pooled estimate.</p>
+<p><strong>Derivation sketch for Term 0.</strong> Taylor expanding <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\)</span> around <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> and using the MLE condition <span class="math inline">\(\nabla\ell^{(m)}(\hat{\theta}^{(m)}) = 0\)</span> yields:</p>
+<p><span class="math display">\[\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{\text{obs}}) \approx \frac{1}{2}\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})^T W \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})\]</span></p>
+<p>where <span class="math inline">\(W \approx \mathcal{I}_{\text{com}}^{-1}\)</span> is the within-imputation covariance. The key insight is that the complete-data score at <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> is driven entirely by the missing-data contribution: <span class="math inline">\(\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}}) \approx \nabla\ell^{(m)}_{\text{mis}}(\hat{\theta}_{\text{obs}})\)</span>, because the observed-data score <span class="math inline">\(\nabla\ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) \approx 0\)</span> at the MLE. Averaging over imputations and connecting the variance of the missing-data scores to the between-imputation variance <span class="math inline">\(B\)</span> via <span class="math inline">\(B \approx W \cdot \text{Var}(S_{\text{mis}}) \cdot W\)</span> gives:</p>
+<p><span class="math display">\[\text{Term 0} = \frac{1}{2}\text{tr}(\text{RIV})\]</span></p>
+<p>The full derivation is given in Appendix B.</p>
+<p><strong>Combined practical bias.</strong> Adding all three terms:</p>
+<p><span class="math display">\[\text{Bias}_{\text{practical}} = \frac{1}{2}\text{tr}(\text{RIV}) + \text{tr}(\text{RIV}) - \frac{1}{2}\text{tr}(\text{RIV}) = \text{tr}(\text{RIV})\]</span></p>
+<p>This is twice the theoretical bias, and explains why AICcd’s penalty of <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span> is correct when the standard practical implementation is used. The reconciliation is summarized in Table 2.</p>
+<table class="caption-top table">
+<caption>Table 2: Reconciliation of MI-AIC and AICcd through the evaluation-point effect.</caption>
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Implementation</th>
+<th><span class="math inline">\(\bar{Q}\)</span> Evaluation</th>
+<th>Bias for <span class="math inline">\(\ell_{\text{com}}(\hat{\theta}_{\text{com}})\)</span></th>
+<th>AIC Penalty</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Theoretical (MI-AIC)</td>
+<td>At pooled <span class="math inline">\(\bar{\theta}\)</span></td>
+<td><span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span></td>
+<td><span class="math inline">\(2q + \text{tr}(\text{RIV})\)</span></td>
+</tr>
+<tr class="even">
+<td>Practical (AICcd)</td>
+<td>At per-imputation <span class="math inline">\(\hat{\theta}^{(m)}\)</span></td>
+<td><span class="math inline">\(\text{tr}(\text{RIV})\)</span></td>
+<td><span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Practical implication.</strong> Both MI-AIC and AICcd target <span class="math inline">\(\text{AIC}_{\text{com}}\)</span> when their respective Q-function computation is used correctly. The choice reduces to an implementation decision: analysts who re-evaluate all imputed datasets’ log-likelihoods at the pooled <span class="math inline">\(\bar{\theta}\)</span> should use MI-AIC’s penalty <span class="math inline">\(2q + \text{tr}(\text{RIV})\)</span>; analysts who use the per-imputation log-likelihood values that standard MI software reports should use AICcd’s penalty <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span>.</p>
 <hr>
 </section>
 </section>
@@ -595,23 +661,24 @@ window.Quarto = {
 <p>where we use the shorthand <span class="math inline">\(\mathbb{E}_{\theta}[\cdot] = \mathbb{E}_{Y^{\text{mis}}|Y^{\text{obs}},\theta}[\cdot]\)</span>.</p>
 <p>This is the difference in expected log-likelihood when imputing under <span class="math inline">\(\tilde{\phi}\)</span> versus under the true <span class="math inline">\(\theta^*\)</span>.</p>
 </section>
-<section id="a.3-taylor-expansion-of-the-expectation" class="level2">
-<h2 class="anchored" data-anchor-id="a.3-taylor-expansion-of-the-expectation">A.3 Taylor Expansion of the Expectation</h2>
-<p>We expand <span class="math inline">\(\mathbb{E}_{\tilde{\phi}}[g]\)</span> around <span class="math inline">\(\tilde{\phi} = \theta^*\)</span> for any function <span class="math inline">\(g(Y^{\text{mis}})\)</span>:</p>
-<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\phi} - \theta^*)^T \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*}\]</span></p>
-<p>For exponential family models, this derivative can be expressed using the score function. The score of the conditional distribution is:</p>
+<section id="a.3-second-order-taylor-expansion-of-the-expectation" class="level2">
+<h2 class="anchored" data-anchor-id="a.3-second-order-taylor-expansion-of-the-expectation">A.3 Second-Order Taylor Expansion of the Expectation</h2>
+<p>We expand <span class="math inline">\(\mathbb{E}_{\tilde{\phi}}[g]\)</span> to <strong>second order</strong> around <span class="math inline">\(\tilde{\phi} = \theta^*\)</span> for any function <span class="math inline">\(g(Y^{\text{mis}})\)</span>:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\phi} - \theta^*)^T \left.\frac{\partial}{\partial \phi}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*} + \frac{1}{2}(\tilde{\phi} - \theta^*)^T \left.\frac{\partial^2}{\partial \phi \partial \phi^T}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*} (\tilde{\phi} - \theta^*)\]</span></p>
+<p>The score of the conditional distribution is:</p>
 <p><span class="math display">\[S_{\text{mis}|\text{obs}}(\theta) = \frac{\partial}{\partial \theta} \ell_{\text{mis}|\text{obs}}(\theta) = \frac{\partial}{\partial \theta} \log p(Y^{\text{mis}}|Y^{\text{obs}}, \theta)\]</span></p>
 <p>A fundamental property of score functions is that the expected score at the true parameter equals zero:</p>
 <p><span class="math display">\[\mathbb{E}_{\theta^*}[S_{\text{mis}|\text{obs}}(\theta^*)] = 0\]</span></p>
 <p>This follows from the fact that <span class="math inline">\(\int p(Y^{\text{mis}}|Y^{\text{obs}}, \theta^*) \, dY^{\text{mis}} = 1\)</span>, and differentiating both sides with respect to <span class="math inline">\(\theta\)</span> gives zero.</p>
-<p>For exponential family models, the derivative of the expectation equals:</p>
-<p><span class="math display">\[\left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[g]\right|_{\theta=\theta^*} = \mathbb{E}_{\theta^*}[g \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]</span></p>
-<p>This is the covariance between <span class="math inline">\(g\)</span> and the score function (since <span class="math inline">\(\mathbb{E}[S] = 0\)</span>).</p>
+<p>Under standard regularity conditions permitting differentiation under the integral sign, the first-order derivative satisfies the score-function identity:</p>
+<p><span class="math display">\[\left.\frac{\partial}{\partial \phi_k}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*} = \mathbb{E}_{\theta^*}[g \cdot S_{\text{mis}|\text{obs},k}(\theta^*)]\]</span></p>
+<p>This is the covariance between <span class="math inline">\(g\)</span> and the score function (since <span class="math inline">\(\mathbb{E}[S] = 0\)</span>). We denote the second-order Hessian as <span class="math inline">\(H_{\phi\phi}^{g} = \left.\frac{\partial^2}{\partial \phi \partial \phi^T}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*}\)</span>.</p>
 </section>
 <section id="a.4-applying-to-our-setting" class="level2">
 <h2 class="anchored" data-anchor-id="a.4-applying-to-our-setting">A.4 Applying to Our Setting</h2>
 <p>With <span class="math inline">\(g = \ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})\)</span>:</p>
-<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)]\]</span></p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + \frac{1}{2}(\tilde{\phi} - \theta^*)^T H_{\phi\phi}(\tilde{\phi} - \theta^*)\]</span></p>
+<p>where <span class="math inline">\(H_{\phi\phi} = \left.\frac{\partial^2}{\partial \phi \partial \phi^T}\mathbb{E}_{\phi}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\right|_{\phi=\theta^*}\)</span> (replacing <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> with <span class="math inline">\(\theta^*\)</span> in the Hessian introduces only <span class="math inline">\(O(n^{-3/2})\)</span> error).</p>
 </section>
 <section id="a.5-expanding-the-log-likelihood" class="level2">
 <h2 class="anchored" data-anchor-id="a.5-expanding-the-log-likelihood">A.5 Expanding the Log-Likelihood</h2>
@@ -624,33 +691,28 @@ window.Quarto = {
 <p>Therefore:</p>
 <p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] \approx \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] + \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]</span></p>
 </section>
-<section id="a.6-the-key-cancellation-gibbs-inequality" class="level2">
-<h2 class="anchored" data-anchor-id="a.6-the-key-cancellation-gibbs-inequality">A.6 The Key Cancellation (Gibbs’ Inequality)</h2>
-<p>We now show that <span class="math inline">\(\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = 0\)</span>.</p>
-<p>This term can be recognized as the derivative of a cross-entropy:</p>
-<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = \left.\frac{\partial}{\partial \theta}\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\right|_{\theta=\theta^*}\]</span></p>
-<p>The function <span class="math inline">\(\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)]\)</span> is a cross-entropy:</p>
-<p><span class="math display">\[\mathbb{E}_{\theta}[\ell_{\text{mis}|\text{obs}}(\theta^*)] = \int p(Y^{\text{mis}}|Y^{\text{obs}},\theta) \log p(Y^{\text{mis}}|Y^{\text{obs}},\theta^*) \, dY^{\text{mis}}\]</span></p>
-<p>By <strong>Gibbs’ inequality</strong> (equivalently, the non-negativity of KL-divergence), this cross-entropy is maximized when <span class="math inline">\(\theta = \theta^*\)</span>. This is because:</p>
-<p><span class="math display">\[D_{KL}(p_{\theta^*} \| p_{\theta^*}) = 0 \leq D_{KL}(p_\theta \| p_{\theta^*}) \quad \text{for all } \theta\]</span></p>
-<p>where <span class="math inline">\(D_{KL}(p \| q) = \mathbb{E}_p[\log p - \log q] \geq 0\)</span> with equality iff <span class="math inline">\(p = q\)</span>.</p>
-<p>At the maximum <span class="math inline">\(\theta = \theta^*\)</span>, the derivative with respect to <span class="math inline">\(\theta\)</span> must vanish:</p>
-<p><span class="math display">\[\mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = 0\]</span></p>
+<section id="a.6-structure-of-the-three-contributions" class="level2">
+<h2 class="anchored" data-anchor-id="a.6-structure-of-the-three-contributions">A.6 Structure of the Three Contributions</h2>
+<p>Combining A.4 and A.5, Term 1 decomposes into three pieces:</p>
+<p><span class="math display">\[\text{Term 1} = \underbrace{\mathbb{E}[(\tilde{\phi} - \theta^*)^T \alpha]}_{\text{(A)}} + \underbrace{\mathbb{E}[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}} - \theta^*)]}_{\text{(B)}} + \underbrace{\frac{1}{2}\mathbb{E}[(\tilde{\phi} - \theta^*)^T H_{\phi\phi}(\tilde{\phi} - \theta^*)]}_{\text{(C)}}\]</span></p>
+<p>where <span class="math inline">\(\alpha = \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\theta^*) \cdot S_{\text{mis}|\text{obs}}(\theta^*)] = \text{Cov}_{\theta^*}(\ell_{\text{mis}|\text{obs}}(\theta^*),\, S_{\text{mis}|\text{obs}}(\theta^*))\)</span>.</p>
+<p><strong>The quantity <span class="math inline">\(\alpha\)</span> is not zero in general.</strong> Since <span class="math inline">\(\mathbb{E}[S] = 0\)</span>, <span class="math inline">\(\alpha\)</span> equals the covariance between the log-density and its score under the true conditional distribution. By the score-function identity, <span class="math inline">\(\alpha = -\mathcal{E}'(\theta^*)\)</span>, the negative gradient of the conditional entropy <span class="math inline">\(\mathcal{E}(\theta) = -\mathbb{E}_{p_\theta}[\log p_\theta]\)</span>. For example, in a normal model with <span class="math inline">\(n_{\text{mis}}\)</span> missing observations, <span class="math inline">\(\alpha_{\sigma^2} = -n_{\text{mis}}/(2\sigma^2)\)</span>.</p>
+<p>However, the <span class="math inline">\(O(1)\)</span> contributions of pieces (A) and (C) cancel at leading order, leaving at most <span class="math inline">\(O(n^{-1})\)</span> residual. This cancellation can be verified in specific models: for <span class="math inline">\(N(\mu, \sigma^2)\)</span>, (A) <span class="math inline">\(= n_{\text{mis}}/(2n_{\text{obs}})\)</span> and (C) <span class="math inline">\(= -n_{\text{mis}}/(2n_{\text{obs}})\)</span>, cancelling exactly; for <span class="math inline">\(\text{Exp}(\lambda)\)</span>, (A) <span class="math inline">\(= n_{\text{mis}}/(n_{\text{obs}}-1)\)</span> and (C) <span class="math inline">\(= -n_{\text{mis}}/n_{\text{obs}}\)</span>, leaving <span class="math inline">\(O(n^{-1})\)</span> residual. In both cases, direct (non-Taylor) computation of Term 1 confirms the result.</p>
 </section>
 <section id="a.7-combining-results" class="level2">
 <h2 class="anchored" data-anchor-id="a.7-combining-results">A.7 Combining Results</h2>
-<p>From Sections A.4–A.6:</p>
-<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\]</span></p>
+<p>From Sections A.4–A.6, piece (B) dominates at leading order:</p>
+<p><span class="math display">\[\mathbb{E}_{\tilde{\phi}}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] - \mathbb{E}_{\theta^*}[\ell_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}})] \approx (\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*) + O_p(n^{-1})\]</span></p>
 <p>Taking the expectation over <span class="math inline">\(Y^{\text{obs}}\)</span>:</p>
-<p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right]\]</span></p>
+<p><span class="math display">\[\text{Term 1} = \mathbb{E}_{Y^{\text{obs}}}\left[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{\text{mis}|\text{obs}}(\theta^*)(\hat{\theta}_{\text{obs}} - \theta^*)\right] + O(n^{-1})\]</span></p>
 </section>
 <section id="a.8-converting-to-trace-form" class="level2">
 <h2 class="anchored" data-anchor-id="a.8-converting-to-trace-form">A.8 Converting to Trace Form</h2>
 <p>Using the trace identity <span class="math inline">\(a^T B c = \text{tr}(B c a^T)\)</span>:</p>
 <p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathbb{E}[(\hat{\theta}_{\text{obs}} - \theta^*)(\tilde{\phi} - \theta^*)^T]\right)\]</span></p>
 <p>Since both <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> and <span class="math inline">\(\tilde{\phi}\)</span> are asymptotically unbiased for <span class="math inline">\(\theta^*\)</span>, the expectation equals the covariance:</p>
-<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right)\]</span></p>
-<p>This is our main result in general form.</p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}})\right) + O(n^{-1})\]</span></p>
+<p>This is our main result in general form, valid to leading asymptotic order.</p>
 </section>
 <section id="a.9-simplification-under-key-assumptions" class="level2">
 <h2 class="anchored" data-anchor-id="a.9-simplification-under-key-assumptions">A.9 Simplification Under Key Assumptions</h2>
@@ -662,12 +724,86 @@ window.Quarto = {
 <p>Under these assumptions:</p>
 <p><span class="math display">\[\text{Cov}(\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Cov}(\hat{\theta}_{\text{obs}} + \Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) + \text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{\text{obs}}) = \text{Var}(\hat{\theta}_{\text{obs}}) = \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\]</span></p>
 <p>Therefore:</p>
-<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\right) = \text{tr}(\text{RIV})\]</span></p>
+<p><span class="math display">\[\text{Term 1} = \text{tr}\left(\mathcal{I}_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}_{\text{obs}}(\theta^*)^{-1}\right) + O(n^{-1}) = \text{tr}(\text{RIV}) + O(n^{-1})\]</span></p>
 <p>where the last equality uses the definition <span class="math inline">\(\text{RIV} = \mathcal{I}_{\text{mis}|\text{obs}} \cdot \mathcal{I}_{\text{obs}}^{-1}\)</span>.</p>
 </section>
 <section id="a.10-summary" class="level2">
 <h2 class="anchored" data-anchor-id="a.10-summary">A.10 Summary</h2>
-<p>The imputation bias equals <span class="math inline">\(\text{tr}(\text{RIV})\)</span> under two assumptions: (1) the imputation model is congenial with the analysis model, and (2) the deviation of the posterior draw from the MLE is uncorrelated with the MLE. These assumptions are satisfied by standard Bayesianly proper multiple imputation procedures. Importantly, the result holds regardless of the variance of the posterior draws—wider posterior variance (as in “fully inclusive” imputation models) does not affect the bias correction.</p>
+<p>To leading asymptotic order, the imputation bias equals <span class="math inline">\(\text{tr}(\text{RIV})\)</span> under two assumptions: (1) the imputation model is congenial with the analysis model, and (2) the deviation of the posterior draw from the MLE is uncorrelated with the MLE. These assumptions are satisfied by standard Bayesianly proper multiple imputation procedures. Importantly, the result holds regardless of the variance of the posterior draws—wider posterior variance (as in “fully inclusive” imputation models) does not affect the bias correction. The <span class="math inline">\(O(n^{-1})\)</span> correction arises from the covariance between the log-density and its score (the conditional entropy gradient) and the curvature of the conditional cross-entropy; these contributions cancel at leading order but leave a residual that vanishes as <span class="math inline">\(n \to \infty\)</span>.</p>
+<hr>
+</section>
+</section>
+<section id="appendix-b" class="level1">
+<h1>Appendix B: Three-Term Decomposition for Practical MI</h1>
+<p>This appendix provides the full derivation of Term 0 (evaluation-point variability) sketched in Section 3.6. We show that evaluating each imputed dataset’s log-likelihood at its own MLE <span class="math inline">\(\hat{\theta}^{(m)}\)</span> rather than at the pooled estimate <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> introduces an additional bias of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span>.</p>
+<section id="b.1-setup" class="level2">
+<h2 class="anchored" data-anchor-id="b.1-setup">B.1 Setup</h2>
+<p>In standard MI practice, the averaged log-likelihood is:</p>
+<p><span class="math display">\[\bar{Q}_{\text{practical}} = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\]</span></p>
+<p>while the theoretical Q-function evaluates all imputations at a common point:</p>
+<p><span class="math display">\[\bar{Q}(\hat{\theta}_{\text{obs}}) = M^{-1}\sum_{m=1}^M \ell_{\text{com}}(\hat{\theta}_{\text{obs}} | Y_m^{\text{com}})\]</span></p>
+<p>Term 0 is the expected difference:</p>
+<p><span class="math display">\[\text{Term 0} = \mathbb{E}\left[M^{-1}\sum_{m=1}^M \left(\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{\text{obs}})\right)\right]\]</span></p>
+</section>
+<section id="b.2-taylor-expansion" class="level2">
+<h2 class="anchored" data-anchor-id="b.2-taylor-expansion">B.2 Taylor Expansion</h2>
+<p>For each imputation <span class="math inline">\(m\)</span>, Taylor expand <span class="math inline">\(\ell^{(m)}(\theta)\)</span> around <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> to second order:</p>
+<p><span class="math display">\[\ell^{(m)}(\hat{\theta}^{(m)}) \approx \ell^{(m)}(\hat{\theta}_{\text{obs}}) + \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})^T(\hat{\theta}^{(m)} - \hat{\theta}_{\text{obs}}) + \frac{1}{2}(\hat{\theta}^{(m)} - \hat{\theta}_{\text{obs}})^T H^{(m)}(\hat{\theta}^{(m)} - \hat{\theta}_{\text{obs}})\]</span></p>
+<p>where <span class="math inline">\(H^{(m)} = \nabla^2\ell^{(m)}(\hat{\theta}_{\text{obs}})\)</span> is the Hessian.</p>
+</section>
+<section id="b.3-using-the-mle-condition" class="level2">
+<h2 class="anchored" data-anchor-id="b.3-using-the-mle-condition">B.3 Using the MLE Condition</h2>
+<p>Since <span class="math inline">\(\hat{\theta}^{(m)}\)</span> maximizes <span class="math inline">\(\ell^{(m)}\)</span>, we have <span class="math inline">\(\nabla\ell^{(m)}(\hat{\theta}^{(m)}) = 0\)</span>. Expanding the score around <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span>:</p>
+<p><span class="math display">\[0 \approx \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}}) + H^{(m)}(\hat{\theta}^{(m)} - \hat{\theta}_{\text{obs}})\]</span></p>
+<p>Solving: <span class="math inline">\(\hat{\theta}^{(m)} - \hat{\theta}_{\text{obs}} \approx -[H^{(m)}]^{-1}\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}}) = W \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})\)</span>, where <span class="math inline">\(W = [-H^{(m)}]^{-1} \approx \mathcal{I}_{\text{com}}^{-1}\)</span> is the within-imputation covariance.</p>
+</section>
+<section id="b.4-combining-linear-and-quadratic-terms" class="level2">
+<h2 class="anchored" data-anchor-id="b.4-combining-linear-and-quadratic-terms">B.4 Combining Linear and Quadratic Terms</h2>
+<p>Substituting into the Taylor expansion:</p>
+<ul>
+<li>Linear term: <span class="math inline">\(\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})^T W \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})\)</span></li>
+<li>Quadratic term: <span class="math inline">\(-\frac{1}{2}\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})^T W \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})\)</span></li>
+</ul>
+<p>These partially cancel, leaving:</p>
+<p><span class="math display">\[\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{\text{obs}}) \approx \frac{1}{2}\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})^T W \nabla\ell^{(m)}(\hat{\theta}_{\text{obs}})\]</span></p>
+</section>
+<section id="b.5-identifying-the-score-contribution" class="level2">
+<h2 class="anchored" data-anchor-id="b.5-identifying-the-score-contribution">B.5 Identifying the Score Contribution</h2>
+<p>The key insight is that <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> maximizes the observed-data likelihood, so the observed-data score vanishes: <span class="math inline">\(\nabla\ell_{\text{obs}}(\hat{\theta}_{\text{obs}}) = 0\)</span>. Since <span class="math inline">\(\ell^{(m)} = \ell_{\text{obs}} + \ell^{(m)}_{\text{mis}|\text{obs}}\)</span>, the complete-data score at <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> comes entirely from the missing-data contribution:</p>
+<p><span class="math display">\[\nabla\ell^{(m)}(\hat{\theta}_{\text{obs}}) = \nabla\ell^{(m)}_{\text{mis}|\text{obs}}(\hat{\theta}_{\text{obs}}) \equiv S^{(m)}_{\text{mis}}\]</span></p>
+<p>(In practice, <span class="math inline">\(\hat{\theta}_{\text{obs}}\)</span> is approximated by the Rubin’s rules pooled estimate <span class="math inline">\(\bar{\theta}\)</span>, for which <span class="math inline">\(\nabla\ell_{\text{obs}}(\bar{\theta}) = O_p(n^{-1/2})\)</span> rather than exactly zero. This approximation is asymptotically valid since the residual is lower order than <span class="math inline">\(S^{(m)}_{\text{mis}} = O_p(n^{1/2})\)</span>.)</p>
+<p>Therefore:</p>
+<p><span class="math display">\[\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{\text{obs}}) \approx \frac{1}{2}S^{(m)T}_{\text{mis}} W S^{(m)}_{\text{mis}}\]</span></p>
+</section>
+<section id="b.6-taking-expectations" class="level2">
+<h2 class="anchored" data-anchor-id="b.6-taking-expectations">B.6 Taking Expectations</h2>
+<p>Averaging over imputations and taking expectations:</p>
+<p><span class="math display">\[\text{Term 0} = \frac{1}{2}\mathbb{E}\left[M^{-1}\sum_{m=1}^M S^{(m)T}_{\text{mis}} W S^{(m)}_{\text{mis}}\right] = \frac{1}{2}\text{tr}\left(W \cdot \mathbb{E}\left[M^{-1}\sum_{m=1}^M S^{(m)}_{\text{mis}} S^{(m)T}_{\text{mis}}\right]\right)\]</span></p>
+</section>
+<section id="b.7-connecting-to-between-imputation-variance" class="level2">
+<h2 class="anchored" data-anchor-id="b.7-connecting-to-between-imputation-variance">B.7 Connecting to Between-Imputation Variance</h2>
+<p>From the relation <span class="math inline">\(\hat{\theta}^{(m)} - \hat{\theta}_{\text{obs}} \approx W S^{(m)}_{\text{mis}}\)</span>, the between-imputation covariance satisfies:</p>
+<p><span class="math display">\[B = \text{Var}(\hat{\theta}^{(m)}) \approx W \cdot \text{Var}(S_{\text{mis}}) \cdot W\]</span></p>
+<p>so <span class="math inline">\(\text{Var}(S_{\text{mis}}) \approx W^{-1} B W^{-1}\)</span>. Substituting:</p>
+<p><span class="math display">\[\text{Term 0} = \frac{1}{2}\text{tr}(W \cdot W^{-1} B W^{-1}) = \frac{1}{2}\text{tr}(W^{-1}B)\]</span></p>
+<p>For large <span class="math inline">\(M\)</span>, <span class="math inline">\((1 + M^{-1}) \approx 1\)</span>, so <span class="math inline">\(\text{tr}(W^{-1}B) \approx \text{tr}(\text{RIV})\)</span>, giving:</p>
+<p><span class="math display">\[\text{Term 0} = \frac{1}{2}\text{tr}(\text{RIV})\]</span></p>
+</section>
+<section id="b.8-combined-practical-bias" class="level2">
+<h2 class="anchored" data-anchor-id="b.8-combined-practical-bias">B.8 Combined Practical Bias</h2>
+<p>Adding all three terms:</p>
+<p><span class="math display">\[\text{Bias}_{\text{practical}} = \underbrace{\frac{1}{2}\text{tr}(\text{RIV})}_{\text{Term 0}} + \underbrace{\text{tr}(\text{RIV})}_{\text{Term 1}} + \underbrace{\left(-\frac{1}{2}\text{tr}(\text{RIV})\right)}_{\text{Term 2}} = \text{tr}(\text{RIV})\]</span></p>
+<p>The practical bias is twice the theoretical bias of <span class="math inline">\(\frac{1}{2}\text{tr}(\text{RIV})\)</span> derived in Section 3.3.3.</p>
+</section>
+<section id="b.9-reconciliation-with-aiccd" class="level2">
+<h2 class="anchored" data-anchor-id="b.9-reconciliation-with-aiccd">B.9 Reconciliation with AICcd</h2>
+<p>On the AIC deviance scale (<span class="math inline">\(-2 \times\)</span> log-likelihood), the practical bias becomes <span class="math inline">\(-2\text{tr}(\text{RIV})\)</span>, requiring a correction of <span class="math inline">\(+2\text{tr}(\text{RIV})\)</span>. Combined with the base penalty <span class="math inline">\(2q\)</span>, this gives AICcd’s penalty <span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span>.</p>
+<p>Our MI-AIC’s lower penalty of <span class="math inline">\(2q + \text{tr}(\text{RIV})\)</span> is correct precisely because it requires re-evaluating at the pooled <span class="math inline">\(\bar{\theta}\)</span>, thereby eliminating Term 0. In summary:</p>
+<ul>
+<li><strong>MI-AIC</strong> (<span class="math inline">\(2q + \text{tr}(\text{RIV})\)</span>): Correct when <span class="math inline">\(\bar{Q}\)</span> is computed as <span class="math inline">\(M^{-1}\sum_m \ell_{\text{com}}(\bar{\theta} | Y_m^{\text{com}})\)</span></li>
+<li><strong>AICcd</strong> (<span class="math inline">\(2q + 2\text{tr}(\text{RIV})\)</span>): Correct when <span class="math inline">\(\bar{Q}\)</span> is computed as <span class="math inline">\(M^{-1}\sum_m \ell_{\text{com}}(\hat{\theta}^{(m)} | Y_m^{\text{com}})\)</span></li>
+</ul>
+<p>Both penalties yield asymptotically unbiased estimates of <span class="math inline">\(\text{AIC}_{\text{com}}\)</span> when paired with their corresponding evaluation strategy. The practical choice depends on software capability: if re-evaluation at <span class="math inline">\(\bar{\theta}\)</span> is straightforward (as in most SEM and regression software), MI-AIC offers a tighter correction; if only per-imputation fit statistics are available, AICcd is the appropriate choice.</p>
 <hr>
 </section>
 </section>
