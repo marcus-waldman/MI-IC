@@ -1,0 +1,17 @@
+# Generated manually; regenerate with roxygen2::roxygenise() if preferred
+
+export(run_simulation)
+export(run_one_rep)
+export(generate_seeds)
+export(get_config)
+export(get_sim1_models)
+export(compute_all_ic)
+export(compute_all_models_ic)
+export(select_models)
+export(load_results)
+export(selection_accuracy_table)
+export(selection_frequency_table)
+export(tr_riv_summary)
+export(plot_accuracy_by_n)
+importFrom(stats, sd, median, quantile, var, setNames)
+importFrom(utils, head, tail)

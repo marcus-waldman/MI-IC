@@ -1,17 +1,9 @@
-# ============================================================================
-# Core Fitting and Pooling Module for Study 2 (SEM)
-# ============================================================================
-# Fits lavaan models to complete and multiply-imputed data.
-# Pools parameter estimates via Rubin's rules.
-# Computes W, B, RIV with ridge regularization.
-# Evaluates log-likelihoods at pooled estimates via fixed-parameter technique.
-# ============================================================================
-
 #' Fit All 12 Models to Complete Data (Oracle)
 #'
-#' @param data_complete Complete data.frame (no missingness)
-#' @param models Named list of lavaan model syntaxes
-#' @return Named list, each element: list(loglik, npar, converged)
+#' @param data_complete Complete data.frame (no missingness).
+#' @param models Named list of lavaan model syntaxes.
+#' @return Named list; each element has \code{loglik}, \code{npar},
+#'   \code{converged}.
 fit_complete <- function(data_complete, models) {
   results <- lapply(names(models), function(mname) {
     tryCatch({
@@ -39,10 +31,11 @@ fit_complete <- function(data_complete, models) {
 
 #' Fit a Single Model to All M Imputed Datasets
 #'
-#' @param imputed_list List of M data.frames
-#' @param model_syntax Character. lavaan model syntax
-#' @return List with: coefs (M x Q matrix), vcovs (list of M QxQ matrices),
-#'         logliks (length-M vector), npar, converged (logical vector)
+#' @param imputed_list List of M data.frames.
+#' @param model_syntax lavaan model syntax (character).
+#' @return List with \code{coefs}, \code{vcovs}, \code{logliks},
+#'   \code{npar}, \code{param_names}, \code{converged_count},
+#'   \code{converged_flags}, \code{partable_template}, \code{success}.
 fit_single_model_mi <- function(imputed_list, model_syntax) {
   M <- length(imputed_list)
 
@@ -69,7 +62,6 @@ fit_single_model_mi <- function(imputed_list, model_syntax) {
     })
   })
 
-  # Filter to converged fits
   ok <- vapply(fits, function(f) !is.null(f) && f$converged, logical(1))
   M_ok <- sum(ok)
 
@@ -81,7 +73,6 @@ fit_single_model_mi <- function(imputed_list, model_syntax) {
   npar <- fits_ok[[1]]$npar
   pnames <- names(fits_ok[[1]]$coef)
 
-  # Build matrices
   coef_mat   <- matrix(NA, nrow = M_ok, ncol = npar)
   vcov_list  <- vector("list", M_ok)
   loglik_vec <- numeric(M_ok)
@@ -94,39 +85,36 @@ fit_single_model_mi <- function(imputed_list, model_syntax) {
   colnames(coef_mat) <- pnames
 
   list(
-    coefs          = coef_mat,
-    vcovs          = vcov_list,
-    logliks        = loglik_vec,
-    npar           = npar,
-    param_names    = pnames,
-    converged_count = M_ok,
-    converged_flags = ok,
+    coefs             = coef_mat,
+    vcovs             = vcov_list,
+    logliks           = loglik_vec,
+    npar              = npar,
+    param_names       = pnames,
+    converged_count   = M_ok,
+    converged_flags   = ok,
     partable_template = fits_ok[[1]]$partable,
-    success        = TRUE
+    success           = TRUE
   )
 }
 
 
 #' Pool MI Results via Rubin's Rules and Compute W, B, tr(RIV)
 #'
-#' @param mi_result Output of fit_single_model_mi()
-#' @param config Configuration list (for ridge_factor)
-#' @return List with: theta_bar, W, B, RIV, tr_RIV, mean_loglik
+#' @param mi_result Output of \code{fit_single_model_mi}.
+#' @param config Configuration list (uses \code{ridge_factor}).
+#' @return List with \code{theta_bar}, \code{W}, \code{B}, \code{RIV},
+#'   \code{tr_RIV}, \code{mean_loglik}, \code{M_ok}.
 pool_mi <- function(mi_result, config) {
   M_ok <- mi_result$converged_count
   Q    <- mi_result$npar
 
-  # Pooled estimate: theta_bar = mean of theta_hat^(m)
   theta_bar <- colMeans(mi_result$coefs)
 
-  # Within-imputation variance: W = mean of vcov^(m)
   W <- Reduce("+", mi_result$vcovs) / M_ok
 
-  # Between-imputation variance: B = var of theta_hat^(m)
   centered <- sweep(mi_result$coefs, 2, theta_bar)
   B <- crossprod(centered) / (M_ok - 1)
 
-  # Invert W with ridge regularization
   W_inv <- tryCatch({
     ridge <- config$ridge_factor * mean(diag(W))
     solve(W + diag(ridge, nrow = Q))
@@ -135,11 +123,9 @@ pool_mi <- function(mi_result, config) {
     MASS::ginv(W)
   })
 
-  # RIV = (1 + 1/M) * W^{-1} B
   RIV <- (1 + 1 / M_ok) * W_inv %*% B
   tr_RIV <- sum(diag(RIV))
 
-  # Mean log-likelihood at own MLEs
   mean_loglik <- mean(mi_result$logliks)
 
   list(
@@ -154,26 +140,24 @@ pool_mi <- function(mi_result, config) {
 }
 
 
-#' Evaluate Log-Likelihood on Each Imputed Dataset at Pooled Theta
+#' Evaluate Log-Likelihoods on Each Imputed Dataset at Pooled Theta
 #'
 #' Uses the fixed-parameter technique: fix all free parameters to pooled
 #' values via lower=upper bounds, then fit to get the log-likelihood.
 #'
-#' @param imputed_list List of M data.frames
-#' @param model_syntax Character. lavaan model syntax
-#' @param theta_bar Named vector of pooled parameter estimates
-#' @param partable_template Parameter table from a converged fit
-#' @param converged_flags Logical vector indicating which imputations converged
-#' @return Numeric vector of length M (NA for failed evaluations)
+#' @param imputed_list List of M data.frames.
+#' @param model_syntax lavaan model syntax (character).
+#' @param theta_bar Named vector of pooled parameter estimates.
+#' @param partable_template Parameter table from a converged fit.
+#' @param converged_flags Logical vector indicating which imputations converged.
+#' @return Numeric vector of length M (NA for failed evaluations).
 eval_loglik_at_pooled <- function(imputed_list, model_syntax, theta_bar,
                                   partable_template, converged_flags) {
   M <- length(imputed_list)
 
-  # Build fixed parameter table
   partable_fixed <- partable_template
   free_idx <- partable_fixed$free > 0
 
-  # Match parameter names to pooled values
   param_names <- ifelse(
     partable_fixed$label[free_idx] != "",
     partable_fixed$label[free_idx],
@@ -188,22 +172,20 @@ eval_loglik_at_pooled <- function(imputed_list, model_syntax, theta_bar,
     return(rep(NA, M))
   }
 
-  # Fix parameters: set ustart, lower, upper to pooled values
   partable_fixed$ustart[free_idx] <- pooled_values
   partable_fixed$lower[free_idx]  <- pooled_values
   partable_fixed$upper[free_idx]  <- pooled_values
 
-  # Evaluate on each imputed dataset
   logliks <- vapply(seq_len(M), function(m) {
     if (!converged_flags[m]) return(NA_real_)
     tryCatch({
       fit_fixed <- lavaan::sem(
-        model   = partable_fixed,
-        data    = imputed_list[[m]],
-        do.fit  = TRUE,
-        se      = "none",
-        test    = "standard",
-        warn    = FALSE
+        model  = partable_fixed,
+        data   = imputed_list[[m]],
+        do.fit = TRUE,
+        se     = "none",
+        test   = "standard",
+        warn   = FALSE
       )
       as.numeric(lavaan::logLik(fit_fixed))
     }, error = function(e) {
@@ -217,16 +199,16 @@ eval_loglik_at_pooled <- function(imputed_list, model_syntax, theta_bar,
 
 #' Fit All 12 Models to MI Data and Pool
 #'
-#' Master function: for each model, fit to all imputations, pool via Rubin's
-#' rules, and evaluate log-likelihoods at pooled estimates.
+#' For each model: fit to all imputations, pool via Rubin's rules,
+#' and evaluate log-likelihoods at pooled estimates.
 #'
-#' @param imputed_list List of M data.frames
-#' @param models Named list of lavaan model syntaxes
-#' @param config Configuration list
-#' @return Named list (one per model) with pooling results + logliks_at_pooled
+#' @param imputed_list List of M data.frames.
+#' @param models Named list of lavaan model syntaxes.
+#' @param config Configuration list.
+#' @return Named list (one per model) with pooling results +
+#'   \code{logliks_at_pooled}.
 fit_mi_models <- function(imputed_list, models, config) {
   results <- lapply(names(models), function(mname) {
-    # Step 1: Fit to each imputation
     mi_raw <- fit_single_model_mi(imputed_list, models[[mname]])
 
     if (!mi_raw$success) {
@@ -234,10 +216,8 @@ fit_mi_models <- function(imputed_list, models, config) {
                   converged_count = mi_raw$converged_count))
     }
 
-    # Step 2: Pool via Rubin's rules
     pooled <- pool_mi(mi_raw, config)
 
-    # Step 3: Evaluate log-likelihoods at pooled estimates
     logliks_at_pooled <- eval_loglik_at_pooled(
       imputed_list      = imputed_list,
       model_syntax      = models[[mname]],

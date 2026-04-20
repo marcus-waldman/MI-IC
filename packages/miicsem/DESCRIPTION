@@ -1,0 +1,30 @@
+Package: miicsem
+Title: Simulation Framework for MI-AIC/MI-BIC Evaluation in SEM
+Version: 0.1.0
+Authors@R: person(given = "Marcus R.",
+                  family = "Waldman",
+                  email = "marcus.waldman@cuanschutz.edu",
+                  role = c("aut", "cre"))
+Description: Runs the Bollen et al. (2014) SIM1 SEM simulation to evaluate
+    MI-AIC and MI-BIC information criteria against AICcd and ad hoc
+    alternatives under missing data with multiple imputation. Designed
+    for execution on high-performance computing environments.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.1
+Imports:
+    lavaan,
+    mice,
+    MASS,
+    SeedMaker,
+    pbapply,
+    parallel,
+    stats,
+    utils,
+    graphics,
+    grDevices
+Suggests:
+    testthat (>= 3.0.0)
+URL: https://github.com/marcus-waldman/MI-IC
+BugReports: https://github.com/marcus-waldman/MI-IC/issues
