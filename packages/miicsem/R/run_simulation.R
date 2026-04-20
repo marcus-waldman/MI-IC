@@ -1,3 +1,21 @@
+#' Sensible Default Number of Parallel Workers
+#'
+#' If running under SLURM and \code{SLURM_CPUS_PER_TASK} is set, returns
+#' that allocation. Otherwise falls back to
+#' \code{parallel::detectCores()}. Prevents the common HPC footgun of
+#' \code{detectCores()} returning the node's physical core count (and
+#' thus trying to spawn hundreds of workers) regardless of the actual
+#' SLURM allocation.
+#'
+#' @return Integer number of cores.
+#' @export
+default_n_cores <- function() {
+  slurm_cpus <- suppressWarnings(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK")))
+  if (!is.na(slurm_cpus) && slurm_cpus > 0) return(slurm_cpus)
+  parallel::detectCores()
+}
+
+
 #' Generate Seeds for All Replications (3 stages)
 #'
 #' Produces three seeds per replication — one each for data generation,
@@ -43,6 +61,8 @@ generate_seeds <- function(master_seed, n_reps) {
 #'
 #' @param n_reps Number of replications per condition. Default 1000.
 #' @param n_cores Number of parallel workers. Default:
+#'   \code{\link{default_n_cores}()} — honors
+#'   \code{SLURM_CPUS_PER_TASK} if set, else
 #'   \code{parallel::detectCores()}.
 #' @param seed Master seed for reproducibility. Default 32897891.
 #' @param sample_sizes Numeric vector of sample sizes to evaluate.
@@ -76,7 +96,7 @@ generate_seeds <- function(master_seed, n_reps) {
 #' }
 #' @export
 run_simulation <- function(n_reps           = 1000L,
-                           n_cores          = parallel::detectCores(),
+                           n_cores          = default_n_cores(),
                            seed             = 32897891L,
                            sample_sizes     = c(100, 250, 500, 1000, 5000),
                            miss_rates       = c(0.10, 0.25, 0.40),

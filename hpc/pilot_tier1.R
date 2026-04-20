@@ -7,15 +7,15 @@
 
 RESULTS_DIR <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM/results/"
 
-# 1. Install miicsem from GitHub if not already present
+# 1. Install/refresh miicsem from GitHub (always; catches version bumps)
 if (!requireNamespace("devtools", quietly = TRUE)) {
   install.packages("devtools", repos = "https://cloud.r-project.org")
 }
-if (!requireNamespace("miicsem", quietly = TRUE)) {
-  devtools::install_github("marcus-waldman/MI-IC",
-                           subdir  = "packages/miicsem",
-                           upgrade = "never")
-}
+devtools::install_github("marcus-waldman/MI-IC",
+                         subdir  = "packages/miicsem",
+                         upgrade = "never",
+                         force   = TRUE,
+                         quiet   = TRUE)
 
 library(miicsem)
 
