@@ -1,0 +1,4 @@
+# Force LF endings for files that run on Linux/HPC regardless of the
+# local platform's core.autocrlf setting.
+hpc/*.sh text eol=lf
+hpc/*.R  text eol=lf
