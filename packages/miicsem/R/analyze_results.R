@@ -1,7 +1,8 @@
-#' Load and Combine All Condition Results
+#' Load and Combine Selection Results
 #'
 #' Reads \code{results_combined.rds} produced by \code{\link{run_simulation}}
-#' and returns a flat data.frame with one row per rep x condition.
+#' and returns a flat data.frame with one row per rep x condition —
+#' focused on model selection (which model won under each IC).
 #'
 #' @param results_dir Path to results directory.
 #' @return A data.frame with columns n, miss_rate, rep_id, one column per
@@ -30,6 +31,96 @@ load_results <- function(results_dir) {
     }
   }
   do.call(rbind, rows)
+}
+
+
+#' Load Long-Form Deviance Table
+#'
+#' Returns one row per (rep x condition x model) with the four deviance
+#' quantities plus npar and tr_RIV.
+#'
+#' @param results_dir Path to results directory.
+#' @return A data.frame with columns n, miss_rate, rep_id, model,
+#'   DEV_com, DEV_adhoc, MI_DEVIANCE, MR_DEVIANCE, npar, tr_RIV.
+#' @export
+load_deviances <- function(results_dir) {
+  combined_file <- file.path(results_dir, "results_combined.rds")
+  if (!file.exists(combined_file)) {
+    stop("No combined results file found at: ", combined_file)
+  }
+  all_results <- readRDS(combined_file)
+
+  rows <- list()
+  for (cond_label in names(all_results)) {
+    for (rep_result in all_results[[cond_label]]) {
+      if (is.null(rep_result) || is.null(rep_result$dev_df)) next
+      dev_df <- rep_result$dev_df
+      rows[[length(rows) + 1]] <- data.frame(
+        n         = rep_result$n,
+        miss_rate = rep_result$miss_rate,
+        rep_id    = rep_result$rep_id,
+        model     = rownames(dev_df),
+        dev_df,
+        stringsAsFactors = FALSE,
+        row.names = NULL
+      )
+    }
+  }
+  do.call(rbind, rows)
+}
+
+
+#' Load Long-Form Chi-Square Table
+#'
+#' Returns one row per (rep x condition x candidate model) with the three
+#' chi-square variants plus df.
+#'
+#' @param results_dir Path to results directory.
+#' @return A data.frame with columns n, miss_rate, rep_id, model,
+#'   chi2_com, chi2_MI, chi2_D3, df.
+#' @export
+load_chi_squares <- function(results_dir) {
+  combined_file <- file.path(results_dir, "results_combined.rds")
+  if (!file.exists(combined_file)) {
+    stop("No combined results file found at: ", combined_file)
+  }
+  all_results <- readRDS(combined_file)
+
+  rows <- list()
+  for (cond_label in names(all_results)) {
+    for (rep_result in all_results[[cond_label]]) {
+      if (is.null(rep_result) || is.null(rep_result$chi2_df)) next
+      chi2_df <- rep_result$chi2_df
+      rows[[length(rows) + 1]] <- data.frame(
+        n         = rep_result$n,
+        miss_rate = rep_result$miss_rate,
+        rep_id    = rep_result$rep_id,
+        model     = rownames(chi2_df),
+        chi2_df,
+        stringsAsFactors = FALSE,
+        row.names = NULL
+      )
+    }
+  }
+  do.call(rbind, rows)
+}
+
+
+#' Summarize Chi-Squares by Condition and Model
+#'
+#' Mean of each chi-square variant and the oracle \eqn{\chi^2_{\text{com}}}
+#' for each (N, miss_rate, model) cell.
+#'
+#' @param chi2_df Long-form data.frame from \code{\link{load_chi_squares}}.
+#' @return data.frame with mean chi2_com, chi2_MI, chi2_D3 per cell.
+#' @export
+chi2_summary_table <- function(chi2_df) {
+  agg <- stats::aggregate(
+    cbind(chi2_com, chi2_MI, chi2_D3) ~ n + miss_rate + model,
+    data = chi2_df,
+    FUN  = function(x) mean(x, na.rm = TRUE)
+  )
+  agg[order(agg$n, agg$miss_rate, agg$model), ]
 }
 
 

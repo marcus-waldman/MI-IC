@@ -47,8 +47,14 @@ results <- run_simulation(
 | `run_one_rep()` | Single replication (useful for debugging) |
 | `get_config()` | Retrieve default configuration |
 | `get_sim1_models()` | 12 lavaan model syntaxes |
+| `get_saturated_model()` | Saturated (unstructured) lavaan syntax |
+| `compute_pop_starts()` | Pre-compute warm-start coefficients from Σ_pop |
 | `compute_all_ic()` | Compute all 7 IC methods for one model |
-| `load_results()` | Load saved results into a flat data.frame |
+| `compute_D3()` | Meng-Rubin (1992) D_3 for one nested model pair |
+| `load_results()` | Selection winners per rep |
+| `load_deviances()` | Long-form deviance table |
+| `load_chi_squares()` | Long-form chi-square table |
+| `chi2_summary_table()` | Mean chi-squares by (N, miss_rate, model) |
 | `selection_accuracy_table()` | % selecting true model (M1) by condition |
 | `plot_accuracy_by_n()` | Quick diagnostic plot |
 
@@ -59,6 +65,37 @@ results <- run_simulation(
 3. **AICcd** — Cavanaugh & Shumway (penalty: 2p + 2·tr(RIV))
 4. **MI-AIC** — Proposed (penalty: 2p + tr(RIV), eval at pooled θ̄)
 5. **MI-BIC** — Proposed (penalty: p·log(N) + tr(RIV), eval at pooled θ̄)
+
+## Deviances saved per model
+
+All four on the deviance (−2 ℓ) scale. Computed for all 12 candidates
+and the saturated model:
+
+| Quantity | Formula |
+|----------|---------|
+| `DEV_com` | −2 ℓ_com(θ̂_com) — oracle |
+| `DEV_adhoc` | mean over imputations of −2 ℓ_m(θ̂_m) — naive |
+| `MI_DEVIANCE` | −2 Q̄(θ̄) + tr(RIV) — our debiased |
+| `MR_DEVIANCE` | Meng-Rubin, anchored at saturated |
+
+## Chi-squares saved per candidate model
+
+All computed against the saturated model:
+
+| Quantity | Formula | Role |
+|----------|---------|------|
+| `chi2_com` | DEV_com(M_j) − DEV_com(Msat) | Oracle chi-square |
+| `chi2_MI`  | MI_DEVIANCE(M_j) − MI_DEVIANCE(Msat) | Ours; multivariate tr(RIV) |
+| `chi2_D3`  | d̃̄ / (1 + r_L) | Meng-Rubin (1992); scalar r_L |
+| `df`       | npar(Msat) − npar(M_j) | Same for all three |
+
+## Warm starts
+
+Each simulation run precomputes "infinite-N projection" parameter values
+by fitting every candidate + saturated model once to `sigma_pop` with
+`sample.nobs = 1e6`, then passes those coefficients as starting values
+to every per-imputation fit. Purely a performance optimization; the MLEs
+are unchanged.
 
 ## HPC usage
 

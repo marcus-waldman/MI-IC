@@ -1,18 +1,27 @@
-#' Fit All 12 Models to Complete Data (Oracle)
+#' Fit All Candidate + Saturated Models to Complete Data (Oracle)
 #'
 #' @param data_complete Complete data.frame (no missingness).
 #' @param models Named list of lavaan model syntaxes.
+#' @param pop_starts Optional named list of warm-start coefficient
+#'   vectors (as produced by \code{\link{compute_pop_starts}}). Passed
+#'   via lavaan's \code{start} argument.
 #' @return Named list; each element has \code{loglik}, \code{npar},
 #'   \code{converged}.
-fit_complete <- function(data_complete, models) {
+fit_complete <- function(data_complete, models, pop_starts = NULL) {
   results <- lapply(names(models), function(mname) {
     tryCatch({
+      start_val <- if (!is.null(pop_starts) && !is.null(pop_starts[[mname]])) {
+        pop_starts[[mname]]
+      } else {
+        "default"
+      }
       fit <- lavaan::sem(
         model     = models[[mname]],
         data      = data_complete,
         estimator = "ML",
         se        = "none",
         test      = "standard",
+        start     = start_val,
         warn      = FALSE
       )
       list(
@@ -33,11 +42,15 @@ fit_complete <- function(data_complete, models) {
 #'
 #' @param imputed_list List of M data.frames.
 #' @param model_syntax lavaan model syntax (character).
+#' @param start_coefs Optional named numeric vector of starting
+#'   coefficients (e.g., from \code{\link{compute_pop_starts}}). Passed
+#'   via lavaan's \code{start} argument to every per-imputation fit.
 #' @return List with \code{coefs}, \code{vcovs}, \code{logliks},
 #'   \code{npar}, \code{param_names}, \code{converged_count},
 #'   \code{converged_flags}, \code{partable_template}, \code{success}.
-fit_single_model_mi <- function(imputed_list, model_syntax) {
+fit_single_model_mi <- function(imputed_list, model_syntax, start_coefs = NULL) {
   M <- length(imputed_list)
+  start_val <- if (!is.null(start_coefs)) start_coefs else "default"
 
   fits <- lapply(seq_len(M), function(m) {
     tryCatch({
@@ -47,6 +60,7 @@ fit_single_model_mi <- function(imputed_list, model_syntax) {
         estimator = "ML",
         se        = "standard",
         test      = "standard",
+        start     = start_val,
         warn      = FALSE
       )
       list(
@@ -197,7 +211,7 @@ eval_loglik_at_pooled <- function(imputed_list, model_syntax, theta_bar,
 }
 
 
-#' Fit All 12 Models to MI Data and Pool
+#' Fit All Candidate + Saturated Models to MI Data and Pool
 #'
 #' For each model: fit to all imputations, pool via Rubin's rules,
 #' and evaluate log-likelihoods at pooled estimates.
@@ -205,11 +219,14 @@ eval_loglik_at_pooled <- function(imputed_list, model_syntax, theta_bar,
 #' @param imputed_list List of M data.frames.
 #' @param models Named list of lavaan model syntaxes.
 #' @param config Configuration list.
+#' @param pop_starts Optional named list of warm-start coefficient
+#'   vectors (see \code{\link{compute_pop_starts}}).
 #' @return Named list (one per model) with pooling results +
 #'   \code{logliks_at_pooled}.
-fit_mi_models <- function(imputed_list, models, config) {
+fit_mi_models <- function(imputed_list, models, config, pop_starts = NULL) {
   results <- lapply(names(models), function(mname) {
-    mi_raw <- fit_single_model_mi(imputed_list, models[[mname]])
+    start_coefs <- if (!is.null(pop_starts)) pop_starts[[mname]] else NULL
+    mi_raw <- fit_single_model_mi(imputed_list, models[[mname]], start_coefs = start_coefs)
 
     if (!mi_raw$success) {
       return(list(success = FALSE, model = mname,

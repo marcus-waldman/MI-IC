@@ -11,17 +11,22 @@
 #' @param seed_data Seed for data generation.
 #' @param seed_ampute Seed for amputation.
 #' @param seed_impute Seed for mice imputation.
+#' @param pop_starts Optional named list of warm-start coefficient
+#'   vectors covering all entries in \code{models_with_sat} (see
+#'   \code{\link{compute_pop_starts}}).
 #' @return List with \code{ic_df}, \code{selections},
 #'   \code{convergence}, \code{tr_RIVs}; or NULL on imputation failure.
 #' @export
 run_one_rep <- function(rep_id, n, miss_rate, config,
-                        seed_data, seed_ampute, seed_impute) {
+                        seed_data, seed_ampute, seed_impute,
+                        pop_starts = NULL) {
 
   models <- get_sim1_models()
+  models_with_sat <- c(models, list(Msat = get_saturated_model(config$var_names)))
 
   data_complete <- generate_complete_data(n, config, seed_data)
 
-  complete_fits <- fit_complete(data_complete, models)
+  complete_fits <- fit_complete(data_complete, models_with_sat, pop_starts = pop_starts)
 
   data_miss <- ampute_data(data_complete, miss_rate, seed_ampute)
 
@@ -42,9 +47,20 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
     mice::complete(imp, action = m)
   })
 
-  mi_fits <- fit_mi_models(imputed_list, models, config)
+  mi_fits <- fit_mi_models(imputed_list, models_with_sat, config, pop_starts = pop_starts)
 
-  ic_df <- compute_all_models_ic(complete_fits, mi_fits, n)
+  # Deviances (all on -2 log-likelihood scale) for every model incl. Msat
+  dev_df <- compute_deviances(complete_fits, mi_fits, n)
+
+  # Chi-squares (candidate models only) vs saturated reference; fills in
+  # MR_DEVIANCE column of dev_df.
+  chi2_res <- compute_chi_squares(complete_fits, mi_fits, dev_df)
+  chi2_df  <- chi2_res$chi2_df
+  dev_df   <- chi2_res$dev_df
+
+  # Seven IC methods for candidate models only
+  ic_df <- compute_all_models_ic(complete_fits[names(models)],
+                                 mi_fits[names(models)], n)
 
   selections <- select_models(ic_df)
 
@@ -63,6 +79,8 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
     n           = n,
     miss_rate   = miss_rate,
     ic_df       = ic_df,
+    dev_df      = dev_df,
+    chi2_df     = chi2_df,
     selections  = selections,
     convergence = convergence,
     tr_RIVs     = tr_RIVs

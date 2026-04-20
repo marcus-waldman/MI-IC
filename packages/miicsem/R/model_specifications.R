@@ -143,3 +143,23 @@ get_sim1_models <- function() {
 
   return(models)
 }
+
+
+#' Generate Saturated (Unstructured) Model Syntax
+#'
+#' Builds lavaan syntax for a fully saturated model over \code{var_names}:
+#' every variable gets its own variance and every pair gets a free
+#' covariance. This is the reference model for the chi-square statistics.
+#'
+#' @param var_names Character vector of variable names (default y1..y9).
+#' @return A character string of lavaan syntax.
+#' @export
+get_saturated_model <- function(var_names = paste0("y", 1:9)) {
+  p <- length(var_names)
+  lines <- character()
+  for (i in seq_len(p)) {
+    rhs <- paste(var_names[i:p], collapse = " + ")
+    lines <- c(lines, paste0(var_names[i], " ~~ ", rhs))
+  }
+  paste(lines, collapse = "\n")
+}

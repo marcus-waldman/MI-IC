@@ -98,6 +98,19 @@ run_simulation <- function(n_reps      = 1000L,
   if (verbose) message("Generating seeds...")
   seeds <- generate_seeds(config$master_seed, config$n_reps)
 
+  # Warm starts: fit every model (candidates + saturated) to the
+  # population covariance once, pass the resulting coefficients to every
+  # per-imputation fit. Pure performance optimization; MLEs are unchanged.
+  if (verbose) message("Computing warm starts from population covariance...")
+  models_with_sat <- c(get_sim1_models(),
+                       list(Msat = get_saturated_model(config$var_names)))
+  pop_starts <- compute_pop_starts(config$sigma_pop, models_with_sat)
+  n_ok <- sum(!vapply(pop_starts, is.null, logical(1)))
+  if (verbose) {
+    message(sprintf("  %d/%d population fits succeeded",
+                    n_ok, length(models_with_sat)))
+  }
+
   conditions <- expand.grid(
     n         = config$sample_sizes,
     miss_rate = config$miss_rates,
@@ -135,7 +148,7 @@ run_simulation <- function(n_reps      = 1000L,
     cl <- parallel::makeCluster(n_cores)
 
     parallel::clusterExport(cl,
-      varlist = c("seeds", "config", "n_val", "mr_val"),
+      varlist = c("seeds", "config", "n_val", "mr_val", "pop_starts"),
       envir   = environment())
 
     parallel::clusterEvalQ(cl, {
@@ -156,7 +169,8 @@ run_simulation <- function(n_reps      = 1000L,
           config      = config,
           seed_data   = seeds[[rep]]$data,
           seed_ampute = seeds[[rep]]$ampute,
-          seed_impute = seeds[[rep]]$impute
+          seed_impute = seeds[[rep]]$impute,
+          pop_starts  = pop_starts
         )
       }, cl = cl)
     }, finally = {
