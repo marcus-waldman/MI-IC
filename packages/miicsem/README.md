@@ -15,8 +15,10 @@ reproducible execution on high-performance computing (HPC) environments.
 devtools::install_github("marcus-waldman/MI-IC", subdir = "packages/miicsem")
 ```
 
-Requires R >= 4.0 with packages: `lavaan`, `mice`, `MASS`, `SeedMaker`,
-`pbapply`, `parallel`.
+Requires R >= 4.0. Runtime dependencies (`lavaan`, `mice`, `MASS`,
+`SeedMaker`, `pbapply`) are installed automatically on first
+`run_simulation()` call if missing — opt out with
+`run_simulation(install_missing = FALSE)`.
 
 ## Quick start
 

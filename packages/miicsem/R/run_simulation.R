@@ -52,6 +52,11 @@ generate_seeds <- function(master_seed, n_reps) {
 #' @param M Number of imputations per replication. Default 20.
 #' @param results_dir Directory for per-condition \code{.rds} checkpoints.
 #'   If \code{NULL}, results are returned but not saved.
+#' @param install_missing Logical. If TRUE (default), any missing
+#'   runtime dependencies (lavaan, mice, MASS, SeedMaker, pbapply) are
+#'   installed before the simulation starts via
+#'   \code{\link{ensure_required_packages}}. Set FALSE to error out
+#'   instead.
 #' @param verbose Print progress messages? Default \code{TRUE}.
 #'
 #' @return Named list of condition results. Each element corresponds to
@@ -70,18 +75,17 @@ generate_seeds <- function(master_seed, n_reps) {
 #'                       results_dir = "results/")
 #' }
 #' @export
-run_simulation <- function(n_reps      = 1000L,
-                           n_cores     = parallel::detectCores(),
-                           seed        = 32897891L,
-                           sample_sizes = c(100, 250, 500, 1000, 5000),
-                           miss_rates   = c(0.10, 0.25, 0.40),
-                           M           = 20L,
-                           results_dir = NULL,
-                           verbose     = TRUE) {
+run_simulation <- function(n_reps           = 1000L,
+                           n_cores          = parallel::detectCores(),
+                           seed             = 32897891L,
+                           sample_sizes     = c(100, 250, 500, 1000, 5000),
+                           miss_rates       = c(0.10, 0.25, 0.40),
+                           M                = 20L,
+                           results_dir      = NULL,
+                           install_missing  = TRUE,
+                           verbose          = TRUE) {
 
-  if (!requireNamespace("pbapply", quietly = TRUE)) {
-    stop("Package 'pbapply' required.")
-  }
+  ensure_required_packages(install = install_missing, verbose = verbose)
 
   config <- get_config(
     n_reps       = n_reps,
