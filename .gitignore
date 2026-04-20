@@ -50,3 +50,10 @@ rsconnect/
 
 # Research files
 claude/
+
+# HPC run artifacts (simulation outputs + SLURM log files)
+hpc/results/
+hpc/*.log
+hpc/*.err
+hpc/*.rds
+hpc/slurm-*.out

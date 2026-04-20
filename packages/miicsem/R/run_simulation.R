@@ -66,7 +66,7 @@ generate_seeds <- function(master_seed, n_reps) {
 #'   \code{parallel::detectCores()}.
 #' @param seed Master seed for reproducibility. Default 32897891.
 #' @param sample_sizes Numeric vector of sample sizes to evaluate.
-#'   Default \code{c(100, 250, 500, 1000, 5000)}.
+#'   Default \code{c(100, 250, 500, 1000)}.
 #' @param miss_rates Numeric vector of missing rates. Default
 #'   \code{c(0.10, 0.25, 0.40)}.
 #' @param M Number of imputations per replication. Default 20.
@@ -98,7 +98,7 @@ generate_seeds <- function(master_seed, n_reps) {
 run_simulation <- function(n_reps           = 1000L,
                            n_cores          = default_n_cores(),
                            seed             = 32897891L,
-                           sample_sizes     = c(100, 250, 500, 1000, 5000),
+                           sample_sizes     = c(100, 250, 500, 1000),
                            miss_rates       = c(0.10, 0.25, 0.40),
                            M                = 20L,
                            results_dir      = NULL,
