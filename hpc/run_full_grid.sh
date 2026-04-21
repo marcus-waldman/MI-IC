@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --tasks=1
 #SBATCH --cpus-per-task=100
-#SBATCH --mem=60G
+#SBATCH --mem=100G
 #SBATCH --time=12:00:00
 #SBATCH --job-name=miicsem_fullgrid
 #SBATCH --output=miicsem_fullgrid_%j.log
