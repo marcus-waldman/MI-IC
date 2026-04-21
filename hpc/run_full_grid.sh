@@ -2,7 +2,7 @@
 #SBATCH --tasks=1
 #SBATCH --cpus-per-task=100
 #SBATCH --mem=100G
-#SBATCH --time=12:00:00
+#SBATCH --time=30:00:00
 #SBATCH --job-name=miicsem_fullgrid
 #SBATCH --output=miicsem_fullgrid_%j.log
 #SBATCH --error=miicsem_fullgrid_%j.err
@@ -24,8 +24,8 @@
 #        cd /biostats_share/waldmanm/simulation-studies/MI-IC/SeM
 #        sbatch run_full_grid.sh
 #
-# Expected: wall time ~6 hours (N=1000 conditions dominate).
-# Wall-time limit here is 12 hours — generous headroom for slow reps.
+# Expected: wall time ~18-20 hours at M=100 (5x the M=20 run).
+# Wall-time limit here is 30 hours — generous headroom for slow reps.
 # =============================================================================
 
 echo "=============================================="

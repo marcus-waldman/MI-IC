@@ -2,13 +2,14 @@
 # Full Study 2 Simulation: 2000 reps x 12 conditions
 # ============================================================================
 # N      x missing rate grid: {100, 250, 500, 1000} x {0.10, 0.25, 0.40}
-# Imputations:  M = 20
+# Imputations:  M = 100
 # Replications: 2000 per condition
 # Cores:        honors SLURM_CPUS_PER_TASK (100 under run_full_grid.sh)
-# Expected wall time: ~6 hours on 100 cores
+# Expected wall time: ~18-20 hours on 100 cores (5x the M=20 run)
 # ============================================================================
 
-RESULTS_DIR <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM/results-full"
+RESULTS_DIR <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM/results-full-M100"
+M_IMPUTATIONS <- 100L
 
 # 1. Install/refresh miicsem from GitHub (always; catches version bumps)
 if (!requireNamespace("devtools", quietly = TRUE)) {
@@ -39,7 +40,7 @@ res <- run_simulation(
   n_reps       = 2000,
   sample_sizes = c(100, 250, 500, 1000),
   miss_rates   = c(0.10, 0.25, 0.40),
-  M            = 20,
+  M            = M_IMPUTATIONS,
   results_dir  = RESULTS_DIR,
   verbose      = TRUE
 )

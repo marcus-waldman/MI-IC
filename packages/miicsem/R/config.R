@@ -15,7 +15,7 @@ get_config <- function(n_reps = 1000L,
                        master_seed = 32897891L,
                        sample_sizes = c(100, 250, 500, 1000),
                        miss_rates = c(0.10, 0.25, 0.40),
-                       M = 20L) {
+                       M = 100L) {
   list(
     sample_sizes = sample_sizes,
     miss_rates   = miss_rates,

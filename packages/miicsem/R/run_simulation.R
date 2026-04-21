@@ -69,7 +69,7 @@ generate_seeds <- function(master_seed, n_reps) {
 #'   Default \code{c(100, 250, 500, 1000)}.
 #' @param miss_rates Numeric vector of missing rates. Default
 #'   \code{c(0.10, 0.25, 0.40)}.
-#' @param M Number of imputations per replication. Default 20.
+#' @param M Number of imputations per replication. Default 100.
 #' @param results_dir Directory for per-condition \code{.rds} checkpoints.
 #'   If \code{NULL}, results are returned but not saved.
 #' @param install_missing Logical. If TRUE (default), any missing
@@ -100,7 +100,7 @@ run_simulation <- function(n_reps           = 1000L,
                            seed             = 32897891L,
                            sample_sizes     = c(100, 250, 500, 1000),
                            miss_rates       = c(0.10, 0.25, 0.40),
-                           M                = 20L,
+                           M                = 100L,
                            results_dir      = NULL,
                            install_missing  = TRUE,
                            verbose          = TRUE) {

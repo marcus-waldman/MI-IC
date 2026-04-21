@@ -153,7 +153,7 @@ Consentino & Claeskens (2010) built an AIC from Meng & Rubin's (1992) D_L statis
 - **Design**: 3-factor CFA with 9 indicators
 - **Sample sizes**: N = 100, 250, 500, 1000
 - **Missing rates**: 10%, 25%, 40% MCAR
-- **Imputations**: M = 20
+- **Imputations**: M = 100
 - **Replications**: 2000 per condition
 - **Methods compared**: Complete-data IC, Ad hoc, AICcd, D_LR-based AIC (Consentino & Claeskens 2010), MI-AIC, MI-BIC
 - **Output**: Selection accuracy tables, IC distributions, figures; per-model deviances (DEV_com, DEV_adhoc, MI_DEVIANCE, MR_DEVIANCE) and three chi-squares (chi2_com, chi2_MI, chi2_D3) vs the saturated reference
