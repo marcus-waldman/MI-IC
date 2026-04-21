@@ -186,20 +186,45 @@ run_simulation <- function(n_reps           = 1000L,
 
     cond_results <- tryCatch({
       pbapply::pblapply(seq_len(config$n_reps), function(rep) {
-        miicsem::run_one_rep(
-          rep_id      = rep,
-          n           = n_val,
-          miss_rate   = mr_val,
-          config      = config,
-          seed_data   = seeds[[rep]]$data,
-          seed_ampute = seeds[[rep]]$ampute,
-          seed_impute = seeds[[rep]]$impute,
-          pop_starts  = pop_starts
+        tryCatch(
+          miicsem::run_one_rep(
+            rep_id      = rep,
+            n           = n_val,
+            miss_rate   = mr_val,
+            config      = config,
+            seed_data   = seeds[[rep]]$data,
+            seed_ampute = seeds[[rep]]$ampute,
+            seed_impute = seeds[[rep]]$impute,
+            pop_starts  = pop_starts
+          ),
+          error = function(e) {
+            list(rep_id    = rep,
+                 n         = n_val,
+                 miss_rate = mr_val,
+                 error     = conditionMessage(e),
+                 failed    = TRUE)
+          }
         )
       }, cl = cl)
     }, finally = {
       parallel::stopCluster(cl)
     })
+
+    # Per-condition failure report
+    n_failed <- sum(vapply(cond_results,
+                            function(r) isTRUE(r$failed),
+                            logical(1)))
+    n_null   <- sum(vapply(cond_results, is.null, logical(1)))
+    if (verbose && (n_failed + n_null) > 0) {
+      message(sprintf("  %d failed, %d NULL (mice failure) out of %d",
+                      n_failed, n_null, length(cond_results)))
+      # Print up to 3 distinct error messages
+      msgs <- unique(vapply(cond_results, function(r) {
+        if (isTRUE(r$failed)) r$error else NA_character_
+      }, character(1)))
+      msgs <- msgs[!is.na(msgs)]
+      for (msg in head(msgs, 3)) message("    -> ", msg)
+    }
 
     if (!is.null(results_dir)) {
       saveRDS(cond_results, rds_file)

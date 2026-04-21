@@ -19,7 +19,7 @@ load_results <- function(results_dir) {
   for (cond_label in names(all_results)) {
     cond_reps <- all_results[[cond_label]]
     for (rep_result in cond_reps) {
-      if (is.null(rep_result)) next
+      if (is.null(rep_result) || isTRUE(rep_result$failed)) next
       rows[[length(rows) + 1]] <- data.frame(
         n         = rep_result$n,
         miss_rate = rep_result$miss_rate,
