@@ -1,6 +1,6 @@
 Package: miicsem
 Title: Simulation Framework for MI-AIC/MI-BIC Evaluation in SEM
-Version: 0.2.4
+Version: 0.3.0
 Authors@R: person(given = "Marcus R.",
                   family = "Waldman",
                   email = "marcus.waldman@cuanschutz.edu",

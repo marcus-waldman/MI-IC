@@ -30,6 +30,10 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
 
   data_miss <- ampute_data(data_complete, miss_rate, seed_ampute)
 
+  # FIML fits on amputed data → V_obs for tr(RIV_fiml) reference
+  observed_fits <- fit_observed(data_miss, models_with_sat,
+                                pop_starts = pop_starts)
+
   imp <- tryCatch({
     mice::mice(
       data_miss,
@@ -50,7 +54,7 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
   mi_fits <- fit_mi_models(imputed_list, models_with_sat, config, pop_starts = pop_starts)
 
   # Deviances (all on -2 log-likelihood scale) for every model incl. Msat
-  dev_df <- compute_deviances(complete_fits, mi_fits, n)
+  dev_df <- compute_deviances(complete_fits, mi_fits, observed_fits, n)
 
   # Chi-squares (candidate models only) vs saturated reference; fills in
   # MR_DEVIANCE column of dev_df.

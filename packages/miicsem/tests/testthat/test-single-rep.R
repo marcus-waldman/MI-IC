@@ -27,12 +27,19 @@ test_that("single replication runs end-to-end with deviances and chi-squares", {
   expect_equal(ncol(result$ic_df), 7L)
   expect_true(result$selections["AIC_com"] == "M1")
 
-  # dev_df: 13 rows (12 candidates + Msat) x 6 cols
+  # dev_df: 13 rows (12 candidates + Msat) x 7 cols
   expect_equal(nrow(result$dev_df), 13L)
   expect_true("Msat" %in% rownames(result$dev_df))
   expect_true(all(c("DEV_com", "DEV_adhoc", "MI_DEVIANCE", "MR_DEVIANCE",
-                    "npar", "tr_RIV") %in% colnames(result$dev_df)))
-  expect_equal(result$dev_df["Msat", "npar"], 45)
+                    "npar", "tr_RIV", "tr_RIV_fiml") %in%
+                    colnames(result$dev_df)))
+  # Meanstructure adds 9 intercepts; Msat = 9*10/2 covs + 9 means = 54
+  expect_equal(result$dev_df["Msat", "npar"], 54)
+
+  # tr_RIV_fiml populated and positive for at least some models
+  expect_true(any(!is.na(result$dev_df$tr_RIV_fiml)))
+  non_na <- result$dev_df$tr_RIV_fiml[!is.na(result$dev_df$tr_RIV_fiml)]
+  expect_true(all(non_na > -0.5))   # allow slight negative from finite-N
 
   # chi2_df: 12 candidates x 4 cols
   expect_equal(nrow(result$chi2_df), 12L)
@@ -44,10 +51,10 @@ test_that("single replication runs end-to-end with deviances and chi-squares", {
   expect_true(all(result$chi2_df$chi2_MI  >= -0.01, na.rm = TRUE))
   expect_true(all(result$chi2_df$chi2_D3  >= -0.01, na.rm = TRUE))
 
-  # df = 45 - npar_j for every candidate
+  # df = 54 - npar_j for every candidate (saturated npar = 54 with means)
   expect_true(all(
     result$chi2_df$df ==
-      45 - result$dev_df[rownames(result$chi2_df), "npar"],
+      54 - result$dev_df[rownames(result$chi2_df), "npar"],
     na.rm = TRUE
   ))
 

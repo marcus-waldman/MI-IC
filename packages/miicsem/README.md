@@ -71,7 +71,9 @@ results <- run_simulation(
 ## Deviances saved per model
 
 All four on the deviance (−2 ℓ) scale. Computed for all 12 candidates
-and the saturated model:
+and the saturated model. All fits include mean structure (9 intercepts
+per model) so that `V_obs` from FIML and `V_com` from complete-data ML
+share the same parameter set.
 
 | Quantity | Formula |
 |----------|---------|
@@ -79,6 +81,8 @@ and the saturated model:
 | `DEV_adhoc` | mean over imputations of −2 ℓ_m(θ̂_m) — naive |
 | `MI_DEVIANCE` | −2 Q̄(θ̄) + tr(RIV) — our debiased |
 | `MR_DEVIANCE` | Meng-Rubin, anchored at saturated |
+| `tr_RIV` | MI-based `(1 + 1/M) * tr(W^-1 B)` |
+| `tr_RIV_fiml` | theoretical asymptotic target: `tr(V_obs · V_com⁻¹) - p` |
 
 ## Chi-squares saved per candidate model
 

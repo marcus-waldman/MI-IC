@@ -106,6 +106,49 @@ load_chi_squares <- function(results_dir) {
 }
 
 
+#' Compare MI-based tr(RIV) to the FIML-based theoretical target
+#'
+#' For each condition and each model, returns summary statistics
+#' comparing our M=20 MI-based \code{tr_RIV} estimate against the
+#' asymptotic target \code{tr_RIV_fiml} computed from the per-rep FIML
+#' vcov. Paired within rep.
+#'
+#' @param dev_df Long-form deviance data.frame from
+#'   \code{\link{load_deviances}}.
+#' @return data.frame with one row per (n, miss_rate, model) cell:
+#'   mean_tr_mi, mean_tr_fiml, bias = mean(mi - fiml), sd of paired
+#'   difference, rmse, correlation across reps.
+#' @export
+tr_riv_comparison_table <- function(dev_df) {
+  dev_df <- dev_df[!is.na(dev_df$tr_RIV) & !is.na(dev_df$tr_RIV_fiml), ]
+
+  cells <- unique(dev_df[, c("n", "miss_rate", "model")])
+  cells <- cells[order(cells$n, cells$miss_rate, cells$model), ]
+
+  rows <- lapply(seq_len(nrow(cells)), function(i) {
+    cell <- cells[i, ]
+    sub <- dev_df[dev_df$n == cell$n &
+                    dev_df$miss_rate == cell$miss_rate &
+                    dev_df$model == cell$model, ]
+    diff <- sub$tr_RIV - sub$tr_RIV_fiml
+    data.frame(
+      n            = cell$n,
+      miss_rate    = cell$miss_rate,
+      model        = cell$model,
+      n_reps       = nrow(sub),
+      mean_tr_mi   = mean(sub$tr_RIV),
+      mean_tr_fiml = mean(sub$tr_RIV_fiml),
+      bias         = mean(diff),
+      sd_diff      = stats::sd(diff),
+      rmse         = sqrt(mean(diff^2)),
+      cor          = stats::cor(sub$tr_RIV, sub$tr_RIV_fiml),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+
 #' Summarize Chi-Squares by Condition and Model
 #'
 #' Mean of each chi-square variant and the oracle \eqn{\chi^2_{\text{com}}}

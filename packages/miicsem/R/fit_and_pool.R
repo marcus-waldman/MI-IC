@@ -16,21 +16,73 @@ fit_complete <- function(data_complete, models, pop_starts = NULL) {
         "default"
       }
       fit <- lavaan::sem(
-        model     = models[[mname]],
-        data      = data_complete,
-        estimator = "ML",
-        se        = "none",
-        test      = "standard",
-        start     = start_val,
-        warn      = FALSE
+        model         = models[[mname]],
+        data          = data_complete,
+        meanstructure = TRUE,
+        estimator     = "ML",
+        se            = "standard",
+        test          = "standard",
+        start         = start_val,
+        warn          = FALSE
       )
       list(
         loglik    = as.numeric(lavaan::logLik(fit)),
         npar      = lavaan::fitmeasures(fit, "npar"),
-        converged = lavaan::lavInspect(fit, "converged")
+        converged = lavaan::lavInspect(fit, "converged"),
+        vcov      = lavaan::vcov(fit),
+        coef      = lavaan::coef(fit)
       )
     }, error = function(e) {
-      list(loglik = NA, npar = NA, converged = FALSE)
+      list(loglik = NA, npar = NA, converged = FALSE,
+           vcov = NULL, coef = NULL)
+    })
+  })
+  names(results) <- names(models)
+  return(results)
+}
+
+
+#' Fit All Candidate + Saturated Models on Amputed Data via FIML
+#'
+#' Provides the observed-data vcov V_obs at the FIML MLE, which is the
+#' ingredient for the theoretical tr(RIV) reference:
+#' \code{tr(V_obs \%*\% solve(V_com)) - p}.
+#'
+#' @param data_miss Amputed data.frame (pre-imputation).
+#' @param models Named list of lavaan model syntaxes.
+#' @param pop_starts Optional named list of warm-start coefficient
+#'   vectors from \code{\link{compute_pop_starts}}.
+#' @return Named list; each element has \code{loglik}, \code{npar},
+#'   \code{converged}, \code{vcov}, \code{coef}.
+fit_observed <- function(data_miss, models, pop_starts = NULL) {
+  results <- lapply(names(models), function(mname) {
+    tryCatch({
+      start_val <- if (!is.null(pop_starts) && !is.null(pop_starts[[mname]])) {
+        pop_starts[[mname]]
+      } else {
+        "default"
+      }
+      fit <- lavaan::sem(
+        model         = models[[mname]],
+        data          = data_miss,
+        missing       = "fiml",
+        meanstructure = TRUE,
+        estimator     = "ML",
+        se            = "standard",
+        test          = "standard",
+        start         = start_val,
+        warn          = FALSE
+      )
+      list(
+        loglik    = as.numeric(lavaan::logLik(fit)),
+        npar      = lavaan::fitmeasures(fit, "npar"),
+        converged = lavaan::lavInspect(fit, "converged"),
+        vcov      = lavaan::vcov(fit),
+        coef      = lavaan::coef(fit)
+      )
+    }, error = function(e) {
+      list(loglik = NA, npar = NA, converged = FALSE,
+           vcov = NULL, coef = NULL)
     })
   })
   names(results) <- names(models)
@@ -55,13 +107,14 @@ fit_single_model_mi <- function(imputed_list, model_syntax, start_coefs = NULL) 
   fits <- lapply(seq_len(M), function(m) {
     tryCatch({
       fit <- lavaan::sem(
-        model     = model_syntax,
-        data      = imputed_list[[m]],
-        estimator = "ML",
-        se        = "standard",
-        test      = "standard",
-        start     = start_val,
-        warn      = FALSE
+        model         = model_syntax,
+        data          = imputed_list[[m]],
+        meanstructure = TRUE,
+        estimator     = "ML",
+        se            = "standard",
+        test          = "standard",
+        start         = start_val,
+        warn          = FALSE
       )
       list(
         coef      = lavaan::coef(fit),
@@ -194,12 +247,13 @@ eval_loglik_at_pooled <- function(imputed_list, model_syntax, theta_bar,
     if (!converged_flags[m]) return(NA_real_)
     tryCatch({
       fit_fixed <- lavaan::sem(
-        model  = partable_fixed,
-        data   = imputed_list[[m]],
-        do.fit = TRUE,
-        se     = "none",
-        test   = "standard",
-        warn   = FALSE
+        model         = partable_fixed,
+        data          = imputed_list[[m]],
+        meanstructure = TRUE,
+        do.fit        = TRUE,
+        se            = "none",
+        test          = "standard",
+        warn          = FALSE
       )
       as.numeric(lavaan::logLik(fit_fixed))
     }, error = function(e) {

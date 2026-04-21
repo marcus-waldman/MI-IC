@@ -23,13 +23,15 @@ compute_pop_starts <- function(sigma_pop, models, nobs_pop = 1e6) {
   pop_starts <- lapply(names(models), function(mname) {
     tryCatch({
       fit <- lavaan::sem(
-        model       = models[[mname]],
-        sample.cov  = sigma_pop,
-        sample.nobs = nobs_pop,
-        estimator   = "ML",
-        se          = "none",
-        test        = "standard",
-        warn        = FALSE
+        model         = models[[mname]],
+        sample.cov    = sigma_pop,
+        sample.mean   = rep(0, nrow(sigma_pop)),
+        sample.nobs   = nobs_pop,
+        meanstructure = TRUE,
+        estimator     = "ML",
+        se            = "none",
+        test          = "standard",
+        warn          = FALSE
       )
       if (!lavaan::lavInspect(fit, "converged")) return(NULL)
       lavaan::coef(fit)
