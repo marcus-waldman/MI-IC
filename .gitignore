@@ -53,6 +53,8 @@ claude/
 
 # HPC run artifacts (simulation outputs + SLURM log files)
 hpc/results/
+hpc/results-full/
+hpc/results-full-M100/
 hpc/*.log
 hpc/*.err
 hpc/*.rds
