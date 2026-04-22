@@ -53,8 +53,24 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
 
   mi_fits <- fit_mi_models(imputed_list, models_with_sat, config, pop_starts = pop_starts)
 
+  # Three-term bias decomposition: evaluate complete-data log-likelihood
+  # at theta_obs_fiml and at theta_pooled.  Together with the oracle
+  # ell_com(theta_com) (already in complete_fits) and Q_bar(theta_pooled)
+  # (in mi_fits$logliks_at_pooled), this lets us decompose the pooled-MI
+  # vs oracle bias into three per-replicate pieces:
+  #   Term 1 (Imputation) = Q_bar(theta_pooled) - ell_com(theta_pooled)
+  #   Term 2 (Pooling)    = ell_com(theta_pooled) - ell_com(theta_obs)
+  #   Term 3 (Estimation) = ell_com(theta_obs)    - ell_com(theta_com)
+  decomp_logliks <- compute_decomp_logliks(
+    complete_fits  = complete_fits,
+    observed_fits  = observed_fits,
+    mi_fits        = mi_fits,
+    data_complete  = data_complete
+  )
+
   # Deviances (all on -2 log-likelihood scale) for every model incl. Msat
-  dev_df <- compute_deviances(complete_fits, mi_fits, observed_fits, n)
+  dev_df <- compute_deviances(complete_fits, mi_fits, observed_fits, n,
+                              decomp_logliks = decomp_logliks)
 
   # Chi-squares (candidate models only) vs saturated reference; fills in
   # MR_DEVIANCE column of dev_df.
