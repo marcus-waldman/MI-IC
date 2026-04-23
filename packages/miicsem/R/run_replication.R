@@ -34,22 +34,43 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
   observed_fits <- fit_observed(data_miss, models_with_sat,
                                 pop_starts = pop_starts)
 
-  imp <- tryCatch({
-    mice::mice(
-      data_miss,
-      m         = config$M,
-      method    = config$mice_method,
-      maxit     = config$mice_maxit,
-      seed      = seed_impute,
-      printFlag = FALSE
-    )
-  }, error = function(e) NULL)
+  # Dispatch on imputation method.  "pmm" and "norm" go through mice;
+  # "mvn_msat" uses the congenial saturated-MVN imputer that matches the
+  # analysis model's multivariate normal family.
+  mice_method <- config$mice_method
+  if (is.null(mice_method)) mice_method <- "pmm"
 
-  if (is.null(imp)) return(NULL)
+  if (mice_method %in% c("pmm", "norm", "norm.predict", "norm.nob",
+                         "norm.boot")) {
+    imp <- tryCatch({
+      mice::mice(
+        data_miss,
+        m         = config$M,
+        method    = mice_method,
+        maxit     = config$mice_maxit,
+        seed      = seed_impute,
+        printFlag = FALSE
+      )
+    }, error = function(e) NULL)
 
-  imputed_list <- lapply(seq_len(config$M), function(m) {
-    mice::complete(imp, action = m)
-  })
+    if (is.null(imp)) return(NULL)
+
+    imputed_list <- lapply(seq_len(config$M), function(m) {
+      mice::complete(imp, action = m)
+    })
+  } else if (mice_method == "mvn_msat") {
+    imputed_list <- tryCatch({
+      impute_from_saturated_mvn(
+        data_miss = data_miss,
+        M         = config$M,
+        seed      = seed_impute,
+        var_names = config$var_names
+      )
+    }, error = function(e) NULL)
+    if (is.null(imputed_list)) return(NULL)
+  } else {
+    stop(sprintf("Unknown mice_method: '%s'", mice_method))
+  }
 
   mi_fits <- fit_mi_models(imputed_list, models_with_sat, config, pop_starts = pop_starts)
 

@@ -101,6 +101,7 @@ run_simulation <- function(n_reps           = 1000L,
                            sample_sizes     = c(100, 250, 500, 1000),
                            miss_rates       = c(0.10, 0.25, 0.40),
                            M                = 100L,
+                           mice_method      = "pmm",
                            results_dir      = NULL,
                            install_missing  = TRUE,
                            verbose          = TRUE) {
@@ -112,7 +113,8 @@ run_simulation <- function(n_reps           = 1000L,
     master_seed  = seed,
     sample_sizes = sample_sizes,
     miss_rates   = miss_rates,
-    M            = M
+    M            = M,
+    mice_method  = mice_method
   )
 
   if (!is.null(results_dir) && !dir.exists(results_dir)) {
