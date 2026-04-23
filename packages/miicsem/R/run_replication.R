@@ -68,6 +68,27 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
       )
     }, error = function(e) NULL)
     if (is.null(imputed_list)) return(NULL)
+  } else if (mice_method == "amelia") {
+    # Amelia's EMB: bootstrap the data, EM to get (mu*, Sigma*),
+    # draw Y_mis | Y_obs from the resulting joint MVN.  Proper MI with
+    # joint-coherent imputation model.
+    set.seed(seed_impute)
+    imp_obj <- tryCatch({
+      utils::capture.output({
+        a <- Amelia::amelia(
+          x     = data_miss,
+          m     = config$M,
+          p2s   = 0,
+          boot.type = "ordinary"
+        )
+      }, type = "message")
+      a
+    }, error = function(e) NULL)
+    if (is.null(imp_obj) || inherits(imp_obj, "try-error")) return(NULL)
+    # amelia returns NULLs in $imputations for any failed imputation
+    imputed_list <- imp_obj$imputations
+    imputed_list <- imputed_list[!vapply(imputed_list, is.null, logical(1))]
+    if (length(imputed_list) < 2) return(NULL)
   } else {
     stop(sprintf("Unknown mice_method: '%s'", mice_method))
   }

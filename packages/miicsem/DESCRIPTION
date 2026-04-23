@@ -1,6 +1,6 @@
 Package: miicsem
 Title: Simulation Framework for MI-AIC/MI-BIC Evaluation in SEM
-Version: 0.4.1
+Version: 0.4.2
 Authors@R: person(given = "Marcus R.",
                   family = "Waldman",
                   email = "marcus.waldman@cuanschutz.edu",
@@ -25,6 +25,7 @@ Imports:
     graphics,
     grDevices
 Suggests:
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    Amelia
 URL: https://github.com/marcus-waldman/MI-IC
 BugReports: https://github.com/marcus-waldman/MI-IC/issues
