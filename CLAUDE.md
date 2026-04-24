@@ -91,6 +91,13 @@ Both are **directly computable from standard MI output** (W and B matrices).
 ### Comparison to Existing Methods
 AICcd (Cavanaugh & Shumway) has penalty `2Q + 2tr(RIV)`. The difference arises because AICcd targets predictive performance at θ̂_obs, not replication of complete-data inference at θ̂_com.
 
+### Critical Assumption: Congeniality (verified 2026-04-23)
+The `+½tr(RIV)` bias result requires **congenial imputation**: the imputation model must contain the analysis model's parameter space. Empirically verified at N=250, mr=0.40, M=50:
+- **Amelia (congenial, joint MVN)**: r(Term 1) = +0.85 ≈ theory's +1 (n=1989)
+- **mice PMM (uncongenial, chained regressions)**: r(Term 1) = -0.39 (n=496, sign-flipped)
+
+See `claude/notes/2026-04-23-congeniality-finding.md` for the full comparison, formal tests, and implications. The v4 derivation is correct under its stated congeniality assumption; uncongenial MI (standard mice PMM in SEM contexts) needs a separate correction.
+
 ### Scope Decision: D_LR Connection
 Consentino & Claeskens (2010) built an AIC from Meng & Rubin's (1992) D_L statistic: `aic(S, S_0) = -D_S + 2p_S`. This is a direct comparator that uses D_L's scalar r_L correction vs. our multivariate tr(RIV). **Decision**: Include D_LR-based AIC as a simulation comparator (Section 4.4). Introduce D_L in background (Section 2.4). Compare correction approaches in theory (Section 3.7). Discuss empirical results in Section 6.2. Flag corrected LR *tests* (not IC) as future work in Section 6.5.
 
