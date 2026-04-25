@@ -72,14 +72,20 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
     # Amelia's EMB: bootstrap the data, EM to get (mu*, Sigma*),
     # draw Y_mis | Y_obs from the resulting joint MVN.  Proper MI with
     # joint-coherent imputation model.
+    #
+    # empri = 0.01 * n stabilizes EM at small N / high missingness via a
+    # ridge-equivalent inverse-Wishart prior (Honaker, King, Blackwell
+    # 2011, JSS 45(7), p.13).  Necessary at e.g. N=100, mr=0.40 where the
+    # bootstrap step can otherwise produce singular Sigma*.
     set.seed(seed_impute)
     imp_obj <- tryCatch({
       utils::capture.output({
         a <- Amelia::amelia(
-          x     = data_miss,
-          m     = config$M,
-          p2s   = 0,
-          boot.type = "ordinary"
+          x         = data_miss,
+          m         = config$M,
+          p2s       = 0,
+          boot.type = "ordinary",
+          empri     = 0.01 * nrow(data_miss)
         )
       }, type = "message")
       a
