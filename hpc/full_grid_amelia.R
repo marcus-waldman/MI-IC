@@ -1,17 +1,24 @@
 # ============================================================================
-# Full Study 2 Simulation, Amelia Backend (mirror of full_grid.R)
+# Scaled-Down Study 2 Simulation, Amelia Backend
 # ============================================================================
-# N x miss-rate grid: {100, 250, 500, 1000} x {0.10, 0.25, 0.40}
+# N x miss-rate grid: {100, 500, 1000} x {0.20, 0.40}    -> 6 conditions
 # Imputations:  M = 100
 # Replications: 2000 per condition
 # Imputation:   amelia (joint MVN, EMB, empri = 0.01 * N for stability)
 # Cores:        honors SLURM_CPUS_PER_TASK (100 under run_full_grid_amelia.sh)
-# Expected wall time: ~8-12 hours on 100 cores
+# Expected wall time: ~5-8 hours on 100 cores (half the original 12-cond grid)
 #
-# Design rationale: amelia is congenial with the analysis CFA family
-# (joint MVN nests every candidate model).  This run pairs with the
-# existing PMM grid (results-full-M100/) for the manuscript's
-# congenial-vs-uncongenial comparison.
+# Design rationale (vs. the original PMM grid):
+#   - N=250 dropped: the 2026-04-23 congeniality run already covered
+#     N=250 at M=50 with 2000 amelia reps and verified r_term1 ~ +0.85.
+#   - mr={0.10, 0.25} -> single mr=0.20: spans the low-RIV regime with
+#     one cell instead of two; mr=0.40 retained as the high-RIV anchor.
+#   - Net: 6 conditions instead of 12, no loss of qualitative coverage.
+#
+# Pairs with the existing PMM grid (results-full-M100/) for the
+# congenial-vs-uncongenial comparison.  Note: PMM's grid uses
+# mr={0.10, 0.25, 0.40}, so mr=0.20 is amelia-only; direct paired
+# comparisons available at mr=0.40 across N={100, 500, 1000}.
 # ============================================================================
 
 RESULTS_DIR   <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM/results-full-M100-amelia"
@@ -45,8 +52,8 @@ if (!dir.exists(RESULTS_DIR)) dir.create(RESULTS_DIR, recursive = TRUE)
 t0 <- proc.time()
 res <- run_simulation(
   n_reps       = 2000,
-  sample_sizes = c(100, 250, 500, 1000),
-  miss_rates   = c(0.10, 0.25, 0.40),
+  sample_sizes = c(100, 500, 1000),
+  miss_rates   = c(0.20, 0.40),
   M            = M_IMPUTATIONS,
   mice_method  = "amelia",
   results_dir  = RESULTS_DIR,

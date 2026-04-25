@@ -2,7 +2,7 @@
 #SBATCH --tasks=1
 #SBATCH --cpus-per-task=100
 #SBATCH --mem=100G
-#SBATCH --time=20:00:00
+#SBATCH --time=12:00:00
 #SBATCH --job-name=miicsem_amelia
 #SBATCH --output=miicsem_amelia_%j.log
 #SBATCH --error=miicsem_amelia_%j.err
@@ -12,13 +12,13 @@
 # MIICSEM FULL-GRID STUDY 2 SIMULATION (AMELIA BACKEND)
 # =============================================================================
 #
-# Purpose: full Study 2 grid using amelia joint-MVN imputation (congenial
-#          with the analysis CFA family).  Pairs with the existing PMM
-#          run (results-full-M100/) for the manuscript's congenial-vs-
-#          uncongenial comparison.
+# Purpose: scaled-down Study 2 grid using amelia joint-MVN imputation
+#          (congenial with the analysis CFA family).  Pairs with the
+#          existing PMM run (results-full-M100/) for the manuscript's
+#          congenial-vs-uncongenial comparison.
 #
-#          2000 replications x 12 conditions
-#          (N = 100, 250, 500, 1000 x missing = 10%, 25%, 40% MCAR)
+#          2000 replications x 6 conditions
+#          (N = 100, 500, 1000 x missing = 20%, 40% MCAR)
 #          M = 100 imputations
 #          Imputer: Amelia, EMB, empri = 0.01 * N
 #
@@ -31,8 +31,8 @@
 #        cd /biostats_share/waldmanm/simulation-studies/MI-IC/SeM
 #        sbatch run_full_grid_amelia.sh
 #
-# Expected wall time: ~8-12 hours on 100 cores.  Amelia's EMB is faster
-# per imputation than mice/PMM (no chained iterations).
+# Expected wall time: ~5-8 hours on 100 cores (6 conditions instead of
+# 12, plus amelia's EMB being faster per imputation than mice/PMM).
 # =============================================================================
 
 echo "=============================================="
