@@ -2,7 +2,7 @@
 #SBATCH --tasks=1
 #SBATCH --cpus-per-task=100
 #SBATCH --mem=100G
-#SBATCH --time=12:00:00
+#SBATCH --time=16:00:00
 #SBATCH --job-name=miicsem_amelia
 #SBATCH --output=miicsem_amelia_%j.log
 #SBATCH --error=miicsem_amelia_%j.err
@@ -12,15 +12,16 @@
 # MIICSEM FULL-GRID STUDY 2 SIMULATION (AMELIA BACKEND)
 # =============================================================================
 #
-# Purpose: scaled-down Study 2 grid using amelia joint-MVN imputation
-#          (congenial with the analysis CFA family).  Pairs with the
-#          existing PMM run (results-full-M100/) for the manuscript's
-#          congenial-vs-uncongenial comparison.
+# Purpose: amelia x empri sweep — congeniality dose-response.
+#          Same N x mr grid run twice with two empri levels:
+#            empri = 0.1 * N   (mostly congenial — modest stabilizer)
+#            empri = 100 * N   (severely uncongenial — diagonal prior
+#                               drowns out CFA structure)
 #
-#          2000 replications x 6 conditions
-#          (N = 100, 500, 1000 x missing = 20%, 40% MCAR)
+#          2000 replications x 6 conditions x 2 empri = 24 cells
+#          (N = 100, 500, 1000 x missing = 20%, 40% MCAR x empri sweep)
 #          M = 100 imputations
-#          Imputer: Amelia, EMB, empri = 0.01 * N
+#          Imputer: Amelia (joint MVN, EMB)
 #
 #          Writes per-condition and combined .rds files to:
 #            /biostats_share/waldmanm/simulation-studies/MI-IC/SeM/results-full-M100-amelia/
@@ -31,8 +32,8 @@
 #        cd /biostats_share/waldmanm/simulation-studies/MI-IC/SeM
 #        sbatch run_full_grid_amelia.sh
 #
-# Expected wall time: ~5-8 hours on 100 cores (6 conditions instead of
-# 12, plus amelia's EMB being faster per imputation than mice/PMM).
+# Expected wall time: ~10-13 hours on 100 cores (24 cells; back to the
+# original scale of the PMM grid since we doubled by adding empri).
 # =============================================================================
 
 echo "=============================================="

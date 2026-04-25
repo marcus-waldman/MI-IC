@@ -73,10 +73,17 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
     # draw Y_mis | Y_obs from the resulting joint MVN.  Proper MI with
     # joint-coherent imputation model.
     #
-    # empri = 0.01 * n stabilizes EM at small N / high missingness via a
-    # ridge-equivalent inverse-Wishart prior (Honaker, King, Blackwell
-    # 2011, JSS 45(7), p.13).  Necessary at e.g. N=100, mr=0.40 where the
-    # bootstrap step can otherwise produce singular Sigma*.
+    # empri = amelia_empri_frac * n_obs is an inverse-Wishart prior on
+    # Sigma centered at a diagonal matrix (Honaker, King, Blackwell 2011,
+    # JSS 45(7), p.13).  Small empri (e.g. 0.01*n) merely stabilizes EM
+    # at small N / high missingness; large empri (e.g. 100*n) shrinks
+    # the imputation Sigma toward independence, intentionally introducing
+    # uncongeniality with structured analysis models like CFA.  Used as
+    # a simulation factor to map the dose-response of congeniality on
+    # the bias decomposition.
+    empri_frac <- if (!is.null(config$amelia_empri_frac)) {
+      config$amelia_empri_frac
+    } else 0.01
     set.seed(seed_impute)
     imp_obj <- tryCatch({
       utils::capture.output({
@@ -85,7 +92,7 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
           m         = config$M,
           p2s       = 0,
           boot.type = "ordinary",
-          empri     = 0.01 * nrow(data_miss)
+          empri     = empri_frac * nrow(data_miss)
         )
       }, type = "message")
       a

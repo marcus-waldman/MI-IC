@@ -1,28 +1,41 @@
 # ============================================================================
-# Scaled-Down Study 2 Simulation, Amelia Backend
+# Study 2 Simulation: Amelia × empri Sweep (Congeniality Dose-Response)
 # ============================================================================
-# N x miss-rate grid: {100, 500, 1000} x {0.20, 0.40}    -> 6 conditions
+# Design (12 conditions per empri level x 2 empri levels = 24 cells):
+#   N           in {100, 500, 1000}
+#   miss_rate   in {0.20, 0.40}
+#   empri_frac  in {0.1, 100}     (multiplied by N to give Amelia's empri)
 # Imputations:  M = 100
 # Replications: 2000 per condition
-# Imputation:   amelia (joint MVN, EMB, empri = 0.01 * N for stability)
+# Imputer:      Amelia (joint MVN, EMB)
 # Cores:        honors SLURM_CPUS_PER_TASK (100 under run_full_grid_amelia.sh)
-# Expected wall time: ~5-8 hours on 100 cores (half the original 12-cond grid)
+# Expected wall time: ~10-12 hours on 100 cores
 #
-# Design rationale (vs. the original PMM grid):
-#   - N=250 dropped: the 2026-04-23 congeniality run already covered
-#     N=250 at M=50 with 2000 amelia reps and verified r_term1 ~ +0.85.
-#   - mr={0.10, 0.25} -> single mr=0.20: spans the low-RIV regime with
-#     one cell instead of two; mr=0.40 retained as the high-RIV anchor.
-#   - Net: 6 conditions instead of 12, no loss of qualitative coverage.
+# Why empri varies as a simulation factor:
+#   In Amelia, empri is the prior dof of an inverse-Wishart prior on
+#   Sigma centered at a DIAGONAL matrix.  Small empri (e.g. 0.1*N) merely
+#   stabilizes EM at small N / high missingness.  Large empri (e.g.
+#   100*N) drowns out the data and shrinks Sigma* toward independence,
+#   intentionally introducing UNCONGENIALITY with a structured analysis
+#   model like the 3-factor CFA.  This produces a continuous handle on
+#   congeniality within a single imputation framework — a much cleaner
+#   contrast than amelia-vs-PMM (which differ in many ways at once).
 #
-# Pairs with the existing PMM grid (results-full-M100/) for the
-# congenial-vs-uncongenial comparison.  Note: PMM's grid uses
-# mr={0.10, 0.25, 0.40}, so mr=0.20 is amelia-only; direct paired
-# comparisons available at mr=0.40 across N={100, 500, 1000}.
+# Predicted dose-response on Term 1 (Imputation Bias):
+#   empri = 0.1*N  (mostly congenial)   ->  r_term1 ~ +1
+#   empri = 100*N  (severely uncongenial) ->  r_term1 << 0  (sign-flipped)
+#
+# Output layout:
+#   results-amelia-empri0.1/<cond>.rds       12 conds x 2000 reps each
+#   results-amelia-empri100/<cond>.rds       12 conds x 2000 reps each
 # ============================================================================
 
-RESULTS_DIR   <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM/results-full-M100-amelia"
+EMPRI_LEVELS  <- c(0.1, 100)
 M_IMPUTATIONS <- 100L
+N_REPS        <- 2000L
+SAMPLE_SIZES  <- c(100, 500, 1000)
+MISS_RATES    <- c(0.20, 0.40)
+RESULTS_BASE  <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM"
 
 # 1. Install/refresh miicsem from GitHub
 if (!requireNamespace("devtools", quietly = TRUE)) {
@@ -39,62 +52,68 @@ devtools::install_github("marcus-waldman/MI-IC",
 
 library(miicsem)
 
-cat("=== miicsem full-grid simulation (AMELIA backend) ===\n")
+cat("=== miicsem amelia x empri sweep ===\n")
 cat(sprintf("miicsem version: %s\n", as.character(packageVersion("miicsem"))))
 cat(sprintf("Amelia version : %s\n", as.character(packageVersion("Amelia"))))
-cat(sprintf("Results directory: %s\n", RESULTS_DIR))
 cat(sprintf("SLURM cpus-per-task: %s\n",
             Sys.getenv("SLURM_CPUS_PER_TASK", unset = "<unset>")))
 cat(sprintf("default_n_cores()  : %d\n\n", default_n_cores()))
 
-if (!dir.exists(RESULTS_DIR)) dir.create(RESULTS_DIR, recursive = TRUE)
+overall_t0 <- proc.time()
 
-t0 <- proc.time()
-res <- run_simulation(
-  n_reps       = 2000,
-  sample_sizes = c(100, 500, 1000),
-  miss_rates   = c(0.20, 0.40),
-  M            = M_IMPUTATIONS,
-  mice_method  = "amelia",
-  results_dir  = RESULTS_DIR,
-  verbose      = TRUE
-)
-elapsed <- (proc.time() - t0)[3]
+for (efrac in EMPRI_LEVELS) {
+  results_dir <- file.path(
+    RESULTS_BASE,
+    sprintf("results-amelia-empri%s", format(efrac, nsmall = 0, trim = TRUE))
+  )
+  cat("\n##########################################################\n")
+  cat(sprintf("###  empri = %g * N    -> %s\n", efrac, results_dir))
+  cat("##########################################################\n")
+  if (!dir.exists(results_dir)) dir.create(results_dir, recursive = TRUE)
 
-cat(sprintf("\nTotal wall time: %.1f seconds (%.2f hours)\n",
-            elapsed, elapsed / 3600))
+  t0 <- proc.time()
+  res <- run_simulation(
+    n_reps            = N_REPS,
+    sample_sizes      = SAMPLE_SIZES,
+    miss_rates        = MISS_RATES,
+    M                 = M_IMPUTATIONS,
+    mice_method       = "amelia",
+    amelia_empri_frac = efrac,
+    results_dir       = results_dir,
+    verbose           = TRUE
+  )
+  el <- (proc.time() - t0)[3]
+  cat(sprintf("\n[empri=%g*N] wall time: %.1fs (%.2fh)\n",
+              efrac, el, el / 3600))
 
-# 3. Quick summary
-cat("\n=== Conditions completed ===\n")
-for (cond_label in names(res)) {
-  n_ok <- sum(!vapply(res[[cond_label]], is.null, logical(1)))
-  cat(sprintf("  %-20s: %d/%d reps succeeded\n",
-              cond_label, n_ok, length(res[[cond_label]])))
-}
-
-# 4. Decomposition T1/T3 means for M1 (sanity check)
-cat("\n=== Three-term decomp for M1 across conditions (log-lik scale) ===\n")
-cat(sprintf("  %-14s  %8s  %8s  %8s  %8s\n",
-            "condition", "tr(RIV)", "T1", "T3", "T1/tr(RIV)"))
-for (cond_label in names(res)) {
-  rows <- lapply(res[[cond_label]], function(r) {
-    if (is.null(r) || is.null(r$dev_df)) return(NULL)
-    d <- r$dev_df["M1", ]
-    if (any(is.na(c(d$loglik_com_at_com, d$loglik_com_at_pooled,
-                    d$mean_loglik_at_pooled)))) return(NULL)
-    data.frame(
-      tr_RIV = d$tr_RIV,
-      t1     = d$mean_loglik_at_pooled - d$loglik_com_at_pooled,
-      t3     = d$loglik_com_at_obs    - d$loglik_com_at_com
-    )
-  })
-  df <- do.call(rbind, rows)
-  if (!is.null(df) && nrow(df) > 0) {
-    r1 <- mean(df$t1) / mean(df$tr_RIV)
-    cat(sprintf("  %-14s  %8.3f  %+8.3f  %+8.3f  %+8.3f\n",
-                cond_label, mean(df$tr_RIV), mean(df$t1), mean(df$t3), r1))
+  # Per-empri Term 1 summary across the 6 cells
+  cat(sprintf("\n=== Term 1 summary by condition (empri = %g * N) ===\n", efrac))
+  cat(sprintf("  %-14s  %8s  %8s  %8s  %10s\n",
+              "condition", "n_reps", "tr(RIV)", "T1", "r_term1"))
+  for (cond_label in names(res)) {
+    rows <- lapply(res[[cond_label]], function(r) {
+      if (is.null(r) || is.null(r$dev_df)) return(NULL)
+      d <- r$dev_df["M1", ]
+      if (any(is.na(c(d$loglik_com_at_pooled,
+                      d$mean_loglik_at_pooled, d$tr_RIV)))) return(NULL)
+      data.frame(
+        tr_RIV = d$tr_RIV,
+        t1     = d$mean_loglik_at_pooled - d$loglik_com_at_pooled
+      )
+    })
+    df <- do.call(rbind, rows)
+    if (!is.null(df) && nrow(df) > 0) {
+      cat(sprintf("  %-14s  %8d  %8.3f  %+8.3f  %+10.3f\n",
+                  cond_label, nrow(df),
+                  mean(df$tr_RIV), mean(df$t1),
+                  mean(df$t1) / mean(df$tr_RIV)))
+    }
   }
 }
 
-cat(sprintf("\nResults written to %s\n", RESULTS_DIR))
-cat("\n=== Full grid (amelia) simulation complete ===\n")
+total_el <- (proc.time() - overall_t0)[3]
+cat(sprintf("\n\n======================================================\n"))
+cat(sprintf("  All empri levels complete.\n"))
+cat(sprintf("  Total wall time: %.1fs (%.2fh)\n",
+            total_el, total_el / 3600))
+cat(sprintf("======================================================\n"))

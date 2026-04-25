@@ -95,26 +95,28 @@ generate_seeds <- function(master_seed, n_reps) {
 #'                       results_dir = "results/")
 #' }
 #' @export
-run_simulation <- function(n_reps           = 1000L,
-                           n_cores          = default_n_cores(),
-                           seed             = 32897891L,
-                           sample_sizes     = c(100, 250, 500, 1000),
-                           miss_rates       = c(0.10, 0.25, 0.40),
-                           M                = 100L,
-                           mice_method      = "pmm",
-                           results_dir      = NULL,
-                           install_missing  = TRUE,
-                           verbose          = TRUE) {
+run_simulation <- function(n_reps              = 1000L,
+                           n_cores             = default_n_cores(),
+                           seed                = 32897891L,
+                           sample_sizes        = c(100, 250, 500, 1000),
+                           miss_rates          = c(0.10, 0.25, 0.40),
+                           M                   = 100L,
+                           mice_method         = "pmm",
+                           amelia_empri_frac   = 0.01,
+                           results_dir         = NULL,
+                           install_missing     = TRUE,
+                           verbose             = TRUE) {
 
   ensure_required_packages(install = install_missing, verbose = verbose)
 
   config <- get_config(
-    n_reps       = n_reps,
-    master_seed  = seed,
-    sample_sizes = sample_sizes,
-    miss_rates   = miss_rates,
-    M            = M,
-    mice_method  = mice_method
+    n_reps            = n_reps,
+    master_seed       = seed,
+    sample_sizes      = sample_sizes,
+    miss_rates        = miss_rates,
+    M                 = M,
+    mice_method       = mice_method,
+    amelia_empri_frac = amelia_empri_frac
   )
 
   if (!is.null(results_dir) && !dir.exists(results_dir)) {

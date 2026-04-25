@@ -16,15 +16,17 @@ get_config <- function(n_reps = 1000L,
                        sample_sizes = c(100, 250, 500, 1000),
                        miss_rates = c(0.10, 0.25, 0.40),
                        M = 100L,
-                       mice_method = "pmm") {
+                       mice_method = "pmm",
+                       amelia_empri_frac = 0.01) {
   list(
     sample_sizes = sample_sizes,
     miss_rates   = miss_rates,
     miss_mech    = "MCAR",
 
-    M           = as.integer(M),
-    mice_method = mice_method,
-    mice_maxit  = 10L,
+    M                 = as.integer(M),
+    mice_method       = mice_method,
+    mice_maxit        = 10L,
+    amelia_empri_frac = amelia_empri_frac,
 
     n_reps      = as.integer(n_reps),
     master_seed = as.integer(master_seed),
