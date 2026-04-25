@@ -22,7 +22,7 @@
 ensure_required_packages <- function(install = TRUE,
                                      repos  = "https://cloud.r-project.org",
                                      verbose = TRUE) {
-  required <- c("lavaan", "mice", "MASS", "SeedMaker", "pbapply")
+  required <- c("lavaan", "mice", "Amelia", "MASS", "SeedMaker", "pbapply")
 
   missing_pkgs <- required[!vapply(required, requireNamespace,
                                    logical(1), quietly = TRUE)]

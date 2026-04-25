@@ -37,18 +37,17 @@ SAMPLE_SIZES  <- c(100, 500, 1000)
 MISS_RATES    <- c(0.20, 0.40)
 RESULTS_BASE  <- "/biostats_share/waldmanm/simulation-studies/MI-IC/SeM"
 
-# 1. Install/refresh miicsem from GitHub
+# 1. Install/refresh miicsem from GitHub.  As of miicsem 0.5.1, Amelia
+# is in Imports, so install_github will pull it automatically.
 if (!requireNamespace("devtools", quietly = TRUE)) {
   install.packages("devtools", repos = "https://cloud.r-project.org")
 }
-if (!requireNamespace("Amelia", quietly = TRUE)) {
-  install.packages("Amelia", repos = "https://cloud.r-project.org")
-}
 devtools::install_github("marcus-waldman/MI-IC",
-                         subdir  = "packages/miicsem",
-                         upgrade = "never",
-                         force   = TRUE,
-                         quiet   = TRUE)
+                         subdir       = "packages/miicsem",
+                         upgrade      = "never",
+                         force        = TRUE,
+                         dependencies = TRUE,
+                         quiet        = TRUE)
 
 library(miicsem)
 
