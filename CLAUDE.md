@@ -98,6 +98,19 @@ The `+½tr(RIV)` bias result requires **congenial imputation**: the imputation m
 
 See `claude/notes/2026-04-23-congeniality-finding.md` for the full comparison, formal tests, and implications. The v4 derivation is correct under its stated congeniality assumption; uncongenial MI (standard mice PMM in SEM contexts) needs a separate correction.
 
+### Manuscript Reframe: Chi-Square Recalibration (2026-04-26)
+The bias correction's value-add is **NOT** model selection (where MI-AIC and AIC_adhoc give nearly identical % selecting M1, ~75% oracle agreement under both amelia and PMM). It is the **SEM goodness-of-fit chi-square test**.
+
+At N=250, mr=0.40, M=50, true model M1 (df=22), Type I error at α=0.05:
+- **chi2_adhoc**: 21% (4× nominal) — **standard practice**
+- **chi2_MI**: 9.8% (with our bias correction)
+- **chi2_D3** (Meng-Rubin): 14.8%
+- **chi2_com** (oracle): 6.4%
+
+MI bias correction fixes the **first moment** (E[chi2_MI] = 22.9 ≈ df=22, vs E[chi2_adhoc] = 27.9). Residual Type I inflation (10% vs 5%) is from **second-moment** inflation due to finite M (Var[chi2_MI] = 63 vs Var[chi2_com] = 49). Wishart correction does NOT help here — applying it under-shoots the mean.
+
+See `claude/notes/2026-04-26-chisquare-recalibration.md`. Open work: derive Satorra-Bentler-style finite-M variance correction.
+
 ### Scope Decision: D_LR Connection
 Consentino & Claeskens (2010) built an AIC from Meng & Rubin's (1992) D_L statistic: `aic(S, S_0) = -D_S + 2p_S`. This is a direct comparator that uses D_L's scalar r_L correction vs. our multivariate tr(RIV). **Decision**: Include D_LR-based AIC as a simulation comparator (Section 4.4). Introduce D_L in background (Section 2.4). Compare correction approaches in theory (Section 3.7). Discuss empirical results in Section 6.2. Flag corrected LR *tests* (not IC) as future work in Section 6.5.
 

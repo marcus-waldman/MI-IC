@@ -68,6 +68,20 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
       )
     }, error = function(e) NULL)
     if (is.null(imputed_list)) return(NULL)
+  } else if (mice_method == "mvn_M1") {
+    # True-model imputation: fit M1 (the analysis CFA) via FIML on
+    # the amputed data, draw Y_mis | Y_obs from M1's *implied* MVN.
+    # Strictest possible congenial imputation: imputation parameter
+    # space = analysis parameter space (no saturated slack).
+    imputed_list <- tryCatch({
+      impute_from_M1_mvn(
+        data_miss = data_miss,
+        M         = config$M,
+        seed      = seed_impute,
+        var_names = config$var_names
+      )
+    }, error = function(e) NULL)
+    if (is.null(imputed_list)) return(NULL)
   } else if (mice_method == "amelia") {
     # Amelia's EMB: bootstrap the data, EM to get (mu*, Sigma*),
     # draw Y_mis | Y_obs from the resulting joint MVN.  Proper MI with
