@@ -17,6 +17,7 @@ format:
 | v4 | 2025-01-11 | Notation cleanup: Use $\tilde{\phi}$ for imputation model parameters and $\theta$ for analysis model parameters to eliminate ambiguity. Addresses GitHub issue #2. |
 | v4.1 | 2026-03-17 | Fixed Term 1 derivation: replaced incorrect Gibbs' inequality cancellation (Step 6) with correct second-order joint Taylor expansion. The quantity $\mathbb{E}[\ell \cdot S]$ is not zero in general; the result $\text{Term 1} = \text{tr}(\text{RIV})$ holds to leading order because two compensating terms cancel at $O(1)$. Also broadened score-function identity from exponential family to general regularity conditions. Added Rubin's rules approximation note in Section 7. |
 | v4.2 | 2026-04-26 | Added Section 10 on finite-$N$ corrections (Bartlett scaling for the ML chi-square statistic and Wishart scaling for inverse-Hessian variance estimates that enter $\text{tr}(\text{RIV})$). Both are well-established in the multivariate analysis literature; this section makes the connection to the leading-order $+\tfrac{1}{2}\text{tr}(\text{RIV})$ result explicit. Added Section 11 on limitations: under standard MI workflows where the imputation model has more free parameters than the analysis model (e.g.\ Amelia's saturated MVN imputation, mice PMM's chained equations), an additional chi-square inflation arises from the imputation-vs-analysis "flexibility gap" that is not captured by the v4 framework. Documented as future work. |
+| v4.3 | 2026-04-28 | **Scope decision**: this paper assumes throughout that imputation is performed from the saturated joint distribution of the observed variables (the SEM tradition; Amelia/jomo/blimp's joint MVN, mice's saturated FCS). Truly congenial imputation matching the analysis model exactly, and informative-prior imputation, are out of scope. Under this scope: (1) added Section 1.5 stating the scope; (2) added Section 10.0 with the algebraic identity $\chi^2_{\text{adhoc}} - \chi^2_{\text{MI}} \to 2[\text{tr(RIV)}_{M_\text{sat}} - \text{tr(RIV)}_{M_1}]$ at large $M$; (3) reframed Section 10.2 (Wishart) as a universal small finite-$N$ correction rather than a regime-dependent one; (4) replaced Section 11's "flexibility-gap third correction" framing with the empirical verification that the existing $\text{tr(RIV)}$ correction handles the first moment, plus a new open question on finite-$M$ second-moment scaling. The companion derivation `claude/derivations/flexibility_gap_derivation_v0.qmd` documents the empirical verification across PMM (13 cells, 2026-04-26) and Amelia with `empri = 0` (3 cells, 2026-04-28). |
 
 ---
 
@@ -31,6 +32,25 @@ $$\text{AIC}_{com} = -2\ell_{com}(\hat{\theta}_{com}) + 2Q$$
 where $\hat{\theta}_{com}$ is the MLE we would have obtained by maximizing the complete-data log-likelihood, and $Q$ is the number of parameters.
 
 The challenge: we cannot compute $\text{AIC}_{com}$ because $Y^{mis}$ is unobserved. Instead, we use multiple imputation to approximate the complete-data log-likelihood. The question is: **what penalty correction is needed for the resulting criterion to be unbiased for $\text{AIC}_{com}$?**
+
+## Scope: Imputation in the SEM Tradition {.unnumbered}
+
+::: {.callout-important}
+## Scope assumption (v4.3)
+Throughout this paper we assume imputation is performed from the **saturated joint distribution of the observed variables** — the standard SEM tradition. Concretely:
+
+- Amelia/jomo/blimp's joint multivariate-normal imputation with no informative prior on $\Sigma$;
+- `mice` with `method = "pmm"` or `"norm"` (chained-equations regressions whose effective conditional structure is saturated under MCAR/MAR Gaussian data).
+
+Under this scope, every structured analysis model $M$ is **nested in the imputation parameter space**: $\Theta_M \subseteq \Phi_{\text{imp}}$. The saturated reference $M_{\text{sat}}$ used by lavaan in chi-square testing satisfies $\Theta_{M_{\text{sat}}} = \Phi_{\text{imp}}$.
+
+**Out of scope:**
+
+- *Truly congenial imputation* — imputing from the analysis model itself (e.g., fitting M1 via FIML and drawing $Y^{\text{mis}}$ from the M1-implied conditional). Empirically this regime introduces rank-deficient over-fit noise into $\operatorname{tr}(\text{RIV})_{M_{\text{sat}}}$ that the v4 framework does not address.
+- *Informative-prior imputation* — Amelia with `empri > 0` (a ridge-style prior on $\Sigma$). Empirically this damps imputation noise in $\Theta_{M_{\text{sat}}} \setminus \Theta_M$ by a multiplicative factor proportional to prior strength, breaking the v4 first-moment calibration.
+
+Both out-of-scope cases are discussed in `claude/derivations/flexibility_gap_derivation_v0.qmd` and `claude/notes/2026-04-26-chisquare-recalibration.md`. They are not the standard applied SEM workflow and are deferred.
+:::
 
 ## Data Structure
 
@@ -996,11 +1016,159 @@ The factor $(1 + 1/M)$ accounts for finite $M$. As $M \to \infty$, this converge
 
 ---
 
+# Application: SEM Goodness-of-Fit Chi-Square Test Under MI
+
+The headline practical contribution of this paper is the **MI bias-corrected chi-square test** for SEM goodness-of-fit. Standard practice averages chi-square statistics across imputations (or, equivalently, takes the ad-hoc difference of pooled deviances at own MLEs) — and this practice produces **systematically inflated Type I error** under the missing-data + MI workflow standard in applied SEM. This section derives the bias-corrected $\chi^2_{\text{MI}}$ statistic, shows it is calibrated in mean to the oracle $\chi^2_{\text{com}}$, and identifies the residual second-moment issue as the open finite-$M$ correction.
+
+## Three Chi-Square Statistics
+
+Let $M$ denote the candidate analysis model with $p_M$ free parameters and let $M_{\text{sat}}$ denote the saturated reference (lavaan's `unstructured` model with $p_{M_{\text{sat}}} = q + q(q{+}1)/2$ for $q$ continuous indicators). Define $\mathrm{df}_M = p_{M_{\text{sat}}} - p_M$.
+
+The three statistics in play:
+
+$$\begin{aligned}
+\chi^2_{\text{com}}(M) &= \operatorname{DEV}_{\text{com}}(M) - \operatorname{DEV}_{\text{com}}(M_{\text{sat}}) \quad \text{(oracle: complete-data ML chi-square)}\\
+\chi^2_{\text{adhoc}}(M) &= \overline{\operatorname{DEV}}_{\text{adhoc}}(M) - \overline{\operatorname{DEV}}_{\text{adhoc}}(M_{\text{sat}}) \quad \text{(standard MI practice)}\\
+\chi^2_{\text{MI}}(M) &= \operatorname{MI\_DEV}(M) - \operatorname{MI\_DEV}(M_{\text{sat}}) \quad \text{(this paper's correction)}
+\end{aligned}$$
+
+with $\operatorname{MI\_DEV}(M) = -2\bar Q_M(\bar\theta_M) + \operatorname{tr}(\text{RIV}_M)$ and $\overline{\operatorname{DEV}}_{\text{adhoc}}(M) = -2\,\bar\ell(\hat\theta_m^{(m)})$ (per-imputation own-MLE average).
+
+## Algebraic Identity Linking $\chi^2_{\text{adhoc}}$ and $\chi^2_{\text{MI}}$ at Large $M$
+
+Before any congeniality argument, an exact (large-$M$) algebraic identity links the two MI chi-squares. It holds for **any** model and **any** imputation method satisfying mild regularity (existence of within-imputation Fisher information $W^{-1}$ and between-imputation covariance $B$).
+
+::: {.callout-tip}
+## Lemma (Rubin's pool-vs-own-MLE identity)
+For any candidate model $M$,
+$$\overline{\operatorname{DEV}}_{\text{adhoc}}(M) - \bigl[-2\bar Q_M(\bar\theta_M)\bigr] = -\frac{M-1}{M+1} \operatorname{tr}(\text{RIV}_M) \xrightarrow[M \to \infty]{} -\operatorname{tr}(\text{RIV}_M).$$
+:::
+
+::: {.callout-note}
+## Proof
+A second-order Taylor expansion of $\ell_m$ around $\bar\theta_M$ gives
+$$\ell_m(\hat\theta_m^{(m)}) - \ell_m(\bar\theta_M) = \tfrac{1}{2}(\hat\theta_m - \bar\theta)^T \widehat{W}_m^{-1}(\hat\theta_m - \bar\theta) + O_p(N^{-1/2}),$$
+since $\nabla \ell_m(\hat\theta_m) = 0$. Averaging over $m$,
+$$\bar\ell_M(\hat\theta_m^{(m)}) - \bar\ell_M(\bar\theta_M) = \tfrac{1}{2}\,\overline{(\hat\theta_m - \bar\theta)^T W^{-1}(\hat\theta_m - \bar\theta)} = \tfrac{1}{2} \cdot \tfrac{M-1}{M} \operatorname{tr}(W^{-1} B).$$
+Using $\operatorname{tr}(\text{RIV}_M) = (1 + 1/M) \operatorname{tr}(W^{-1} B) = \tfrac{M+1}{M} \operatorname{tr}(W^{-1} B)$,
+$$\bar\ell_M(\hat\theta_m^{(m)}) - \bar\ell_M(\bar\theta_M) = \tfrac{1}{2} \cdot \tfrac{M-1}{M+1} \operatorname{tr}(\text{RIV}_M) \xrightarrow[M \to \infty]{} \tfrac{1}{2}\operatorname{tr}(\text{RIV}_M).$$
+Multiplying by $-2$ yields the lemma.
+:::
+
+Subtracting the lemma for $M$ from the same identity for $M_{\text{sat}}$ — and recalling that $\operatorname{MI\_DEV}(M)$ adds the further $+\operatorname{tr}(\text{RIV}_M)$ correction — gives the **factor-of-two identity**:
+
+$$\boxed{\;\chi^2_{\text{adhoc}}(M) - \chi^2_{\text{MI}}(M) \;\xrightarrow[M\to\infty]{}\; 2\,\bigl[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_{M}\bigr]\;}\tag{$\star$}$$
+
+The factor of 2 has two distinct origins, both algebraic:
+
+- the difference between $\overline{\operatorname{DEV}}_{\text{adhoc}}$ and $-2\bar Q_M(\bar\theta_M)$ contributes one $\operatorname{tr}(\text{RIV}_M)$ per model (the lemma);
+- the explicit MI bias correction $+\operatorname{tr}(\text{RIV}_M)$ inside $\operatorname{MI\_DEV}$ contributes a second.
+
+**The identity ($\star$) is purely algebraic.** It does not depend on imputation method or on whether $\Theta \subseteq \Phi$.
+
+## First-Moment Calibration of $\chi^2_{\text{MI}}$ Under Saturated Imputation
+
+Under this paper's scope (Section 1.5 — saturated imputation), the v4 first-moment result $\mathbb{E}[\operatorname{MI\_DEV}(M)] = \mathbb{E}[\operatorname{DEV}_{\text{com}}(M)] + O(N^{-1})$ holds for both the candidate $M$ and the saturated reference $M_{\text{sat}}$ (modulo the deductive step of generalizing Section 4 from $\Theta = \Phi$ to $\Theta \subseteq \Phi$ — see Limitations). Differencing gives
+$$\mathbb{E}\bigl[\chi^2_{\text{MI}}(M)\bigr] = \mathbb{E}\bigl[\chi^2_{\text{com}}(M)\bigr] + O(N^{-1}).$$
+Combined with ($\star$), the inflation of $\chi^2_{\text{adhoc}}$ over oracle is exactly
+$$\Delta(M) \equiv \mathbb{E}\bigl[\chi^2_{\text{adhoc}}(M)\bigr] - \mathbb{E}\bigl[\chi^2_{\text{com}}(M)\bigr] = 2\,\bigl[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_M\bigr] + O(N^{-1}).$$
+
+## Empirical Verification
+
+The mean-calibration claim has been verified across two independent imputation regimes (`claude/derivations/flexibility_gap_derivation_v0.qmd`):
+
+| Regime | Cells | $|\Delta_{\text{emp}} - \Delta_{\text{pred}}|$ | Verdict |
+|---|---|---|---|
+| PMM, $M=100$, $N \in \{100, 250, 500, 1000\}$, $\mathrm{mr} \in \{0.10, 0.25, 0.40\}$ | 13 | 0.01–0.22 | PASS within MC SE |
+| Amelia, `empri = 0`, $N=500$, $\mathrm{mr} \in \{0.10, 0.25, 0.40\}$, $M=50$ | 3 | 0.01–0.08 | PASS within MC SE |
+| Amelia, `empri = 0.01·N` | (out of scope per Section 1.5) | — | ratio ≈ 0.78 (prior damps imputation noise) |
+
+Sample numbers at $N=500$, mr=0.40, the Bollen 3-factor CFA ($\mathrm{df} = 22$):
+
+```
+Method          chi2_com   chi2_adhoc   chi2_MI    Δ_emp    Δ_pred
+PMM-M100         22.18       27.12       22.20      4.94      4.96
+amelia-empri0    21.41       26.46       21.49      5.05      5.06
+```
+
+## Open: Type I Error Despite Calibrated Mean
+
+Even with $\mathbb{E}[\chi^2_{\text{MI}}] \approx \mathbb{E}[\chi^2_{\text{com}}]$, empirical Type I error at $\alpha = 0.05$ runs 9.8–11.1% (vs. nominal 5%) under PMM and Amelia at $N \in \{250, 500, 1000\}$, $M = 50$. This is a **second-moment** problem: $\operatorname{Var}[\chi^2_{\text{MI}}] \approx 63$ vs. target $2\,\mathrm{df} = 44$ at $M = 50$. The principled fix is a Satorra–Bentler-style multiplicative scalar $k(M, p_M, p_{M_{\text{sat}}})$ chosen so $k \cdot \mathbb{E}[\chi^2_{\text{MI}}] = \mathrm{df}$ and $k^2 \cdot \operatorname{Var}[\chi^2_{\text{MI}}] = 2\,\mathrm{df}$. Closed-form derivation of $k$ is open (see Section 11).
+
+---
+
+# Application: Comparative Fit Index (CFI) Under MI
+
+The chi-square test answers a single binary question (does $M$ fit perfectly?). Applied SEM additionally relies on **fit indices** that quantify *degree* of fit. The most widely cited is the Bentler (1990) Comparative Fit Index (CFI):
+
+$$\text{CFI}(M) = 1 - \frac{\max\bigl(\chi^2(M) - \mathrm{df}_M,\, 0\bigr)}{\max\bigl(\chi^2(M) - \mathrm{df}_M,\, \chi^2(M_0) - \mathrm{df}_0,\, 0\bigr)}$$
+
+where $M_0$ is the **null** (independence) model — uncorrelated indicators with free variances and means, $p_{M_0} = 2q$, $\mathrm{df}_0 = q(q-1)/2$. CFI is interpreted as the proportion of the discrepancy from the null model that the candidate model "explains," and is bounded in $[0, 1]$ with conventional cutoffs CFI ≥ 0.95 indicating good fit.
+
+## Three CFI Variants
+
+Substituting each chi-square variant into the CFI formula yields:
+
+$$\begin{aligned}
+\text{CFI}_{\text{com}}(M) &= 1 - \frac{\max\bigl(\chi^2_{\text{com}}(M) - \mathrm{df}_M,\,0\bigr)}{\max\bigl(\chi^2_{\text{com}}(M) - \mathrm{df}_M,\,\chi^2_{\text{com}}(M_0) - \mathrm{df}_0,\,0\bigr)} \\[4pt]
+\text{CFI}_{\text{adhoc}}(M) &= 1 - \frac{\max\bigl(\chi^2_{\text{adhoc}}(M) - \mathrm{df}_M,\,0\bigr)}{\max\bigl(\chi^2_{\text{adhoc}}(M) - \mathrm{df}_M,\,\chi^2_{\text{adhoc}}(M_0) - \mathrm{df}_0,\,0\bigr)} \\[4pt]
+\text{CFI}_{\text{MI}}(M) &= 1 - \frac{\max\bigl(\chi^2_{\text{MI}}(M) - \mathrm{df}_M,\,0\bigr)}{\max\bigl(\chi^2_{\text{MI}}(M) - \mathrm{df}_M,\,\chi^2_{\text{MI}}(M_0) - \mathrm{df}_0,\,0\bigr)}
+\end{aligned}$$
+
+Both $\chi^2_{\text{adhoc}}$ and $\chi^2_{\text{MI}}$ rely on per-imputation lavaan fits to the candidate $M$ and to the **null/independence** model $M_0$ in addition to the saturated reference $M_{\text{sat}}$. Under our scope (saturated imputation), all three nest in the imputation manifold: $\Theta_{M_0} \subset \Theta_M \subseteq \Phi_{\text{imp}} = \Theta_{M_{\text{sat}}}$.
+
+## Bias of CFI_adhoc
+
+Substituting the inflation $\Delta(M) = 2[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_M]$ from ($\star$) into both numerator and denominator:
+
+$$\mathbb{E}[\chi^2_{\text{adhoc}}(M)] - \mathrm{df}_M \;=\; \mathbb{E}[\chi^2_{\text{com}}(M)] - \mathrm{df}_M + \Delta(M).$$
+
+For a **correctly specified** $M$, $\mathbb{E}[\chi^2_{\text{com}}(M)] - \mathrm{df}_M \approx 0$, so the per-rep ad-hoc numerator $\chi^2_{\text{adhoc}}(M) - \mathrm{df}_M$ is shifted right by $\Delta(M) > 0$ relative to the oracle. The null discrepancy is typically large ($\sim 10^3$ for the Bollen design vs. $\Delta(M) \sim 5$), so to leading order $\text{CFI}_{\text{adhoc}}$ is biased **downward** by approximately
+$$\text{CFI}_{\text{com}} - \text{CFI}_{\text{adhoc}} \;\approx\; \frac{\mathbb{E}[\max(a_{\text{com}} + \Delta(M), 0)] - \mathbb{E}[\max(a_{\text{com}}, 0)]}{\mathbb{E}[\chi^2_{\text{com}}(M_0)] - \mathrm{df}_0},$$
+where $a_{\text{com}} \equiv \chi^2_{\text{com}}(M) - \mathrm{df}_M \sim$ chi-squared-centered ($\mathbb{E}[a_{\text{com}}] = 0$ for correct $M$, $\operatorname{Var}[a_{\text{com}}] \approx 2\,\mathrm{df}_M$).
+
+The $\max(\cdot, 0)$ truncation in the CFI formula means the per-rep numerator difference is **not** simply $\Delta(M)$: in roughly half the reps $a_{\text{com}}$ is negative and the oracle CFI numerator truncates to 0, while the inflated $a_{\text{com}} + \Delta(M)$ does not. For $a_{\text{com}} \sim N(0, \sigma^2)$ with $\sigma \approx \sqrt{2\,\mathrm{df}_M}$, the truncated mean difference evaluates to
+$$\mathbb{E}[\max(a_{\text{com}} + \Delta, 0)] - \mathbb{E}[\max(a_{\text{com}}, 0)] = \Delta\,\Phi(\Delta/\sigma) + \sigma\bigl[\phi(\Delta/\sigma) - \phi(0)\bigr],$$
+which at $\mathrm{df}_M = 22$ ($\sigma \approx 6.63$) and $\Delta = 5$ gives ≈ $0.65\,\Delta$, not $\Delta$. The naive prediction $\Delta(M) / [\chi^2_{\text{com}}(M_0) - \mathrm{df}_0]$ therefore **over-states the CFI bias by a factor $\approx 1/0.65 \approx 1.5$** at this design.
+
+Empirical verification (`hpc/verify_mi_cfi.R`, PMM, $N=500$, 200 reps × 3 mr cells):
+
+```
+mr     CFI_com   CFI_adhoc    CFI_MI    bias_adhoc   bias_MI    naive_pred   truncated_pred
+0.10    0.9987    0.9982     0.9986       0.00044   0.00011        0.00066        ≈0.00043
+0.25    0.9987    0.9976     0.9985       0.00106   0.00011        0.00171        ≈0.00111
+0.40    0.9987    0.9968     0.9985       0.00182   0.00013        0.00281        ≈0.00183
+```
+
+The truncation-corrected prediction matches the empirical bias of $\text{CFI}_{\text{adhoc}}$ within Monte Carlo SE. **In all cases the bias is well under the conventional CFI publication-cutoff sensitivity ($\sim 0.01$)**; CFI_adhoc is therefore practically usable but quantifiably biased downward, and CFI_MI eliminates the bias.
+
+For a **mis-specified** $M$, $\chi^2_{\text{com}}(M) - \mathrm{df}_M$ is positive and possibly large; $a_{\text{com}}$ is shifted away from 0 and the truncation is rarely binding, so $\mathbb{E}[\max(a_{\text{com}} + \Delta, 0)] - \mathbb{E}[\max(a_{\text{com}}, 0)] \approx \Delta(M)$ and the naive prediction recovers. The relative CFI bias contribution still scales as $\Delta(M)/[\chi^2_{\text{com}}(M_0) - \mathrm{df}_0]$, much smaller than the bare chi-square inflation.
+
+## Calibration of CFI_MI
+
+Substituting the calibrated $\chi^2_{\text{MI}}$ in both numerator and denominator gives
+$$\mathbb{E}[\text{CFI}_{\text{MI}}(M)] = \text{CFI}_{\text{com}}(M) + O(N^{-1}, M^{-1}).$$
+
+The first-moment calibration of $\chi^2_{\text{MI}}$ propagates directly to CFI, so $\text{CFI}_{\text{MI}}$ is unbiased to the same order as the underlying chi-square. The Section 11 finite-$M$ variance issue affects CFI only weakly because CFI is a ratio: variance inflation in the numerator is partially cancelled by variance inflation in the denominator.
+
+## Practical Implementation
+
+`miicsem` does not currently compute CFI in `compute_chi_squares()`. The natural extension is to fit the null/independence model $M_0$ alongside $M$ and $M_{\text{sat}}$ in the per-imputation pipeline, compute $\operatorname{MI\_DEV}(M_0)$ analogously to the candidate models, and form $\text{CFI}_{\text{MI}}$ via the formula above. The added cost is one additional lavaan fit per imputation per replication — minimal relative to the existing 12-candidate fit.
+
+::: {.callout-note}
+## Summary
+The same v4 first-moment correction that calibrates $\chi^2_{\text{MI}}$ propagates to fit indices that are functions of chi-square. CFI in particular is approximately unbiased under MI when constructed from $\chi^2_{\text{MI}}(M)$ and $\chi^2_{\text{MI}}(M_0)$, with the ratio structure providing additional robustness compared to the bare chi-square test.
+
+The same logic extends to other chi-square-based indices: TLI/NNFI, RMSEA (after a $\sqrt{\cdot/N}$ transformation), and IFI all have analogous MI-corrected forms.
+:::
+
+---
+
 # Finite-$N$ Corrections
 
 The leading-order result $\text{Term 1} = +\text{tr}(\text{RIV})$ has an $O(N^{-1})$ residual that we have not yet quantified explicitly. Empirically (see `claude/notes/2026-04-26-chisquare-recalibration.md`), this residual is **non-negligible at moderate $N$**: at $N = 250$ with $p = 32$ for the Bollen 3-factor CFA, the empirical $r_1 = T_1 / \text{tr}(\text{RIV})_{\text{MI}} \approx 0.85$ rather than $1.0$.
 
-Two well-established finite-$N$ corrections from the multivariate analysis literature account for nearly all of this residual when applied appropriately. Both apply to chi-square test statistics derived from the deviance differences, where the practical impact is most consequential.
+Two well-established finite-$N$ corrections from the multivariate analysis literature account for nearly all of this residual when applied appropriately. Both apply to the chi-square test and CFI derived above; the Bartlett correction additionally applies to the oracle complete-data chi-square.
 
 ## Bartlett Correction for the ML Chi-Square Statistic
 
@@ -1020,7 +1188,7 @@ Crucially, the Bartlett correction operates on the chi-square statistic itself, 
 
 ## Wishart Correction for Inverse-Hessian Variance Estimates
 
-The bias decomposition derives $\text{Term 1} = \text{tr}(\mathcal{I}_{\text{mis}|\text{obs}} \cdot \mathcal{I}_{\text{obs}}^{-1}) = \text{tr}(\text{RIV})$ in terms of **population** Fisher information matrices. In practice, both the FIML observed-data Fisher information $\hat{\mathcal{I}}_{\text{obs}}$ and the complete-data Fisher information $\hat{\mathcal{I}}_{\text{com}}$ are estimated from sample Hessians evaluated at MLEs, and these estimators inherit the **inverse-Wishart bias** for sample-covariance-style quantities:
+The bias decomposition derives $\text{Term 1} = \text{tr}(\mathcal{I}_{\text{mis}|\text{obs}} \cdot \mathcal{I}_{\text{obs}}^{-1}) = \text{tr}(\text{RIV})$ in terms of **population** Fisher information matrices. In practice, both the FIML observed-data Fisher information $\hat{\mathcal{I}}_{\text{obs}}$ and the complete-data Fisher information $\hat{\mathcal{I}}_{\text{com}}$ are estimated from sample Hessians evaluated at MLEs, and these estimators inherit the **inverse-Wishart bias** for sample-covariance-style quantities. This is a universal property of inverse-Hessian estimators of any parametric model fit by ML, independent of imputation method:
 
 $$\mathbb{E}[\hat V] \approx V_{\text{true}} \cdot \frac{n}{n - p - 1} \quad\text{for}\quad \hat V \in \{\hat V_{\text{obs}}, \hat V_{\text{com}}, \hat W\}$$
 
@@ -1038,56 +1206,70 @@ Replacing the raw estimator with the Wishart-corrected version in the bias formu
 
 $$\text{Term 1}_{\text{corrected}} = +\widehat{\text{tr}(\text{RIV})} \cdot \frac{n - p - 1}{n} + O(N^{-2})$$
 
-restores the leading-order theoretical equivalence $r_1 \to 1$ at finite $N$ when imputation and analysis parameter spaces match (the v4 derivation's stated assumption). Empirically: at $N=250, p=32$ the Wishart factor is $0.868$, and the empirical $r_1 = 0.85 / 0.868 \approx 0.98$ — within Monte Carlo error of the theoretical $+1$.
+restores the leading-order theoretical equivalence $r_1 \to 1$ at finite $N$. Empirically: at $N=250, p=32$ the Wishart factor is $0.868$, and the empirical $r_1 = 0.85 / 0.868 \approx 0.98$ — within Monte Carlo error of the theoretical $+1$.
+
+The Wishart correction is **universally applicable** as a finite-$N$ adjustment to inverse-Hessian-based variance estimates. Its magnitude is small at the sample sizes typical in applied SEM ($(N - p - 1)/N \approx 0.87$–$0.95$ for $N \in \{250, 500, 1000\}$ and $p \approx 30$–$50$), and it is logically orthogonal to the algebraic identity in Section 10.0. Apply it to every $\widehat{\operatorname{tr}(\text{RIV})}$ that enters either the AIC penalty or the chi-square test.
 
 ## Combined Corrected MI-AIC and MI-Chi-Square
 
-Applying both corrections to the practical MI-AIC formula:
+Applying the Wishart correction to the practical MI-AIC formula (per-model penalty):
 
 $$\text{MI-AIC}_{\text{corrected}} = -2\bar Q_{MI}(\bar\theta) + 2p + \widehat{\text{tr}(\text{RIV})} \cdot \frac{n - p - 1}{n}$$
 
-For the chi-square test of model $M$ against the saturated reference $M_{\text{sat}}$:
+For the chi-square test of model $M$ against the saturated reference $M_{\text{sat}}$, define the corrected MI deviance for each model and difference:
+$$\operatorname{MI\_DEV}_{\text{corr}}(M) = -2\bar Q_M(\bar\theta_M) + \widehat{\operatorname{tr}(\text{RIV}_M)} \cdot \frac{N - p_M - 1}{N}.$$
 
-$$\chi^2_{M, \text{MI-corrected}} = \chi^2_{M, \text{adhoc}} + \widehat{\text{tr}(\text{RIV}_M)} \cdot \frac{n - p_M - 1}{n} - \widehat{\text{tr}(\text{RIV}_{M_{\text{sat}}})} \cdot \frac{n - p_{M_{\text{sat}}} - 1}{n}$$
+Then
+$$\chi^2_{M, \text{MI-corrected}} = \operatorname{MI\_DEV}_{\text{corr}}(M) - \operatorname{MI\_DEV}_{\text{corr}}(M_{\text{sat}}).$$
 
-with optional Bartlett scaling $\chi^2 \cdot (1 - c(p_M)/N)$ for the chi-square reference distribution.
+By the Section 10.0 identity at large $M$ this is equivalent to
+$$\chi^2_{M, \text{MI-corrected}} \;\approx\; \chi^2_{M, \text{adhoc}} + 2\bigl[\widehat{\operatorname{tr}(\text{RIV}_M)} \cdot \tfrac{N - p_M - 1}{N} - \widehat{\operatorname{tr}(\text{RIV}_{M_{\text{sat}}})} \cdot \tfrac{N - p_{M_{\text{sat}}} - 1}{N}\bigr] + O(M^{-1}),$$
+note the **factor of 2** that arises from the Rubin pool ↔ own-MLE identity (Lemma in §10.0). Optional Bartlett scaling $\chi^2 \cdot (1 - c(p_M)/N)$ may be applied to bring the chi-square reference distribution to df at finite $N$.
 
 ::: {.callout-note}
 ## Practical Summary
 1. **Bartlett correction** scales the chi-square test statistic to compensate for ML's finite-$N$ inflation. It is independent of MI and applies even on complete data.
-2. **Wishart correction** scales the trace-of-RIV bias term to compensate for the upward bias of inverse-Hessian variance estimates. It is the principled finite-$N$ refinement of the leading-order $+\tfrac{1}{2}\text{tr}(\text{RIV})$ result.
+2. **Wishart correction** scales the trace-of-RIV bias term to compensate for the upward bias of inverse-Hessian variance estimates. It is universal — applies to every $\widehat{\operatorname{tr}(\text{RIV})}$ regardless of imputation method — and is small at SEM-typical $N$.
+3. **The factor of 2** in the chi-square formula above is *algebraic*, not a correction: it follows from the definition of $\operatorname{MI\_DEV}$ via Rubin's pool ↔ own-MLE identity (Section 10.0).
 
-Both are linear scaling factors with closed-form coefficients depending only on $(N, p)$, requiring no additional simulation or estimation.
+All scalings are closed-form coefficients depending only on $(N, p)$, requiring no additional simulation or estimation.
 :::
 
 ---
 
 # Limitations and Future Work
 
-## The Imputation-vs-Analysis Flexibility Gap
+## First-Moment Calibration Under Saturated Imputation: Verified
 
-The v4 derivation rests on the assumption (Section 10, Assumption 1) that the imputation model is **congenial** with the analysis model: $\mathbb{E}[\tilde\phi] \to \theta^*$, with $\tilde\phi$ in the same parameter space as $\theta$. Practically, this requires the imputation model to **share** the analysis model's parameter space.
+Under the scope of this paper (saturated imputation; see Section 1.5), the algebraic identity in Section 10.0 shows that $\chi^2_{\text{adhoc}}$ is inflated relative to $\chi^2_{\text{MI}}$ by exactly $2[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_{M_1}]$ at large $M$. Combined with the v4 first-moment result for the $\operatorname{MI\_DEV}$ of each model, this implies $\mathbb{E}[\chi^2_{\text{MI}}] \approx \mathbb{E}[\chi^2_{\text{com}}]$ to leading order.
 
-Standard MI workflows in SEM violate this:
+This prediction has been verified empirically across two independent imputation regimes (`claude/derivations/flexibility_gap_derivation_v0.qmd`):
 
-- **Amelia/jomo/blimp** impute from a saturated joint MVN with $p_{\text{sat}} = q + q(q+1)/2$ free parameters (means + covariances) for $q$ observed variables. For $q = 9$, $p_{\text{sat}} = 54$. A constrained CFA analysis with $p_{\text{analysis}} = 32$ (Bollen 3-factor) thus operates in a 22-parameter-narrower space than the imputation.
-- **mice PMM** uses chained variable-by-variable regressions with no joint structural constraint. Its effective parameter count is even less interpretable, but exceeds the analysis model.
+- **PMM, M=100**: 13 cells across $N \in \{100, 250, 500, 1000\}$ and $\mathrm{mr} \in \{0.10, 0.25, 0.40\}$. Predicted $\Delta = 2[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_{M_1}]$ matches empirical $\mathbb{E}[\chi^2_{\text{adhoc}}] - \mathbb{E}[\chi^2_{\text{com}}]$ within 0.01–0.22 chi-square units (all PASS within MC SE).
+- **Amelia with `empri = 0`**: 3 cells at $N = 500$, $\mathrm{mr} \in \{0.10, 0.25, 0.40\}$, $M = 50$. Ratios $\Delta_{\text{emp}} / \Delta_{\text{pred}}$ are 1.06, 1.03, 1.00 — indistinguishable from PMM within MC error.
 
-Empirically (Section 6 of `claude/notes/2026-04-26-chisquare-recalibration.md`), this **flexibility gap** introduces an additional chi-square inflation that is not captured by either Bartlett or Wishart corrections. At $N=250, q=9, p_{\text{analysis}}=32$, the empirical inflation is $\approx +5$ chi-square units, almost exactly matching the **un-corrected** $\widehat{\text{tr}(\text{RIV})}$ correction term.
+Under this paper's scope, **no separate first-moment "flexibility-gap" correction is needed**. The v4 $\operatorname{tr}(\text{RIV})$ correction, applied symmetrically to the analysis model and to the saturated reference (with optional Wishart finite-$N$ scaling), produces a mean-calibrated chi-square test.
 
-This coincidence — between the un-corrected `tr(RIV)` and the empirical flexibility-gap inflation — is what allows the **uncorrected** MI-AIC formula to yield approximately calibrated chi-square tests under standard MI workflows. Under truly congenial imputation (where imputation parameter space = analysis parameter space, e.g., `mvn_M1` imputation), the flexibility-gap term vanishes and only the Wishart-corrected (smaller) tr(RIV) is needed.
+## Remaining Deductive Step: $\Theta \subseteq \Phi$
 
-## Open Theoretical Question
+The Section 4 derivation of Term 1 assumes the imputation parameter space coincides with the analysis parameter space. Under saturated imputation, the analysis parameter space is *strictly contained* in the imputation parameter space ($\Theta_M \subsetneq \Phi_{\text{imp}}$ for any structured $M$). Closing the deductive chain therefore requires re-tracing the Section 4 second-order Taylor expansion under this weaker assumption, showing the cross-terms between $\Theta_M$ and its orthogonal complement in $\Phi_{\text{imp}}$ vanish at leading order. Empirically the Section 4 conclusion is robust to this generalization (the verifications cited above), but the deductive proof for $\Theta \subseteq \Phi$ has not yet been written. **This is the only remaining gap between the v4 framework's stated assumptions and its applied scope.**
 
-A general theory of MI bias under arbitrary imputation models requires a third correction term beyond Bartlett and Wishart:
+## Open: Finite-$M$ Second-Moment Correction
 
-$$\chi^2_{M, \text{adhoc}} - \chi^2_{M, \text{com}} \;\approx\; \underbrace{c(p_M)/N}_{\text{Bartlett}} \;+\; \underbrace{\text{Wishart}(p_M, p_{M_{\text{sat}}})}_{\text{Wishart}} \;+\; \underbrace{\Delta(p_{\text{imp}}, p_M, \text{mr}, N)}_{\textbf{flexibility-gap, TBD}}$$
+Despite first-moment calibration, the empirical Type I error of $\chi^2_{\text{MI}}$ at $\alpha = 0.05$ runs 9.8–11.1% (vs. nominal 5%) under the PMM and Amelia runs cited above (`claude/notes/2026-04-26-chisquare-recalibration.md` Section 6). With $\mathbb{E}[\chi^2_{\text{MI}}] \approx \mathrm{df}$ but $\operatorname{Var}[\chi^2_{\text{MI}}] \approx 63$ vs. target $2\,\mathrm{df} = 44$ at $M = 50$, the Type I inflation is a **second-moment** issue: extra variance in the upper tail driven by finite-$M$ fluctuations of the Rubin-pooled $\bar\theta$.
 
-The functional form of the flexibility-gap term $\Delta(\cdot)$ — likely a function of $(p_{\text{imp}} - p_M)$, the missing pattern, and possibly third-order data moments — has not been derived in the multivariate-analysis or missing-data literatures and constitutes the primary open theoretical contribution motivated by this work.
+The principled finite-$M$ correction is a Satorra–Bentler-style multiplicative scalar of the form $\chi^2_{\text{MI, BS}} = k \cdot \chi^2_{\text{MI}}$ with $k$ chosen so that $k \cdot \mathbb{E}[\chi^2_{\text{MI}}] = \mathrm{df}$ and $k^2 \cdot \operatorname{Var}[\chi^2_{\text{MI}}] = 2\,\mathrm{df}$ are simultaneously approximately satisfied. The closed-form derivation of $k$ as a function of $(M, p_M, p_{M_{\text{sat}}})$ is open and is the *actual* third correction beyond Bartlett and Wishart.
 
 ::: {.callout-warning}
-## Scope of v4
-The v4 derivation as written is rigorous **under its stated assumption that the imputation model is congenial with the analysis model**. Reading the result as a universal claim about practical MI workflows requires either (a) confining attention to true-model imputation, or (b) extending the derivation with the flexibility-gap correction $\Delta(\cdot)$.
+## Summary of corrections (v4.3 status)
+
+| Correction | Status | Form | Magnitude |
+|------------|--------|------|-----------|
+| v4 first-moment $\operatorname{tr}(\text{RIV})$ | Derived (Section 4) and empirically calibrated | $\operatorname{MI\_DEV} = -2\bar Q + \operatorname{tr}(\text{RIV})$ | $O(1)$, the leading bias |
+| Bartlett | Textbook | $\chi^2 \cdot (1 + c(p)/N)^{-1}$ | $O(N^{-1})$, ~1–3% |
+| Wishart | Textbook (universal) | $\widehat{\operatorname{tr}(\text{RIV})} \cdot (N{-}p{-}1)/N$ | $O(N^{-1})$, ~5–13% |
+| Finite-$M$ Satorra–Bentler | **Open** | $\chi^2 \cdot k(M, p_M, p_{M_{\text{sat}}})$ | $O(M^{-1})$, ~10–20% at $M=50$ |
+| ~~Flexibility-gap $\Delta$~~ | **Withdrawn** — absorbed by v4 first-moment correction under saturated MI scope | — | — |
 :::
 
 ---
@@ -1114,4 +1296,9 @@ $$\text{MI-AIC} = -2\bar{Q}_{MI}(\bar{\theta}_{obs}) + 2Q + \text{tr}(\text{RIV}
 | **AICcd (C&S 1998)** | $2Q + 2\text{tr}(\text{RIV})$ | KL divergence at $\hat{\theta}_{obs}$ |
 
 The factor-of-2 difference arises because AICcd evaluates complete-data fit at $\hat{\theta}_{obs}$, not at the complete-data maximizer $\hat{\theta}_{com}$. Our Term 2 shows this costs $\frac{1}{2}\text{tr}(\text{RIV})$ in expected log-likelihood.
+
+**MI chi-square goodness-of-fit (v4.3 extension):** under the saturated-imputation scope (Section 1.5), the same $\operatorname{tr}(\text{RIV})$ correction yields a mean-calibrated chi-square test:
+$$\chi^2_{\text{MI}} = \operatorname{MI\_DEV}(M) - \operatorname{MI\_DEV}(M_{\text{sat}})\;\approx\;\chi^2_{\text{adhoc}} + 2\bigl[\operatorname{tr}(\text{RIV})_M - \operatorname{tr}(\text{RIV})_{M_{\text{sat}}}\bigr] \quad (\text{at large } M)$$
+
+The factor of 2 is *algebraic* (Section 10.0 lemma), not a separate correction. Under saturated proper MI without informative prior, $\mathbb{E}[\chi^2_{\text{MI}}] = \mathbb{E}[\chi^2_{\text{com}}]$ to leading order, verified across PMM (13 cells) and Amelia (`empri = 0`, 3 cells). Open work: a finite-$M$ Satorra–Bentler-style variance correction to bring Type I error to nominal.
 :::
