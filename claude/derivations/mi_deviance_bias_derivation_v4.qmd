@@ -1,0 +1,1117 @@
+---
+title: "Corrected Information Criteria for Model Selection Under Multiple Imputation"
+author: "Marcus Waldman"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+---
+
+## Version History {.unnumbered}
+
+| Version | Date | Changes |
+|---------|------|---------|
+| v3 | 2024-12-31 | New formulation targeting "AIC had the data been complete." Bias now decomposes into imputation bias and estimation mismatch terms. |
+| v3.1 | 2025-01-10 | Added Section 7: Three-term decomposition for practical MI. Shows that evaluating at $\hat{\theta}^{(m)}$ (standard practice) yields bias = tr(RIV), explaining AICcd's $2\text{tr}(\text{RIV})$ penalty. |
+| v4 | 2025-01-11 | Notation cleanup: Use $\tilde{\phi}$ for imputation model parameters and $\theta$ for analysis model parameters to eliminate ambiguity. Addresses GitHub issue #2. |
+| v4.1 | 2026-03-17 | Fixed Term 1 derivation: replaced incorrect Gibbs' inequality cancellation (Step 6) with correct second-order joint Taylor expansion. The quantity $\mathbb{E}[\ell \cdot S]$ is not zero in general; the result $\text{Term 1} = \text{tr}(\text{RIV})$ holds to leading order because two compensating terms cancel at $O(1)$. Also broadened score-function identity from exponential family to general regularity conditions. Added Rubin's rules approximation note in Section 7. |
+| v4.2 | 2026-04-26 | Added Section 10 on finite-$N$ corrections (Bartlett scaling for the ML chi-square statistic and Wishart scaling for inverse-Hessian variance estimates that enter $\text{tr}(\text{RIV})$). Both are well-established in the multivariate analysis literature; this section makes the connection to the leading-order $+\tfrac{1}{2}\text{tr}(\text{RIV})$ result explicit. Added Section 11 on limitations: under standard MI workflows where the imputation model has more free parameters than the analysis model (e.g.\ Amelia's saturated MVN imputation, mice PMM's chained equations), an additional chi-square inflation arises from the imputation-vs-analysis "flexibility gap" that is not captured by the v4 framework. Documented as future work. |
+
+---
+
+# Problem Setup
+
+## The Complete-Data Replication Principle
+
+In missing data analysis, a guiding principle is to ask: **what would we have computed had the data been complete?** For model selection via AIC, this means our target is:
+
+$$\text{AIC}_{com} = -2\ell_{com}(\hat{\theta}_{com}) + 2Q$$
+
+where $\hat{\theta}_{com}$ is the MLE we would have obtained by maximizing the complete-data log-likelihood, and $Q$ is the number of parameters.
+
+The challenge: we cannot compute $\text{AIC}_{com}$ because $Y^{mis}$ is unobserved. Instead, we use multiple imputation to approximate the complete-data log-likelihood. The question is: **what penalty correction is needed for the resulting criterion to be unbiased for $\text{AIC}_{com}$?**
+
+## Data Structure
+
+Let $Y = (Y^{obs}, Y^{mis})$ denote the complete data, where:
+
+- $Y^{obs}$ = observed components
+- $Y^{mis}$ = missing components
+
+The complete-data log-likelihood decomposes as:
+
+$$\ell_{com}(\theta) = \ell_{obs}(\theta) + \ell_{mis|obs}(\theta)$$
+
+where:
+
+- $\ell_{obs}(\theta) = \log p(Y^{obs}|\theta)$ is the observed-data log-likelihood
+- $\ell_{mis|obs}(\theta) = \log p(Y^{mis}|Y^{obs},\theta)$ is the conditional log-likelihood of the missing data
+
+This decomposition follows from the factorization $p(Y|\theta) = p(Y^{obs}|\theta) \cdot p(Y^{mis}|Y^{obs},\theta)$.
+
+## The Q-Function
+
+The Q-function is the expected complete-data log-likelihood, where the expectation is over the conditional distribution of $Y^{mis}$ given $Y^{obs}$ and a conditioning parameter:
+
+$$Q(\theta|\tilde{\phi}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{com}(\theta)]$$
+
+Since $\ell_{obs}(\theta)$ does not depend on $Y^{mis}$:
+
+$$Q(\theta|\tilde{\phi}) = \ell_{obs}(\theta) + \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{mis|obs}(\theta)]$$
+
+## Parameter Definitions
+
+We define four key quantities:
+
+| Symbol | Definition | Description |
+|--------|------------|-------------|
+| $\theta^*$ | True parameter | The population value generating the data |
+| $\hat{\theta}_{com}$ | $\arg\max_\theta \ell_{com}(\theta)$ | MLE from complete-data likelihood (unobserved) |
+| $\hat{\theta}_{obs}$ | $\arg\max_\theta \ell_{obs}(\theta)$ | MLE from observed-data likelihood (computable) |
+| $\tilde{\phi}$ | Imputation parameter | Estimated from $Y^{obs}$ to generate imputations via $p(Y^{mis}|Y^{obs}, \tilde{\phi})$ |
+
+::: {.callout-important}
+## Key Point
+All estimators we can actually compute ($\hat{\theta}_{obs}$ and $\tilde{\phi}$) are based on the observed-data likelihood. The complete-data MLE $\hat{\theta}_{com}$ is a hypothetical quantity — what we *would have* computed had $Y^{mis}$ been observed.
+:::
+
+## Fisher Information Matrices
+
+Define the following per-observation Fisher information matrices:
+
+| Symbol | Definition | Description |
+|--------|------------|-------------|
+| $\mathcal{I}_{com}(\theta)$ | $-\mathbb{E}[\partial^2_\theta \ell_{com}(\theta)]$ | Complete-data information |
+| $\mathcal{I}_{obs}(\theta)$ | $-\mathbb{E}[\partial^2_\theta \ell_{obs}(\theta)]$ | Observed-data information |
+| $\mathcal{I}_{mis|obs}(\theta)$ | $-\mathbb{E}[\partial^2_\theta \ell_{mis|obs}(\theta)]$ | Missing-data information |
+
+The **missing information principle** states:
+
+$$\mathcal{I}_{com}(\theta) = \mathcal{I}_{obs}(\theta) + \mathcal{I}_{mis|obs}(\theta)$$
+
+## Asymptotic Variances
+
+Under standard regularity conditions:
+
+$$\text{Var}(\hat{\theta}_{com}) \approx \mathcal{I}_{com}(\theta^*)^{-1}$$
+
+$$\text{Var}(\hat{\theta}_{obs}) \approx \mathcal{I}_{obs}(\theta^*)^{-1}$$
+
+Since $\mathcal{I}_{com} > \mathcal{I}_{obs}$ (in the positive definite sense), we have:
+
+$$\text{Var}(\hat{\theta}_{obs}) > \text{Var}(\hat{\theta}_{com})$$
+
+The observed-data MLE has **more variance** than the complete-data MLE would have had.
+
+## Observed Information Matrices
+
+In addition to the Fisher (expected) information, we define **observed information matrices** as the negative Hessian of the log-likelihood evaluated at specific parameter values:
+
+| Symbol | Definition | Description |
+|--------|------------|-------------|
+| $\mathcal{J}_{com}(\theta)$ | $-\partial^2_\theta \ell_{com}(\theta)$ | Observed complete-data information |
+| $\mathcal{J}_{obs}(\theta)$ | $-\partial^2_\theta \ell_{obs}(\theta)$ | Observed observed-data information |
+| $\mathcal{J}_{mis|obs}(\theta)$ | $-\partial^2_\theta \ell_{mis|obs}(\theta)$ | Observed missing-data information |
+
+The decomposition holds for observed information as well:
+
+$$\mathcal{J}_{com}(\theta) = \mathcal{J}_{obs}(\theta) + \mathcal{J}_{mis|obs}(\theta)$$
+
+Under regularity conditions, the observed and expected information converge:
+
+$$\mathcal{J}_{com}(\theta^*) \xrightarrow{p} \mathcal{I}_{com}(\theta^*)$$
+
+## Score Functions
+
+Define the score functions (gradients of log-likelihoods):
+
+| Symbol | Definition | Description |
+|--------|------------|-------------|
+| $S_{com}(\theta)$ | $\partial_\theta \ell_{com}(\theta)$ | Complete-data score |
+| $S_{obs}(\theta)$ | $\partial_\theta \ell_{obs}(\theta)$ | Observed-data score |
+| $S_{mis|obs}(\theta)$ | $\partial_\theta \ell_{mis|obs}(\theta)$ | Missing-data score |
+
+The score decomposes additively:
+
+$$S_{com}(\theta) = S_{obs}(\theta) + S_{mis|obs}(\theta)$$
+
+Key properties at the true parameter $\theta^*$:
+
+- $\mathbb{E}[S_{com}(\theta^*)] = 0$
+- $\mathbb{E}[S_{obs}(\theta^*)] = 0$  
+- $\mathbb{E}[S_{mis|obs}(\theta^*) | Y^{obs}] = 0$
+- $\text{Var}(S_{com}(\theta^*)) = \mathcal{I}_{com}(\theta^*)$ (score covariance equals Fisher information)
+
+---
+
+# The Target and the Bias
+
+## What We Want
+
+Our target is the AIC that would have been computed had the data been complete:
+
+$$\text{AIC}_{com} = -2\ell_{com}(\hat{\theta}_{com}) + 2Q$$
+
+## What We Compute
+
+Using multiple imputation, we compute:
+
+$$\text{MI-AIC} = -2\bar{Q}_{MI}(\hat{\theta}_{obs}) + \text{penalty}$$
+
+where $\bar{Q}_{MI}(\hat{\theta}_{obs}) = \frac{1}{M}\sum_{m=1}^{M} \ell_{com}(\hat{\theta}_{obs} | Y^{obs}, \tilde{Y}^{mis,(m)})$ is the average complete-data log-likelihood across $M$ imputations.
+
+## The Bias We Need to Correct
+
+For MI-AIC to be unbiased for AIC$_{com}$ in expectation, we need:
+
+$$\text{penalty} = 2Q + 2 \cdot \text{Bias}$$
+
+where:
+
+$$\text{Bias} = \mathbb{E}[\bar{Q}_{MI}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})]$$
+
+::: {.callout-note}
+## Bias Decomposition
+We decompose this bias into two components:
+
+$$\text{Bias} = \underbrace{\mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})]}_{\text{Term 1: Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})]}_{\text{Term 2: Estimation Mismatch}}$$
+
+- **Term 1 (Imputation Bias):** The Q-function overestimates the complete-data log-likelihood at $\hat{\theta}_{obs}$ because imputation at $\tilde{\phi}$ creates artificial coherence with the data.
+
+- **Term 2 (Estimation Mismatch):** The complete-data log-likelihood at $\hat{\theta}_{obs}$ is less than at $\hat{\theta}_{com}$ because $\hat{\theta}_{com}$ is the maximizer. This term is **negative**.
+:::
+
+---
+
+# Roadmap
+
+In the following sections, we will:
+
+1. **Derive Term 1** (Imputation Bias): Show that $\text{Term 1} = \text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$
+
+2. **Derive Term 2** (Estimation Mismatch): Show that $\text{Term 2} = -\frac{1}{2}\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$
+
+3. **Combine results**: Show that Total Bias $= \frac{1}{2}\text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$
+
+4. **Derive the corrected penalty**: Show that $\text{penalty} = 2Q + \text{tr}(\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1})$
+
+5. **Connect to existing results**: Demonstrate equivalence to Cavanaugh & Shumway's AICcd
+
+6. **Express in terms of RIV**: Show practical computation via $\text{RIV} = (1 + 1/M)W^{-1}B$
+
+---
+
+# Derivation of Term 1: Imputation Bias
+
+## Statement
+
+We derive the imputation bias:
+
+$$\text{Term 1} = \mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})]$$
+
+::: {.callout-important}
+## Term 1 Result
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})\right)$$
+
+For MLE imputation ($\tilde{\phi} = \hat{\theta}_{obs}$):
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) = \text{tr}(\text{RIV})$$
+:::
+
+## Key Insight
+
+If the imputation parameter were the true parameter ($\tilde{\phi} = \theta^*$), then Term 1 would be exactly zero by the law of iterated expectations:
+
+$$\mathbb{E}[Q(\hat{\theta}_{obs}|\theta^*)] = \mathbb{E}[\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\ell_{com}(\hat{\theta}_{obs})]] = \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})]$$
+
+The bias arises precisely because $\tilde{\phi}$ is estimated from data and therefore $\tilde{\phi} \neq \theta^*$.
+
+## Proof Strategy
+
+We decompose Term 1 using the factorization $\ell_{com} = \ell_{obs} + \ell_{mis|obs}$:
+
+$$Q(\hat{\theta}_{obs}|\tilde{\phi}) - \ell_{com}(\hat{\theta}_{obs}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{mis|obs}(\hat{\theta}_{obs})] - \ell_{mis|obs}(\hat{\theta}_{obs})$$
+
+The $\ell_{obs}$ terms cancel because $\ell_{obs}(\hat{\theta}_{obs})$ does not depend on $Y^{mis}$.
+
+Therefore:
+$$\text{Term 1} = \mathbb{E}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{mis|obs}(\hat{\theta}_{obs})] - \ell_{mis|obs}(\hat{\theta}_{obs})\right]$$
+
+where the outer expectation is over $(Y^{obs}, Y^{mis}) \sim p(Y|\theta^*)$.
+
+## Step 1: Expand the Outer Expectation
+
+Write the full expectation explicitly:
+
+$$\text{Term 1} = \mathbb{E}_{Y^{obs}|\theta^*}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}\left[\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{mis|obs}(\hat{\theta}_{obs})] - \ell_{mis|obs}(\hat{\theta}_{obs})\right]\right]$$
+
+Note that $\hat{\theta}_{obs} = \hat{\theta}_{obs}(Y^{obs})$ and $\tilde{\phi} = \tilde{\phi}(Y^{obs})$ are functions of $Y^{obs}$ only.
+
+## Step 2: Simplify Using Conditional Independence
+
+Since $\mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{mis|obs}(\hat{\theta}_{obs})]$ is a function of $Y^{obs}$ only (we've integrated out $Y^{mis}$), the middle expectation $\mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\cdot]$ acts only on the second term:
+
+$$\text{Term 1} = \mathbb{E}_{Y^{obs}|\theta^*}\left[\mathbb{E}_{\tilde{\phi}}[\ell_{mis|obs}(\hat{\theta}_{obs})] - \mathbb{E}_{\theta^*}[\ell_{mis|obs}(\hat{\theta}_{obs})]\right]$$
+
+where we use the shorthand:
+
+- $\mathbb{E}_{\tilde{\phi}}[\cdot] = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\cdot]$
+- $\mathbb{E}_{\theta^*}[\cdot] = \mathbb{E}_{Y^{mis}|Y^{obs},\theta^*}[\cdot]$
+
+This is the difference in expected log-likelihood when imputing under $\tilde{\phi}$ versus under the true $\theta^*$.
+
+## Step 3: Second-Order Taylor Expansion in $\tilde{\phi}$
+
+Expand $\mathbb{E}_{\tilde{\phi}}[g] - \mathbb{E}_{\theta^*}[g]$ to **second order** around $\tilde{\phi} = \theta^*$ for any function $g(Y^{mis})$:
+
+$$\mathbb{E}_{\tilde{\phi}}[g] - \mathbb{E}_{\theta^*}[g] \approx (\tilde{\phi} - \theta^*)^T \left.\frac{\partial}{\partial \phi}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*} + \frac{1}{2}(\tilde{\phi} - \theta^*)^T \left.\frac{\partial^2}{\partial \phi \partial \phi^T}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*} (\tilde{\phi} - \theta^*)$$
+
+The first-order derivative satisfies the **score-function identity**:
+
+$$\left.\frac{\partial}{\partial \phi_k}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*} = \mathbb{E}_{\theta^*}[g \cdot S_{mis|obs,k}(\theta^*)]$$
+
+where $S_{mis|obs}(\theta^*) = \partial_\theta \log p(Y^{mis}|Y^{obs},\theta)|_{\theta=\theta^*}$ is the score of the conditional distribution. This identity holds under standard regularity conditions permitting differentiation under the integral sign (not restricted to exponential families).
+
+We denote the second-order Hessian matrix as $H_{\phi\phi}^{g} = \left.\frac{\partial^2}{\partial \phi \partial \phi^T}\mathbb{E}_{\phi}[g]\right|_{\phi=\theta^*}$.
+
+::: {.callout-note}
+## Why Second Order is Needed
+A first-order expansion would suffice if the zeroth-order piece of the subsequent $\ell_{mis|obs}(\hat{\theta}_{obs})$ expansion (Step 5) vanished. As we show in Step 6, it does not. The second-order term in $\tilde{\phi}$ is needed to compensate, and the two contributions cancel at leading order. Retaining only first order would require an incorrect intermediate step.
+:::
+
+## Step 4: Apply to Our Setting
+
+With $g = \ell_{mis|obs}(\hat{\theta}_{obs})$:
+
+$$\mathbb{E}_{\tilde{\phi}}[\ell_{mis|obs}(\hat{\theta}_{obs})] - \mathbb{E}_{\theta^*}[\ell_{mis|obs}(\hat{\theta}_{obs})] \approx (\tilde{\phi} - \theta^*)^T \mathbb{E}_{\theta^*}[\ell_{mis|obs}(\hat{\theta}_{obs}) \cdot S_{mis|obs}(\theta^*)] + \frac{1}{2}(\tilde{\phi} - \theta^*)^T H_{\phi\phi}(\tilde{\phi} - \theta^*)$$
+
+where $H_{\phi\phi} = \left.\frac{\partial^2}{\partial \phi \partial \phi^T}\mathbb{E}_{\phi}[\ell_{mis|obs}(\hat{\theta}_{obs})]\right|_{\phi=\theta^*}$. Since $\hat{\theta}_{obs} - \theta^* = O_p(n^{-1/2})$, we may replace $\ell_{mis|obs}(\hat{\theta}_{obs})$ with $\ell_{mis|obs}(\theta^*)$ in this Hessian at the cost of $O(n^{-3/2})$ in the overall expansion.
+
+## Step 5: Expand $\ell_{mis|obs}(\hat{\theta}_{obs})$ Around $\theta^*$
+
+Taylor expand:
+
+$$\ell_{mis|obs}(\hat{\theta}_{obs}) \approx \ell_{mis|obs}(\theta^*) + (\hat{\theta}_{obs} - \theta^*)^T S_{mis|obs}(\theta^*)$$
+
+Substituting into the first-order term from Step 4:
+
+$$\mathbb{E}_{\theta^*}[\ell_{mis|obs}(\hat{\theta}_{obs}) \cdot S_{mis|obs}(\theta^*)] \approx \underbrace{\mathbb{E}_{\theta^*}[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)]}_{\equiv\; \alpha} + \underbrace{(\hat{\theta}_{obs} - \theta^*)^T \mathbb{E}_{\theta^*}[S_{mis|obs}(\theta^*) S_{mis|obs}(\theta^*)^T]}_{\mathcal{I}_{mis|obs}(\theta^*)(\hat{\theta}_{obs} - \theta^*)}$$
+
+where the second term uses the Bartlett identity $\mathbb{E}_{\theta^*}[S S^T] = \mathcal{I}_{mis|obs}(\theta^*)$.
+
+## Step 6: Structure of the Three Contributions
+
+Combining Steps 4 and 5, Term 1 decomposes into three pieces:
+
+$$\text{Term 1} = \underbrace{\mathbb{E}[(\tilde{\phi} - \theta^*)^T \alpha]}_{\text{(A): Score–likelihood covariance}} + \underbrace{\mathbb{E}[(\tilde{\phi} - \theta^*)^T \mathcal{I}_{mis|obs}(\hat{\theta}_{obs} - \theta^*)]}_{\text{(B): Main term}} + \underbrace{\frac{1}{2}\mathbb{E}[(\tilde{\phi} - \theta^*)^T H_{\phi\phi}(\tilde{\phi} - \theta^*)]}_{\text{(C): Second-order curvature}}$$
+
+::: {.callout-warning}
+## Important: $\alpha$ is Not Zero in General
+
+Unlike the standard score property $\mathbb{E}[S(\theta^*)] = 0$, the quantity $\alpha = \mathbb{E}_{\theta^*}[\ell_{mis|obs}(\theta^*) \cdot S_{mis|obs}(\theta^*)]$ is generally **nonzero**. Since $\mathbb{E}[S] = 0$, we have $\alpha = \text{Cov}_{\theta^*}(\ell_{mis|obs}(\theta^*),\; S_{mis|obs}(\theta^*))$, which measures the covariance between the log-density and its score under the true conditional distribution. By the score-function identity, $\alpha$ equals the gradient of the conditional entropy:
+
+$$\alpha = -\mathcal{E}'(\theta^*), \quad \text{where } \mathcal{E}(\theta) = -\mathbb{E}_{p_\theta}[\log p_\theta(Y^{mis}|Y^{obs})]$$
+
+For example, in a normal model $N(\mu, \sigma^2)$ with $n_{mis}$ missing observations, $\alpha_\mu = 0$ but $\alpha_{\sigma^2} = -n_{mis}/(2\sigma^2) \neq 0$.
+
+**Note on a tempting but incorrect shortcut:** One might try to argue $\alpha = 0$ by appealing to Gibbs' inequality—that the cross-entropy $\mathbb{E}_\theta[\ell_{mis|obs}(\theta^*)]$ is maximized at $\theta = \theta^*$. However, Gibbs' inequality says $\mathbb{E}_{p_{\theta^*}}[\log p_\theta]$ (varying the **evaluation** point) is maximized at $\theta = \theta^*$. The quantity in $\alpha$ varies the **sampling** distribution instead: $\frac{\partial}{\partial \theta}\mathbb{E}_{p_\theta}[\log p_{\theta^*}]$. These are different functions, and the latter's derivative at $\theta^*$ equals $-\mathcal{E}'(\theta^*)$, not zero.
+:::
+
+## Step 7: Cancellation of Extra Terms at Leading Order
+
+Pieces (A) and (C) are each individually $O(1)$ — the same asymptotic order as piece (B). However, their leading $O(1)$ contributions cancel, leaving at most $O(n^{-1})$ residual:
+
+$$(A) + (C) = O(n^{-1})$$
+
+This cancellation arises because (A) involves the bias of $\tilde{\phi}$ times the conditional entropy gradient, while (C) involves the curvature of the conditional cross-entropy times the variance of $\tilde{\phi}$. These are structurally linked through the information geometry of the conditional model $p(Y^{mis}|Y^{obs}, \theta)$.
+
+::: {.callout-note}
+## Verification in Specific Models (MLE Imputation, $\tilde{\phi} = \hat{\theta}_{obs}$)
+
+**Normal model** $N(\mu, \sigma^2)$ with $n_{obs}$ observed, $n_{mis}$ missing (MCAR):
+
+| Piece | Value |
+|-------|-------|
+| (A): $\mathbb{E}[\hat{\theta}_{obs} - \theta^*]^T \alpha$ | $n_{mis}/(2n_{obs})$ |
+| (C): $\frac{1}{2}\text{tr}(H_{\phi\phi} \cdot \mathcal{I}_{obs}^{-1})$ | $-n_{mis}/(2n_{obs})$ |
+| **(A) + (C)** | **$0$ (exact)** |
+
+Direct calculation confirms: $\text{Term 1} = n_{mis}/(n_{obs} - 2) = \text{tr}(\text{RIV}) + O(n^{-1})$.
+
+**Exponential model** $\text{Exp}(\lambda)$:
+
+| Piece | Value |
+|-------|-------|
+| (A): $\mathbb{E}[\hat{\lambda} - \lambda^*] \cdot \alpha$ | $n_{mis}/(n_{obs}-1)$ |
+| (C): $\frac{1}{2}\text{tr}(H_{\phi\phi} \cdot \mathcal{I}_{obs}^{-1})$ | $-n_{mis}/n_{obs}$ |
+| **(A) + (C)** | **$n_{mis}/[n_{obs}(n_{obs}-1)] = O(n^{-1})$** |
+
+Direct calculation confirms: $\text{Term 1} = n_{mis}/(n_{obs} - 1) = \text{tr}(\text{RIV}) + O(n^{-1})$.
+:::
+
+Therefore, to leading asymptotic order, Term 1 is determined by piece (B) alone.
+
+## Step 8: Convert to Trace Form
+
+Piece (B) can be written using the identity $a^T B c = \text{tr}(B c a^T)$:
+
+$$\text{(B)} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathbb{E}[(\hat{\theta}_{obs} - \theta^*)(\tilde{\phi} - \theta^*)^T]\right)$$
+
+Since both $\hat{\theta}_{obs}$ and $\tilde{\phi}$ are asymptotically unbiased for $\theta^*$:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})\right) + O(n^{-1})$$
+
+## Step 10: Key Assumptions and Simplification
+
+To simplify $\text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})$, decompose the imputation parameter as:
+
+$$\tilde{\phi} = \hat{\theta}_{obs} + \Delta\tilde{\phi}$$
+
+where $\Delta\tilde{\phi}$ represents the deviation of the imputation parameter from the observed-data MLE.
+
+::: {.callout-important}
+## Key Assumptions
+
+**Assumption 1 (Congeniality):** The imputation model is congenial with the analysis model, meaning both target the same parameter:
+$$\mathbb{E}[\tilde{\phi}] \to \theta^* \quad \text{as } N \to \infty$$
+
+This ensures that $\mathbb{E}[\Delta\tilde{\phi}] = 0$ asymptotically.
+
+**Assumption 2 (Uncorrelatedness):** The deviation $\Delta\tilde{\phi}$ is uncorrelated with $\hat{\theta}_{obs}$:
+$$\text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{obs}) = 0$$
+
+This states that the direction of deviation from the MLE is uncorrelated with the MLE itself.
+:::
+
+Under these assumptions:
+
+$$\text{Cov}(\tilde{\phi}, \hat{\theta}_{obs}) = \text{Cov}(\hat{\theta}_{obs} + \Delta\tilde{\phi}, \hat{\theta}_{obs})$$
+
+$$= \text{Var}(\hat{\theta}_{obs}) + \text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{obs})$$
+
+$$= \text{Var}(\hat{\theta}_{obs}) + 0$$
+
+$$= \mathcal{I}_{obs}(\theta^*)^{-1}$$
+
+Substituting back into the result from Step 8:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(n^{-1})$$
+
+::: {.callout-note}
+## Connection to RIV
+Using the identity $\mathcal{I}_{mis|obs} \cdot \mathcal{I}_{obs}^{-1} = \text{RIV}$ (relative increase in variance), we have:
+
+$$\text{Term 1} = \text{tr}(\text{RIV}) + O(n^{-1})$$
+:::
+
+::: {.callout-tip}
+## Practical Implication: Inclusive Imputation Models
+
+A key consequence of the uncorrelatedness assumption is that the **variance of $\Delta\tilde{\phi}$ does not affect the bias correction**. Practitioners often use "fully inclusive" imputation models with wider posterior variance to protect against bias from uncongenial models. This additional variance contributes to $\text{Var}(\tilde{\phi})$:
+
+$$\text{Var}(\tilde{\phi}) = \text{Var}(\hat{\theta}_{obs}) + \text{Var}(\Delta\tilde{\phi})$$
+
+However, $\text{Var}(\Delta\tilde{\phi})$ does **not** appear in $\text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})$, which is what determines Term 1. Therefore, as long as the imputation model is congenial and the uncorrelatedness assumption holds, inclusive imputation strategies do not change the asymptotic bias correction—they simply add noise that averages out across imputations.
+:::
+
+## Step 11: Special Case — MLE Imputation
+
+The most common imputation strategy uses the MLE as the imputation parameter: $\tilde{\phi} = \hat{\theta}_{obs}$.
+
+In this case, $\Delta\tilde{\phi} = 0$, so both assumptions from Step 10 are **trivially satisfied**:
+
+- **Congeniality:** Automatically holds since $\tilde{\phi} = \hat{\theta}_{obs}$
+- **Uncorrelatedness:** $\text{Cov}(0, \hat{\theta}_{obs}) = 0$
+
+This is the standard approach in multiple imputation software and corresponds to drawing imputations from $p(Y^{mis}|Y^{obs}, \tilde{\phi})$ where $\tilde{\phi}$ is the posterior mode or MLE from the observed data.
+
+## Summary
+
+::: {.callout-important}
+## Term 1: Imputation Bias
+
+All results below hold to leading asymptotic order, i.e., up to $O(n^{-1})$ corrections.
+
+**General case (Step 8):**
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})\right) + O(n^{-1})$$
+
+**Under key assumptions (Step 10):**
+
+With the decomposition $\tilde{\phi} = \hat{\theta}_{obs} + \Delta\tilde{\phi}$ and the following assumptions:
+
+1. **Congeniality:** $\mathbb{E}[\tilde{\phi}] \to \theta^*$ (imputation and analysis models target the same parameter)
+2. **Uncorrelatedness:** $\text{Cov}(\Delta\tilde{\phi}, \hat{\theta}_{obs}) = 0$
+
+we obtain:
+
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(n^{-1}) = \text{tr}(\text{RIV}) + O(n^{-1})$$
+
+**MLE imputation (Step 11):**
+
+When $\tilde{\phi} = \hat{\theta}_{obs}$ (i.e., $\Delta\tilde{\phi} = 0$), both assumptions are trivially satisfied.
+
+**Practical note:** Inclusive imputation models with wider variance do not affect this result—the extra $\text{Var}(\Delta\tilde{\phi})$ does not enter the covariance term.
+
+This term is **positive** because:
+
+- $\mathcal{I}_{mis|obs}(\theta^*)$ is positive semi-definite (Fisher information)
+- $\mathcal{I}_{obs}(\theta^*)^{-1}$ is positive semi-definite (inverse of Fisher information)
+- For positive semi-definite matrices $A, B$: $\text{tr}(AB) \geq 0$
+:::
+
+---
+
+# Derivation of Term 2: Estimation Mismatch
+
+## Statement
+
+We derive the estimation mismatch:
+
+$$\text{Term 2} = \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})]$$
+
+::: {.callout-important}
+## Term 2 Result
+$$\text{Term 2} = -\frac{1}{2}\text{tr}(\text{RIV})$$
+
+This term is **negative**: evaluating the complete-data log-likelihood at $\hat{\theta}_{obs}$ rather than at the maximizer $\hat{\theta}_{com}$ incurs a loss.
+:::
+
+## Step 1: Sign of Term 2
+
+Since $\hat{\theta}_{com} = \argmax_\theta \ell_{com}(\theta)$, we have by definition:
+
+$$\ell_{com}(\hat{\theta}_{com}) \geq \ell_{com}(\hat{\theta}_{obs})$$
+
+with equality if and only if $\hat{\theta}_{obs} = \hat{\theta}_{com}$.
+
+Therefore:
+
+$$\text{Term 2} = \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})] \leq 0$$
+
+Term 2 is **non-positive**. It represents the "loss" in complete-data log-likelihood from evaluating at $\hat{\theta}_{obs}$ rather than at the maximizer $\hat{\theta}_{com}$.
+
+## Step 2: Taylor Expand Around $\hat{\theta}_{com}$
+
+Expand $\ell_{com}(\hat{\theta}_{obs})$ in a second-order Taylor series around the maximizer $\hat{\theta}_{com}$:
+
+$$\ell_{com}(\hat{\theta}_{obs}) = \ell_{com}(\hat{\theta}_{com}) + (\hat{\theta}_{obs} - \hat{\theta}_{com})^T S_{com}(\hat{\theta}_{com}) - \frac{1}{2}(\hat{\theta}_{obs} - \hat{\theta}_{com})^T \mathcal{J}_{com}(\hat{\theta}_{com})(\hat{\theta}_{obs} - \hat{\theta}_{com}) + O_p(N^{-3/2})$$
+
+where:
+
+- $S_{com}(\hat{\theta}_{com}) = \partial_\theta \ell_{com}(\theta)\big|_{\theta=\hat{\theta}_{com}}$ is the score at $\hat{\theta}_{com}$
+- $\mathcal{J}_{com}(\hat{\theta}_{com}) = -\partial^2_\theta \ell_{com}(\theta)\big|_{\theta=\hat{\theta}_{com}}$ is the observed information at $\hat{\theta}_{com}$
+
+**Key simplification:** Since $\hat{\theta}_{com}$ is the MLE (maximizer of $\ell_{com}$), the score at $\hat{\theta}_{com}$ is zero:
+
+$$S_{com}(\hat{\theta}_{com}) = 0$$
+
+Therefore the first-order term vanishes:
+
+$$\ell_{com}(\hat{\theta}_{obs}) = \ell_{com}(\hat{\theta}_{com}) - \frac{1}{2}(\hat{\theta}_{obs} - \hat{\theta}_{com})^T \mathcal{J}_{com}(\hat{\theta}_{com})(\hat{\theta}_{obs} - \hat{\theta}_{com}) + O_p(N^{-3/2})$$
+
+## Step 3: Form the Difference
+
+Rearranging the Taylor expansion from Step 2:
+
+$$\ell_{com}(\hat{\theta}_{obs}) - \ell_{com}(\hat{\theta}_{com}) = -\frac{1}{2}(\hat{\theta}_{obs} - \hat{\theta}_{com})^T \mathcal{J}_{com}(\hat{\theta}_{com})(\hat{\theta}_{obs} - \hat{\theta}_{com}) + O_p(N^{-3/2})$$
+
+Taking expectations:
+
+$$\text{Term 2} = \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})] = -\frac{1}{2}\mathbb{E}\left[(\hat{\theta}_{obs} - \hat{\theta}_{com})^T \mathcal{J}_{com}(\hat{\theta}_{com})(\hat{\theta}_{obs} - \hat{\theta}_{com})\right] + O(N^{-3/2})$$
+
+This confirms Term 2 is negative (as expected from Step 1), since $\mathcal{J}_{com}(\hat{\theta}_{com})$ is positive definite.
+
+## Step 4: Replace Observed Information with Fisher Information
+
+Under standard regularity conditions, the observed information converges in probability to the Fisher information:
+
+$$\mathcal{J}_{com}(\hat{\theta}_{com}) \xrightarrow{p} \mathcal{I}_{com}(\theta^*)$$
+
+To leading order, we can replace the random $\mathcal{J}_{com}(\hat{\theta}_{com})$ with the deterministic $\mathcal{I}_{com}(\theta^*)$:
+
+$$\text{Term 2} = -\frac{1}{2}\mathbb{E}\left[(\hat{\theta}_{obs} - \hat{\theta}_{com})^T \mathcal{I}_{com}(\theta^*)(\hat{\theta}_{obs} - \hat{\theta}_{com})\right] + O(N^{-3/2})$$
+
+Using the trace identity $a^T B a = \text{tr}(B a a^T)$:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com}(\theta^*) \cdot \mathbb{E}\left[(\hat{\theta}_{obs} - \hat{\theta}_{com})(\hat{\theta}_{obs} - \hat{\theta}_{com})^T\right]\right) + O(N^{-3/2})$$
+
+Since both $\hat{\theta}_{obs}$ and $\hat{\theta}_{com}$ are asymptotically unbiased for $\theta^*$, the expectation is the variance of the difference:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs} - \hat{\theta}_{com})\right) + O(N^{-3/2})$$
+
+## Step 5: Expand the Variance of the Difference
+
+Using the standard variance formula for a difference:
+
+$$\text{Var}(\hat{\theta}_{obs} - \hat{\theta}_{com}) = \text{Var}(\hat{\theta}_{obs}) + \text{Var}(\hat{\theta}_{com}) - 2\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com})$$
+
+We know the marginal variances:
+
+- $\text{Var}(\hat{\theta}_{obs}) = \mathcal{I}_{obs}(\theta^*)^{-1}$
+- $\text{Var}(\hat{\theta}_{com}) = \mathcal{I}_{com}(\theta^*)^{-1}$
+
+So we need to compute $\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com})$.
+
+## Step 6: Asymptotic Representation of the MLEs
+
+To compute $\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com})$, we use the asymptotic linear representation of MLEs.
+
+By standard MLE theory, to leading order:
+
+$$\hat{\theta}_{obs} - \theta^* \approx \mathcal{I}_{obs}(\theta^*)^{-1} S_{obs}(\theta^*)$$
+
+$$\hat{\theta}_{com} - \theta^* \approx \mathcal{I}_{com}(\theta^*)^{-1} S_{com}(\theta^*)$$
+
+where $S_{obs}(\theta^*)$ and $S_{com}(\theta^*)$ are the score functions evaluated at the true parameter.
+
+Therefore:
+
+$$\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com}) = \mathcal{I}_{obs}^{-1} \text{Cov}(S_{obs}(\theta^*), S_{com}(\theta^*)) \mathcal{I}_{com}^{-1}$$
+
+## Step 7: Compute the Score Covariance
+
+Recall that $S_{com}(\theta^*) = S_{obs}(\theta^*) + S_{mis|obs}(\theta^*)$.
+
+Therefore:
+
+$$\text{Cov}(S_{obs}(\theta^*), S_{com}(\theta^*)) = \text{Cov}(S_{obs}(\theta^*), S_{obs}(\theta^*) + S_{mis|obs}(\theta^*))$$
+
+$$= \text{Var}(S_{obs}(\theta^*)) + \text{Cov}(S_{obs}(\theta^*), S_{mis|obs}(\theta^*))$$
+
+$$= \mathcal{I}_{obs}(\theta^*) + \text{Cov}(S_{obs}(\theta^*), S_{mis|obs}(\theta^*))$$
+
+**Key claim:** $\text{Cov}(S_{obs}(\theta^*), S_{mis|obs}(\theta^*)) = 0$
+
+**Justification:** Condition on $Y^{obs}$:
+
+- $S_{obs}(\theta^*)$ is a function of $Y^{obs}$ only, so given $Y^{obs}$ it is constant
+- $\mathbb{E}[S_{mis|obs}(\theta^*) | Y^{obs}] = 0$ (score property: expected score is zero)
+
+By the law of total covariance:
+
+$$\text{Cov}(S_{obs}, S_{mis|obs}) = \mathbb{E}[\text{Cov}(S_{obs}, S_{mis|obs}|Y^{obs})] + \text{Cov}(\mathbb{E}[S_{obs}|Y^{obs}], \mathbb{E}[S_{mis|obs}|Y^{obs}])$$
+
+$$= \mathbb{E}[0] + \text{Cov}(S_{obs}, 0) = 0$$
+
+Therefore:
+
+$$\text{Cov}(S_{obs}(\theta^*), S_{com}(\theta^*)) = \mathcal{I}_{obs}(\theta^*)$$
+
+## Step 8: Compute the MLE Covariance
+
+Substituting the result from Step 7 into the formula from Step 6:
+
+$$\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com}) = \mathcal{I}_{obs}^{-1} \text{Cov}(S_{obs}(\theta^*), S_{com}(\theta^*)) \mathcal{I}_{com}^{-1}$$
+
+$$= \mathcal{I}_{obs}^{-1} \mathcal{I}_{obs} \mathcal{I}_{com}^{-1}$$
+
+$$= \mathcal{I}_{com}^{-1}$$
+
+So the covariance between the observed-data MLE and the complete-data MLE equals the variance of the complete-data MLE:
+
+$$\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com}) = \text{Var}(\hat{\theta}_{com}) = \mathcal{I}_{com}(\theta^*)^{-1}$$
+
+## Step 9: Compute the Variance of the Difference
+
+Substituting the result from Step 8 into the formula from Step 5:
+
+$$\text{Var}(\hat{\theta}_{obs} - \hat{\theta}_{com}) = \text{Var}(\hat{\theta}_{obs}) + \text{Var}(\hat{\theta}_{com}) - 2\text{Cov}(\hat{\theta}_{obs}, \hat{\theta}_{com})$$
+
+$$= \mathcal{I}_{obs}^{-1} + \mathcal{I}_{com}^{-1} - 2\mathcal{I}_{com}^{-1}$$
+
+$$= \mathcal{I}_{obs}^{-1} - \mathcal{I}_{com}^{-1}$$
+
+Note this is positive semi-definite since $\mathcal{I}_{com}^{-1} < \mathcal{I}_{obs}^{-1}$ (in the positive definite ordering), confirming the variance of a difference is non-negative.
+
+## Step 10: Substitute Back into Term 2
+
+From Step 4, we had:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com}(\theta^*) \cdot \text{Var}(\hat{\theta}_{obs} - \hat{\theta}_{com})\right)$$
+
+Substituting the result from Step 9:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com} \cdot \left(\mathcal{I}_{obs}^{-1} - \mathcal{I}_{com}^{-1}\right)\right)$$
+
+Distributing the trace:
+
+$$\text{Term 2} = -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com} \mathcal{I}_{obs}^{-1}\right) + \frac{1}{2}\text{tr}\left(\mathcal{I}_{com} \mathcal{I}_{com}^{-1}\right)$$
+
+$$= -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com} \mathcal{I}_{obs}^{-1}\right) + \frac{1}{2}\text{tr}(I_Q)$$
+
+$$= -\frac{1}{2}\text{tr}\left(\mathcal{I}_{com} \mathcal{I}_{obs}^{-1}\right) + \frac{Q}{2}$$
+
+## Step 11: Simplify Using the Missing Information Principle
+
+Using $\mathcal{I}_{com} = \mathcal{I}_{obs} + \mathcal{I}_{mis|obs}$:
+
+$$\text{tr}\left(\mathcal{I}_{com} \mathcal{I}_{obs}^{-1}\right) = \text{tr}\left((\mathcal{I}_{obs} + \mathcal{I}_{mis|obs}) \mathcal{I}_{obs}^{-1}\right)$$
+
+$$= \text{tr}\left(\mathcal{I}_{obs} \mathcal{I}_{obs}^{-1}\right) + \text{tr}\left(\mathcal{I}_{mis|obs} \mathcal{I}_{obs}^{-1}\right)$$
+
+$$= \text{tr}(I_Q) + \text{tr}\left(\mathcal{I}_{mis|obs} \mathcal{I}_{obs}^{-1}\right)$$
+
+$$= Q + \text{tr}(\text{RIV})$$
+
+Substituting back into Term 2 from Step 10:
+
+$$\text{Term 2} = -\frac{1}{2}\left(Q + \text{tr}(\text{RIV})\right) + \frac{Q}{2}$$
+
+$$= -\frac{Q}{2} - \frac{1}{2}\text{tr}(\text{RIV}) + \frac{Q}{2}$$
+
+$$= -\frac{1}{2}\text{tr}(\text{RIV})$$
+
+## Summary
+
+::: {.callout-important}
+## Term 2: Estimation Mismatch
+
+$$\text{Term 2} = \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})] = -\frac{1}{2}\text{tr}(\text{RIV})$$
+
+This term is **negative**: evaluating the complete-data log-likelihood at $\hat{\theta}_{obs}$ rather than at the maximizer $\hat{\theta}_{com}$ incurs a loss of $\frac{1}{2}\text{tr}(\text{RIV})$ on average.
+:::
+
+---
+
+# Combined Result and MI-AIC Penalty
+
+## Total Bias
+
+Combining Term 1 and Term 2:
+
+$$\text{Total Bias} = \text{Term 1} + \text{Term 2} = \text{tr}(\text{RIV}) - \frac{1}{2}\text{tr}(\text{RIV}) = \frac{1}{2}\text{tr}(\text{RIV})$$
+
+::: {.callout-important}
+## Total Bias
+$$\text{Bias} = \mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})] = \frac{1}{2}\text{tr}(\text{RIV})$$
+:::
+
+## MI-AIC Penalty
+
+For MI-AIC to be unbiased for AIC$_{com}$ in expectation:
+
+$$\text{penalty} = 2Q + 2 \times \text{Total Bias} = 2Q + 2 \times \frac{1}{2}\text{tr}(\text{RIV}) = 2Q + \text{tr}(\text{RIV})$$
+
+::: {.callout-important}
+## MI-AIC Formula (Complete-Data Replication Target)
+$$\text{MI-AIC} = -2\bar{Q}_{MI}(\hat{\theta}_{obs}) + 2Q + \text{tr}(\text{RIV})$$
+
+This targets the AIC that **would have been computed had the data been complete**, i.e., AIC evaluated at $\hat{\theta}_{com}$.
+:::
+
+## Comparison with AICcd (Cavanaugh & Shumway, 1998)
+
+::: {.callout-warning}
+## Important Distinction
+
+Our MI-AIC differs from AICcd by a factor of 2 on the RIV term. This is because **they target different quantities**:
+
+| Criterion | Target | What it estimates |
+|-----------|--------|-------------------|
+| **MI-AIC (ours)** | $\mathbb{E}_Y[-2\ell_{com}(\hat{\theta}_{com})] + 2Q$ | AIC evaluated at the complete-data MLE |
+| **AICcd** | $\mathbb{E}_Y[-2\ln f(Y|\hat{\theta}_{obs})]$ | Complete-data KL divergence at observed-data MLE |
+
+From Cavanaugh & Shumway (1998), equation (3.20):
+$$\text{AICcd} = -2Q(\hat{\theta}|\hat{\theta}) + 2\text{tr}\{I_{oc}(\hat{\theta}|Y_{obs}) \cdot I_o^{-1}(\hat{\theta}|Y_{obs})\}$$
+
+Using their identity (4.4)-(4.5), this simplifies to:
+$$\text{AICcd penalty} = 2Q + 2\text{tr}(\text{RIV})$$
+
+The extra $\text{tr}(\text{RIV})$ in AICcd arises because they evaluate the complete-data log-likelihood at $\hat{\theta}_{obs}$ rather than at the maximizer $\hat{\theta}_{com}$. Our Term 2 derivation shows this costs $-\frac{1}{2}\text{tr}(\text{RIV})$ in expected log-likelihood, which when doubled for the penalty gives an offset of $-\text{tr}(\text{RIV})$.
+:::
+
+## Comparison of Penalties
+
+| Criterion | Penalty | Target |
+|-----------|---------|--------|
+| Standard AIC (complete data) | $2Q$ | $\mathbb{E}[-2\ell_{com}(\hat{\theta}_{com})]$ |
+| **MI-AIC (ours)** | $2Q + \text{tr}(\text{RIV})$ | Same as standard AIC (complete-data replication) |
+| **AICcd** | $2Q + 2\text{tr}(\text{RIV})$ | $\mathbb{E}[-2\ell_{com}(\hat{\theta}_{obs})]$ (evaluate at obs-data MLE) |
+| Naive MI-AIC | $2Q$ | Ignores imputation bias — underpenalizes |
+
+## Which Target is "Correct"?
+
+Both targets are valid but answer different questions:
+
+- **MI-AIC (ours):** "What AIC would I have computed if my data were complete?" This is the natural complete-data replication principle — we want to replicate the criterion that would have been used had we observed the full data.
+
+- **AICcd:** "How well does my fitted model (at $\hat{\theta}_{obs}$) predict future complete data?" This evaluates predictive performance at the parameter estimate we actually have.
+
+For model selection purposes, AICcd's larger penalty may be more conservative (favoring simpler models), while our MI-AIC more directly replicates what would have happened with complete data.
+
+---
+
+# Extension: Three-Term Decomposition for Practical MI
+
+## Theoretical vs. Practical Q-Function Evaluation
+
+The derivations in Sections 4-6 assume that the Q-function is evaluated at a **single fixed point** $\hat{\theta}_{obs}$:
+
+$$\bar{Q}_{MI}(\hat{\theta}_{obs}) = \frac{1}{M}\sum_{m=1}^{M} \ell_{com}(\hat{\theta}_{obs} | Y^{obs}, \tilde{Y}^{mis,(m)})$$
+
+However, in **standard MI practice**, analysts typically:
+
+1. Generate $M$ imputed datasets using imputation parameters $\phi^{(m)}$
+2. Fit the analysis model **separately** to each imputed dataset to obtain $\hat{\theta}^{(m)}$
+3. Compute the log-likelihood for each imputation **at its own estimate**: $\ell^{(m)}(\hat{\theta}^{(m)})$
+4. Average: $\bar{Q}_{practical} = \frac{1}{M}\sum_{m=1}^{M} \ell^{(m)}(\hat{\theta}^{(m)})$
+
+The critical distinction is that in practice, the **evaluation point varies across imputations**. Each $\hat{\theta}^{(m)}$ differs because each imputed dataset is different.
+
+## The Practical Bias
+
+Define the practical bias as:
+
+$$\text{Bias}_{practical} = \mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} \ell^{(m)}(\hat{\theta}^{(m)})\right] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})]$$
+
+We decompose this into **three terms** by inserting $\mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})]$ and $\mathbb{E}[\ell_{com}(\hat{\theta}_{obs})]$ as intermediate quantities:
+
+::: {.callout-note}
+## Three-Term Bias Decomposition (Practical MI)
+
+$$\text{Bias}_{practical} = \underbrace{\mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} \ell^{(m)}(\hat{\theta}^{(m)})\right] - \mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})]}_{\text{Term 0: Evaluation Point Variability}}$$
+
+$$+ \underbrace{\mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{obs})]}_{\text{Term 1: Imputation Bias}} + \underbrace{\mathbb{E}[\ell_{com}(\hat{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})]}_{\text{Term 2: Estimation Mismatch}}$$
+
+- **Term 0:** Additional bias from evaluating at $\hat{\theta}^{(m)}$ instead of $\hat{\theta}_{obs}$
+- **Term 1:** $= \text{tr}(\text{RIV})$ (derived in Section 4)
+- **Term 2:** $= -\frac{1}{2}\text{tr}(\text{RIV})$ (derived in Section 5)
+:::
+
+## Derivation of Term 0
+
+### Step 1: Express Term 0 as a Difference
+
+Since $Q(\hat{\theta}_{obs}|\tilde{\phi}) = \mathbb{E}_{Y^{mis}|Y^{obs},\tilde{\phi}}[\ell_{com}(\hat{\theta}_{obs})]$, the Monte Carlo approximation gives:
+
+$$Q(\hat{\theta}_{obs}|\tilde{\phi}) \approx \frac{1}{M}\sum_{m=1}^{M} \ell^{(m)}(\hat{\theta}_{obs})$$
+
+Therefore:
+
+$$\text{Term 0} = \mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} \left(\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{obs})\right)\right]$$
+
+This is the expected gain in log-likelihood from evaluating at each imputation's own MLE rather than at the pooled estimate.
+
+### Step 2: Taylor Expand Around $\hat{\theta}_{obs}$
+
+Expand $\ell^{(m)}(\theta)$ around $\hat{\theta}_{obs}$:
+
+$$\ell^{(m)}(\hat{\theta}^{(m)}) \approx \ell^{(m)}(\hat{\theta}_{obs}) + \nabla\ell^{(m)}(\hat{\theta}_{obs})^T(\hat{\theta}^{(m)} - \hat{\theta}_{obs}) + \frac{1}{2}(\hat{\theta}^{(m)} - \hat{\theta}_{obs})^T H^{(m)}(\hat{\theta}_{obs})(\hat{\theta}^{(m)} - \hat{\theta}_{obs})$$
+
+where $H^{(m)} = \nabla^2\ell^{(m)}$ is the Hessian.
+
+### Step 3: Use the MLE Condition
+
+Since $\hat{\theta}^{(m)}$ maximizes $\ell^{(m)}$, we have $\nabla\ell^{(m)}(\hat{\theta}^{(m)}) = 0$. Expanding the score around $\hat{\theta}_{obs}$:
+
+$$0 = \nabla\ell^{(m)}(\hat{\theta}^{(m)}) \approx \nabla\ell^{(m)}(\hat{\theta}_{obs}) + H^{(m)}(\hat{\theta}_{obs})(\hat{\theta}^{(m)} - \hat{\theta}_{obs})$$
+
+Solving for the deviation:
+
+$$\hat{\theta}^{(m)} - \hat{\theta}_{obs} \approx -[H^{(m)}(\hat{\theta}_{obs})]^{-1}\nabla\ell^{(m)}(\hat{\theta}_{obs}) = [\mathcal{J}_{com}^{(m)}]^{-1}\nabla\ell^{(m)}(\hat{\theta}_{obs})$$
+
+where $\mathcal{J}_{com}^{(m)} = -H^{(m)}$ is the observed information for imputation $m$.
+
+### Step 4: Substitute and Simplify
+
+Substituting the expression for $(\hat{\theta}^{(m)} - \hat{\theta}_{obs})$ back into the Taylor expansion:
+
+- The **linear term** becomes: $\nabla\ell^{(m)}(\hat{\theta}_{obs})^T [\mathcal{J}_{com}^{(m)}]^{-1} \nabla\ell^{(m)}(\hat{\theta}_{obs})$
+- The **quadratic term** becomes: $-\frac{1}{2}\nabla\ell^{(m)}(\hat{\theta}_{obs})^T [\mathcal{J}_{com}^{(m)}]^{-1} \nabla\ell^{(m)}(\hat{\theta}_{obs})$
+
+These partially cancel, leaving:
+
+$$\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{obs}) \approx \frac{1}{2}\nabla\ell^{(m)}(\hat{\theta}_{obs})^T W \nabla\ell^{(m)}(\hat{\theta}_{obs})$$
+
+where $W = [\mathcal{J}_{com}^{(m)}]^{-1} \approx \mathcal{I}_{com}^{-1}$ is the within-imputation variance.
+
+### Step 5: Identify the Score Contribution
+
+The key insight is that $\hat{\theta}_{obs}$ maximizes the **observed-data** likelihood, not the complete-data likelihood. Therefore:
+
+$$\nabla\ell^{(m)}(\hat{\theta}_{obs}) = \nabla\ell_{obs}(\hat{\theta}_{obs}) + \nabla\ell^{(m)}_{mis}(\hat{\theta}_{obs}) = 0 + \nabla\ell^{(m)}_{mis}(\hat{\theta}_{obs})$$
+
+::: {.callout-note}
+## Practical Approximation
+In MI practice, $\hat{\theta}_{obs}$ is replaced by the Rubin's rules pooled estimate $\bar{\theta}_{obs} = M^{-1}\sum_m \hat{\theta}^{(m)}$, which does not literally maximize $\ell_{obs}$. The observed-data score $\nabla\ell_{obs}(\bar{\theta}_{obs})$ is $O_p(n^{-1/2})$ rather than exactly zero. This approximation is asymptotically valid since the additional term is lower order than the missing-data score contribution $\nabla\ell^{(m)}_{mis}$, which is $O_p(n^{1/2})$.
+:::
+
+The score at $\hat{\theta}_{obs}$ comes **entirely from the missing data contribution** (to leading order), which varies across imputations:
+
+$$\ell^{(m)}(\hat{\theta}^{(m)}) - \ell^{(m)}(\hat{\theta}_{obs}) \approx \frac{1}{2}S_{mis}^{(m)T} W S_{mis}^{(m)}$$
+
+where $S_{mis}^{(m)} = \nabla\ell^{(m)}_{mis}(\hat{\theta}_{obs})$.
+
+### Step 6: Take Expectations
+
+Averaging over imputations and taking expectations:
+
+$$\text{Term 0} = \frac{1}{2}\mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} S_{mis}^{(m)T} W S_{mis}^{(m)}\right]$$
+
+Using the trace identity $a^T B a = \text{tr}(B a a^T)$:
+
+$$\text{Term 0} = \frac{1}{2}\text{tr}\left(W \cdot \mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} S_{mis}^{(m)} S_{mis}^{(m)T}\right]\right)$$
+
+### Step 7: Connect to Between-Imputation Variance
+
+The variance of the missing data score drives the between-imputation variance. Since:
+
+$$\hat{\theta}^{(m)} - \hat{\theta}_{obs} \approx W \cdot S_{mis}^{(m)}$$
+
+We have:
+
+$$B \approx W \cdot \text{Var}(S_{mis}) \cdot W$$
+
+Therefore:
+
+$$\text{Var}(S_{mis}) \approx W^{-1} B W^{-1}$$
+
+Substituting:
+
+$$\text{Term 0} = \frac{1}{2}\text{tr}(W \cdot W^{-1} B W^{-1}) = \frac{1}{2}\text{tr}(W^{-1}B)$$
+
+For large $M$, $(1 + 1/M) \approx 1$, so:
+
+$$\text{Term 0} \approx \frac{1}{2}\text{tr}(\text{RIV})$$
+
+::: {.callout-important}
+## Term 0 Result
+
+$$\text{Term 0} = \mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} \ell^{(m)}(\hat{\theta}^{(m)})\right] - \mathbb{E}[Q(\hat{\theta}_{obs}|\tilde{\phi})] = \frac{1}{2}\text{tr}(\text{RIV})$$
+
+This term is **positive**: evaluating at each imputation's own MLE (rather than the pooled estimate) **increases** the expected log-likelihood because each $\hat{\theta}^{(m)}$ is closer to maximizing $\ell^{(m)}$.
+:::
+
+## Combined Result: Practical Bias
+
+Combining all three terms:
+
+$$\text{Bias}_{practical} = \text{Term 0} + \text{Term 1} + \text{Term 2}$$
+
+$$= \frac{1}{2}\text{tr}(\text{RIV}) + \text{tr}(\text{RIV}) - \frac{1}{2}\text{tr}(\text{RIV})$$
+
+$$= \text{tr}(\text{RIV})$$
+
+::: {.callout-important}
+## Practical Bias Result
+
+$$\text{Bias}_{practical} = \mathbb{E}\left[\frac{1}{M}\sum_{m=1}^{M} \ell^{(m)}(\hat{\theta}^{(m)})\right] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})] = \text{tr}(\text{RIV})$$
+
+The practical bias is **twice** the theoretical bias derived in Section 6.
+:::
+
+## Reconciliation with AICcd
+
+This result explains the factor-of-2 difference between our MI-AIC and AICcd:
+
+| Implementation | Bias | Penalty for AIC$_{com}$ |
+|----------------|------|------------------------|
+| **Theoretical** (evaluate at $\hat{\theta}_{obs}$) | $\frac{1}{2}\text{tr}(\text{RIV})$ | $2Q + \text{tr}(\text{RIV})$ |
+| **Practical** (evaluate at $\hat{\theta}^{(m)}$) | $\text{tr}(\text{RIV})$ | $2Q + 2\text{tr}(\text{RIV})$ |
+
+**AICcd (Cavanaugh & Shumway, 1998) implicitly assumes the practical implementation** where each imputation's log-likelihood is evaluated at its own MLE. Their penalty of $2Q + 2\text{tr}(\text{RIV})$ is correct for this setting.
+
+**Our MI-AIC assumes the theoretical implementation** where the Q-function is evaluated at a single pooled estimate $\hat{\theta}_{obs}$. The penalty of $2Q + \text{tr}(\text{RIV})$ is correct for this setting.
+
+::: {.callout-tip}
+## Practical Guidance
+
+The choice between these approaches depends on implementation:
+
+1. **If evaluating at $\bar{\theta}_{obs}$ (pooled estimate):** Use penalty $2Q + \text{tr}(\text{RIV})$
+2. **If evaluating at $\hat{\theta}^{(m)}$ (imputation-specific):** Use penalty $2Q + 2\text{tr}(\text{RIV})$
+
+Most MI software reports $\hat{\theta}^{(m)}$ and pools them via Rubin's rules. If you compute the deviance as $-2 \times \frac{1}{M}\sum_m \ell^{(m)}(\hat{\theta}^{(m)})$, use AICcd's penalty. If you re-evaluate all imputations at the pooled $\bar{\theta}_{obs}$, use our MI-AIC penalty.
+:::
+
+---
+
+# Practical Implementation: Connection to Rubin's Rules
+
+## Theoretical vs. Practical Quantities
+
+The derivations above use theoretical quantities that may not be directly computable:
+
+| Theoretical | Definition | Computable? |
+|-------------|------------|-------------|
+| $\hat{\theta}_{obs}$ | $\argmax_\theta \ell_{obs}(\theta)$ | Generally intractable (requires integrating out $Y^{mis}$) |
+| $\hat{\theta}_{com}$ | $\argmax_\theta \ell_{com}(\theta)$ | No ($Y^{mis}$ unobserved) |
+
+## MI Practical Quantities
+
+In practice, we use multiple imputation to approximate these quantities:
+
+| Practical | Definition | Description |
+|-----------|------------|-------------|
+| $\phi^{(m)}$ | Draw from $p(\phi \| Y^{obs})$ | Imputation parameter for $m$th imputation |
+| $\tilde{Y}^{mis,(m)}$ | Draw from $p(Y^{mis} \| Y^{obs}, \phi^{(m)})$ | Imputed missing data |
+| $\hat{\theta}^{(m)}$ | $\argmax_\theta \ell_{com}(\theta \| Y^{obs}, \tilde{Y}^{mis,(m)})$ | MLE from $m$th completed dataset |
+| $\bar{\theta}_{obs}$ | $\frac{1}{M}\sum_{m=1}^{M} \hat{\theta}^{(m)}$ | Rubin's rules point estimate |
+
+## Key Result: Equivalence
+
+Under proper multiple imputation, the Rubin's rules estimator $\bar{\theta}_{obs}$ is:
+
+1. **Consistent** for $\theta^*$
+2. **Asymptotically equivalent** to the theoretical $\hat{\theta}_{obs}$
+
+Therefore, the penalty formulas derived above apply with $\bar{\theta}_{obs}$ substituted for $\hat{\theta}_{obs}$:
+
+::: {.callout-important}
+## Practical MI-AIC Formula (Complete-Data Replication)
+
+$$\text{MI-AIC} = -2\bar{Q}_{MI}(\bar{\theta}_{obs}) + 2Q + \text{tr}(\text{RIV})$$
+
+where:
+
+- $\bar{Q}_{MI}(\bar{\theta}_{obs}) = \frac{1}{M}\sum_{m=1}^{M} \ell_{com}(\bar{\theta}_{obs} | Y^{obs}, \tilde{Y}^{mis,(m)})$
+- $\bar{\theta}_{obs} = \frac{1}{M}\sum_{m=1}^{M} \hat{\theta}^{(m)}$ is the Rubin's rules point estimate
+- $\text{RIV} = (1 + 1/M)W^{-1}B$ is computed from standard MI output
+- $W$ = within-imputation variance (average of complete-data variance estimates)
+- $B$ = between-imputation variance (variance of point estimates across imputations)
+
+**Note:** This differs from AICcd (Cavanaugh & Shumway, 1998), which has penalty $2Q + 2\text{tr}(\text{RIV})$.
+:::
+
+## Computing RIV in Practice
+
+From Rubin's rules:
+
+- **Within-imputation variance:** $W = \frac{1}{M}\sum_{m=1}^{M} \widehat{\text{Var}}(\hat{\theta}^{(m)})$
+- **Between-imputation variance:** $B = \frac{1}{M-1}\sum_{m=1}^{M} (\hat{\theta}^{(m)} - \bar{\theta}_{obs})(\hat{\theta}^{(m)} - \bar{\theta}_{obs})^T$
+- **Total variance:** $T = W + (1 + 1/M)B$
+
+The RIV matrix is:
+
+$$\text{RIV} = (1 + 1/M)W^{-1}B$$
+
+And the scalar penalty term is:
+
+$$\text{tr}(\text{RIV}) = (1 + 1/M)\text{tr}(W^{-1}B)$$
+
+::: {.callout-note}
+## Finite-M Correction
+The factor $(1 + 1/M)$ accounts for finite $M$. As $M \to \infty$, this converges to 1 and $\text{RIV} \to W^{-1}B$.
+:::
+
+---
+
+# Finite-$N$ Corrections
+
+The leading-order result $\text{Term 1} = +\text{tr}(\text{RIV})$ has an $O(N^{-1})$ residual that we have not yet quantified explicitly. Empirically (see `claude/notes/2026-04-26-chisquare-recalibration.md`), this residual is **non-negligible at moderate $N$**: at $N = 250$ with $p = 32$ for the Bollen 3-factor CFA, the empirical $r_1 = T_1 / \text{tr}(\text{RIV})_{\text{MI}} \approx 0.85$ rather than $1.0$.
+
+Two well-established finite-$N$ corrections from the multivariate analysis literature account for nearly all of this residual when applied appropriately. Both apply to chi-square test statistics derived from the deviance differences, where the practical impact is most consequential.
+
+## Bartlett Correction for the ML Chi-Square Statistic
+
+Even on **complete data** (no missingness, no MI), the maximum-likelihood chi-square statistic for nested SEM tests has a known finite-$N$ upward bias (Bartlett 1937; Bollen 1989, Ch.~7; Yuan and Bentler 1997):
+
+$$\mathbb{E}[\chi^2_{\text{ML}}] \approx \text{df} \cdot \left(1 + \frac{c(p)}{N}\right)$$
+
+where $c(p)$ depends on third-order log-likelihood derivatives evaluated at the population parameter. For Gaussian SEM with $p$ free parameters in the analysis model, $c(p)$ can be expressed as a known polynomial in $p$. At $N = 250, p = 32$, our 9-indicator CFA has $c \approx 7$–$10$, giving an empirical Bartlett scale of $\approx 0.97$.
+
+The **Bartlett-corrected chi-square** is
+
+$$\chi^2_{\text{Bartlett}} = \chi^2 \cdot \frac{1}{1 + c(p)/N},$$
+
+which (a) brings $\mathbb{E}[\chi^2_{\text{Bartlett}}]$ to df at finite $N$, and (b) restores nominal Type-I error to within $\pm 1$ percentage point across the design grid, even before any MI-related correction.
+
+Crucially, the Bartlett correction operates on the chi-square statistic itself, not on the bias decomposition; it is therefore **orthogonal** to the MI-bias correction we derived. In the MI setting we apply Bartlett to either the corrected $\chi^2_{\text{MI}}$ or the oracle $\chi^2_{\text{com}}$ identically.
+
+## Wishart Correction for Inverse-Hessian Variance Estimates
+
+The bias decomposition derives $\text{Term 1} = \text{tr}(\mathcal{I}_{\text{mis}|\text{obs}} \cdot \mathcal{I}_{\text{obs}}^{-1}) = \text{tr}(\text{RIV})$ in terms of **population** Fisher information matrices. In practice, both the FIML observed-data Fisher information $\hat{\mathcal{I}}_{\text{obs}}$ and the complete-data Fisher information $\hat{\mathcal{I}}_{\text{com}}$ are estimated from sample Hessians evaluated at MLEs, and these estimators inherit the **inverse-Wishart bias** for sample-covariance-style quantities:
+
+$$\mathbb{E}[\hat V] \approx V_{\text{true}} \cdot \frac{n}{n - p - 1} \quad\text{for}\quad \hat V \in \{\hat V_{\text{obs}}, \hat V_{\text{com}}, \hat W\}$$
+
+where $V_{\text{true}}$ is the asymptotic Fisher-information inverse and $\hat V$ is the corresponding sample Hessian inverse. The factor $n/(n-p-1)$ is the leading bias term for $\mathbb{E}[X^{-1}]$ when $X \sim \text{Wishart}_p(n, \Sigma)$ (Anderson 2003, Section 7.7; Magnus and Neudecker 2019, Ch. 16).
+
+Substituting into our trace expression:
+
+$$\hat{\text{tr}}(\text{RIV})_{\text{FIML}} = \text{tr}(\hat V_{\text{obs}} \hat V_{\text{com}}^{-1}) - p \;\approx\; \frac{n}{n-p-1} \cdot \text{tr}(V_{\text{obs}} V_{\text{com}}^{-1}) - p$$
+
+so the **Wishart-corrected estimator** is
+
+$$\widehat{\text{tr}(\text{RIV})}_{\text{corrected}} = \widehat{\text{tr}(\text{RIV})} \cdot \frac{n - p - 1}{n}.$$
+
+Replacing the raw estimator with the Wishart-corrected version in the bias formula:
+
+$$\text{Term 1}_{\text{corrected}} = +\widehat{\text{tr}(\text{RIV})} \cdot \frac{n - p - 1}{n} + O(N^{-2})$$
+
+restores the leading-order theoretical equivalence $r_1 \to 1$ at finite $N$ when imputation and analysis parameter spaces match (the v4 derivation's stated assumption). Empirically: at $N=250, p=32$ the Wishart factor is $0.868$, and the empirical $r_1 = 0.85 / 0.868 \approx 0.98$ — within Monte Carlo error of the theoretical $+1$.
+
+## Combined Corrected MI-AIC and MI-Chi-Square
+
+Applying both corrections to the practical MI-AIC formula:
+
+$$\text{MI-AIC}_{\text{corrected}} = -2\bar Q_{MI}(\bar\theta) + 2p + \widehat{\text{tr}(\text{RIV})} \cdot \frac{n - p - 1}{n}$$
+
+For the chi-square test of model $M$ against the saturated reference $M_{\text{sat}}$:
+
+$$\chi^2_{M, \text{MI-corrected}} = \chi^2_{M, \text{adhoc}} + \widehat{\text{tr}(\text{RIV}_M)} \cdot \frac{n - p_M - 1}{n} - \widehat{\text{tr}(\text{RIV}_{M_{\text{sat}}})} \cdot \frac{n - p_{M_{\text{sat}}} - 1}{n}$$
+
+with optional Bartlett scaling $\chi^2 \cdot (1 - c(p_M)/N)$ for the chi-square reference distribution.
+
+::: {.callout-note}
+## Practical Summary
+1. **Bartlett correction** scales the chi-square test statistic to compensate for ML's finite-$N$ inflation. It is independent of MI and applies even on complete data.
+2. **Wishart correction** scales the trace-of-RIV bias term to compensate for the upward bias of inverse-Hessian variance estimates. It is the principled finite-$N$ refinement of the leading-order $+\tfrac{1}{2}\text{tr}(\text{RIV})$ result.
+
+Both are linear scaling factors with closed-form coefficients depending only on $(N, p)$, requiring no additional simulation or estimation.
+:::
+
+---
+
+# Limitations and Future Work
+
+## The Imputation-vs-Analysis Flexibility Gap
+
+The v4 derivation rests on the assumption (Section 10, Assumption 1) that the imputation model is **congenial** with the analysis model: $\mathbb{E}[\tilde\phi] \to \theta^*$, with $\tilde\phi$ in the same parameter space as $\theta$. Practically, this requires the imputation model to **share** the analysis model's parameter space.
+
+Standard MI workflows in SEM violate this:
+
+- **Amelia/jomo/blimp** impute from a saturated joint MVN with $p_{\text{sat}} = q + q(q+1)/2$ free parameters (means + covariances) for $q$ observed variables. For $q = 9$, $p_{\text{sat}} = 54$. A constrained CFA analysis with $p_{\text{analysis}} = 32$ (Bollen 3-factor) thus operates in a 22-parameter-narrower space than the imputation.
+- **mice PMM** uses chained variable-by-variable regressions with no joint structural constraint. Its effective parameter count is even less interpretable, but exceeds the analysis model.
+
+Empirically (Section 6 of `claude/notes/2026-04-26-chisquare-recalibration.md`), this **flexibility gap** introduces an additional chi-square inflation that is not captured by either Bartlett or Wishart corrections. At $N=250, q=9, p_{\text{analysis}}=32$, the empirical inflation is $\approx +5$ chi-square units, almost exactly matching the **un-corrected** $\widehat{\text{tr}(\text{RIV})}$ correction term.
+
+This coincidence — between the un-corrected `tr(RIV)` and the empirical flexibility-gap inflation — is what allows the **uncorrected** MI-AIC formula to yield approximately calibrated chi-square tests under standard MI workflows. Under truly congenial imputation (where imputation parameter space = analysis parameter space, e.g., `mvn_M1` imputation), the flexibility-gap term vanishes and only the Wishart-corrected (smaller) tr(RIV) is needed.
+
+## Open Theoretical Question
+
+A general theory of MI bias under arbitrary imputation models requires a third correction term beyond Bartlett and Wishart:
+
+$$\chi^2_{M, \text{adhoc}} - \chi^2_{M, \text{com}} \;\approx\; \underbrace{c(p_M)/N}_{\text{Bartlett}} \;+\; \underbrace{\text{Wishart}(p_M, p_{M_{\text{sat}}})}_{\text{Wishart}} \;+\; \underbrace{\Delta(p_{\text{imp}}, p_M, \text{mr}, N)}_{\textbf{flexibility-gap, TBD}}$$
+
+The functional form of the flexibility-gap term $\Delta(\cdot)$ — likely a function of $(p_{\text{imp}} - p_M)$, the missing pattern, and possibly third-order data moments — has not been derived in the multivariate-analysis or missing-data literatures and constitutes the primary open theoretical contribution motivated by this work.
+
+::: {.callout-warning}
+## Scope of v4
+The v4 derivation as written is rigorous **under its stated assumption that the imputation model is congenial with the analysis model**. Reading the result as a universal claim about practical MI workflows requires either (a) confining attention to true-model imputation, or (b) extending the derivation with the flexibility-gap correction $\Delta(\cdot)$.
+:::
+
+---
+
+# Summary
+
+::: {.callout-important}
+## Main Results
+
+**Target:** AIC that would have been computed had the data been complete:
+$$\text{AIC}_{com} = -2\ell_{com}(\hat{\theta}_{com}) + 2Q$$
+
+**Bias decomposition:**
+$$\underbrace{\mathbb{E}[\bar{Q}_{MI}(\bar{\theta}_{obs})] - \mathbb{E}[\ell_{com}(\hat{\theta}_{com})]}_{\text{Total Bias}} = \underbrace{\text{tr}(\text{RIV})}_{\text{Term 1: Imputation Bias}} + \underbrace{\left(-\frac{1}{2}\text{tr}(\text{RIV})\right)}_{\text{Term 2: Estimation Mismatch}} = \frac{1}{2}\text{tr}(\text{RIV})$$
+
+**MI-AIC formula (complete-data replication):**
+$$\text{MI-AIC} = -2\bar{Q}_{MI}(\bar{\theta}_{obs}) + 2Q + \text{tr}(\text{RIV})$$
+
+**Comparison with AICcd:**
+
+| Criterion | Penalty | Target |
+|-----------|---------|--------|
+| **MI-AIC (ours)** | $2Q + \text{tr}(\text{RIV})$ | Replicate AIC at $\hat{\theta}_{com}$ |
+| **AICcd (C&S 1998)** | $2Q + 2\text{tr}(\text{RIV})$ | KL divergence at $\hat{\theta}_{obs}$ |
+
+The factor-of-2 difference arises because AICcd evaluates complete-data fit at $\hat{\theta}_{obs}$, not at the complete-data maximizer $\hat{\theta}_{com}$. Our Term 2 shows this costs $\frac{1}{2}\text{tr}(\text{RIV})$ in expected log-likelihood.
+:::
