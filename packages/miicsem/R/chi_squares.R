@@ -49,6 +49,73 @@ compute_D3 <- function(loglik_full_own, loglik_full_pooled,
 }
 
 
+#' v4.5 Finite-M Scaled-Shifted Chi-Square Correction
+#'
+#' Implements the v4.5 §13 closed-form correction for the MI-corrected
+#' goodness-of-fit chi-square:
+#'   Var[chi2_MI] = Var[chi2_com] + 4 * tr(RIV_perp) + 2 * sum_j lambda_j^2
+#'                                                     |_perp + O(1/M)
+#' where {lambda_j} are eigenvalues of RIV_perp = I^{imp,mis}_{perp,perp} *
+#' (I^{imp,obs}_{perp,perp})^{-1}, restricted to the orthogonal complement of
+#' Theta in Phi.
+#'
+#' The Asparouhov-Muthen-style scaled-shifted correction:
+#'   chi2_MI_corr = a * chi2_MI + b
+#'   a = sqrt(2 * df / (2 * df + 4 * tr_perp + 2 * sum_lambda_sq_perp))
+#'   b = df * (1 - a)
+#'
+#' By construction, E[chi2_MI_corr] = df and Var[chi2_MI_corr] = 2 df, so
+#' chi2_MI_corr can be referenced to a chi^2_df distribution.
+#'
+#' Approximation used for sum_lambda_sq_perp: leading-order block subtraction
+#'   sum_lambda_sq |_perp ~= sum_lambda_sq |_Msat - sum_lambda_sq |_M
+#' This neglects the cross-block contribution of order O(1/N); see v4.5 §13
+#' for discussion.
+#'
+#' @param chi2_MI Scalar v4 first-moment-corrected chi-square statistic.
+#' @param df Degrees of freedom (= p_Msat - p_M).
+#' @param tr_RIV_M Trace of RIV for analysis model.
+#' @param tr_RIV_Msat Trace of RIV for saturated reference.
+#' @param sum_lambda_sq_M Sum of squared RIV eigenvalues for analysis model.
+#' @param sum_lambda_sq_Msat Sum of squared RIV eigenvalues for saturated.
+#' @return List with \code{chi2_MI_corr}, \code{a}, \code{b}, \code{tr_perp},
+#'   \code{sum_lambda_sq_perp}, \code{var_predicted}.
+compute_chi2_MI_corrected <- function(chi2_MI, df,
+                                       tr_RIV_M, tr_RIV_Msat,
+                                       sum_lambda_sq_M, sum_lambda_sq_Msat) {
+
+  na_result <- list(chi2_MI_corr = NA_real_, a = NA_real_, b = NA_real_,
+                    tr_perp = NA_real_, sum_lambda_sq_perp = NA_real_,
+                    var_predicted = NA_real_)
+
+  if (is.na(df) || df <= 0 || is.na(chi2_MI)) return(na_result)
+  if (any(is.na(c(tr_RIV_M, tr_RIV_Msat,
+                   sum_lambda_sq_M, sum_lambda_sq_Msat)))) return(na_result)
+
+  tr_perp           <- tr_RIV_Msat - tr_RIV_M
+  sum_lambda_sq_perp <- max(sum_lambda_sq_Msat - sum_lambda_sq_M, 0)
+
+  var_target    <- 2 * df
+  var_excess    <- 4 * tr_perp + 2 * sum_lambda_sq_perp
+  var_predicted <- var_target + var_excess
+
+  if (var_predicted <= 0) return(na_result)
+
+  a <- sqrt(var_target / var_predicted)
+  b <- df * (1 - a)
+  chi2_corr <- a * chi2_MI + b
+
+  list(
+    chi2_MI_corr       = chi2_corr,
+    a                  = a,
+    b                  = b,
+    tr_perp            = tr_perp,
+    sum_lambda_sq_perp = sum_lambda_sq_perp,
+    var_predicted      = var_predicted
+  )
+}
+
+
 #' Compute Chi-Squares vs Saturated and Finish MR_DEVIANCE
 #'
 #' For each candidate model \eqn{M_j} (rows of \code{dev_df} other than
@@ -102,6 +169,8 @@ compute_chi_squares <- function(complete_fits, mi_fits, dev_df) {
   dev_com_sat    <- dev_df[sat_name, "DEV_com"]
   dev_adhoc_sat  <- dev_df[sat_name, "DEV_adhoc"]
   mi_dev_sat     <- dev_df[sat_name, "MI_DEVIANCE"]
+  tr_RIV_sat     <- if (isTRUE(sat_mi$success)) sat_mi$tr_RIV else NA_real_
+  sumlambsq_sat  <- if (isTRUE(sat_mi$success)) sat_mi$sum_lambda_sq else NA_real_
 
   chi2_rows <- lapply(candidates, function(mname) {
     mf_j   <- mi_fits[[mname]]
@@ -133,8 +202,28 @@ compute_chi_squares <- function(complete_fits, mi_fits, dev_df) {
       chi2_D3_j <- d3$chi2_D3
     }
 
+    # v4.5 §13 finite-M scaled-shifted correction
+    tr_RIV_j      <- if (isTRUE(mf_j$success)) mf_j$tr_RIV else NA_real_
+    sumlambsq_j   <- if (isTRUE(mf_j$success)) mf_j$sum_lambda_sq else NA_real_
+    corr_j <- compute_chi2_MI_corrected(
+      chi2_MI            = chi2_MI_j,
+      df                 = k,
+      tr_RIV_M           = tr_RIV_j,
+      tr_RIV_Msat        = tr_RIV_sat,
+      sum_lambda_sq_M    = sumlambsq_j,
+      sum_lambda_sq_Msat = sumlambsq_sat
+    )
+
     data.frame(chi2_com = chi2_com_j, chi2_adhoc = chi2_adhoc_j,
-               chi2_MI = chi2_MI_j, chi2_D3 = chi2_D3_j, df = k,
+               chi2_MI = chi2_MI_j, chi2_MI_corr = corr_j$chi2_MI_corr,
+               chi2_D3 = chi2_D3_j, df = k,
+               sum_lambda_sq_M    = sumlambsq_j,
+               sum_lambda_sq_Msat = sumlambsq_sat,
+               tr_perp            = corr_j$tr_perp,
+               sum_lambda_sq_perp = corr_j$sum_lambda_sq_perp,
+               var_predicted      = corr_j$var_predicted,
+               a_scale            = corr_j$a,
+               b_shift            = corr_j$b,
                stringsAsFactors = FALSE)
   })
 

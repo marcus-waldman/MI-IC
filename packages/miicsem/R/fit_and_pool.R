@@ -194,16 +194,34 @@ pool_mi <- function(mi_result, config) {
   RIV <- (1 + 1 / M_ok) * W_inv %*% B
   tr_RIV <- sum(diag(RIV))
 
+  # Eigenvalue spectrum of RIV via Cholesky-symmetrized eigendecomposition
+  # of (1 + 1/M) W^{-1/2}^T B W^{-1/2}. Numerically stable via
+  # eigen(symmetric = TRUE) on a symmetric matrix similar to W^{-1} B.
+  # Used by v4.5 §13 finite-M variance correction (chi2_MI_corr).
+  spec <- tryCatch({
+    R_chol <- chol(W + diag(config$ridge_factor * mean(diag(W)), nrow = Q))
+    R_inv  <- backsolve(R_chol, diag(Q))
+    A_sym  <- crossprod(R_inv, B) %*% R_inv
+    A_sym  <- (A_sym + t(A_sym)) / 2  # numerical symmetrization
+    ev     <- eigen(A_sym, symmetric = TRUE, only.values = TRUE)
+    lambdas <- (1 + 1 / M_ok) * ev$values
+    list(lambdas = lambdas, sum_lambda_sq = sum(lambdas^2))
+  }, error = function(e) {
+    list(lambdas = rep(NA_real_, Q), sum_lambda_sq = NA_real_)
+  })
+
   mean_loglik <- mean(mi_result$logliks)
 
   list(
-    theta_bar   = theta_bar,
-    W           = W,
-    B           = B,
-    RIV         = RIV,
-    tr_RIV      = tr_RIV,
-    mean_loglik = mean_loglik,
-    M_ok        = M_ok
+    theta_bar     = theta_bar,
+    W             = W,
+    B             = B,
+    RIV           = RIV,
+    tr_RIV        = tr_RIV,
+    lambdas       = spec$lambdas,
+    sum_lambda_sq = spec$sum_lambda_sq,
+    mean_loglik   = mean_loglik,
+    M_ok          = M_ok
   )
 }
 
@@ -391,7 +409,10 @@ fit_mi_models <- function(imputed_list, models, config, pop_starts = NULL) {
       W                 = pooled$W,
       B                 = pooled$B,
       tr_RIV            = pooled$tr_RIV,
+      lambdas           = pooled$lambdas,
+      sum_lambda_sq     = pooled$sum_lambda_sq,
       mean_loglik       = pooled$mean_loglik,
+      logliks           = mi_raw$logliks,
       logliks_at_pooled = logliks_at_pooled,
       converged_count   = mi_raw$converged_count
     )
