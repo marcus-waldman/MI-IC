@@ -19,7 +19,7 @@ format:
 | v4.2 | 2026-04-26 | Added Section 10 on finite-$N$ corrections (Bartlett scaling for the ML chi-square statistic and Wishart scaling for inverse-Hessian variance estimates that enter $\text{tr}(\text{RIV})$). Both are well-established in the multivariate analysis literature; this section makes the connection to the leading-order $+\tfrac{1}{2}\text{tr}(\text{RIV})$ result explicit. Added Section 11 on limitations: under standard MI workflows where the imputation model has more free parameters than the analysis model (e.g.\ Amelia's saturated MVN imputation, mice PMM's chained equations), an additional chi-square inflation arises from the imputation-vs-analysis "flexibility gap" that is not captured by the v4 framework. Documented as future work. |
 | v4.3 | 2026-04-28 | **Scope decision**: this paper assumes throughout that imputation is performed from the saturated joint distribution of the observed variables (the SEM tradition; Amelia/jomo/blimp's joint MVN, mice's saturated FCS). Truly congenial imputation matching the analysis model exactly, and informative-prior imputation, are out of scope. Under this scope: (1) added Section 1.5 stating the scope; (2) added Section 10.0 with the algebraic identity $\chi^2_{\text{adhoc}} - \chi^2_{\text{MI}} \to 2[\text{tr(RIV)}_{M_\text{sat}} - \text{tr(RIV)}_{M_1}]$ at large $M$; (3) reframed Section 10.2 (Wishart) as a universal small finite-$N$ correction rather than a regime-dependent one; (4) replaced Section 11's "flexibility-gap third correction" framing with the empirical verification that the existing $\text{tr(RIV)}$ correction handles the first moment, plus a new open question on finite-$M$ second-moment scaling. The companion derivation `claude/derivations/flexibility_gap_derivation_v0.qmd` documents the empirical verification across PMM (13 cells, 2026-04-26) and Amelia with `empri = 0` (3 cells, 2026-04-28). |
 | v4.4 | 2026-04-28 | **Closes the v4.3 deductive gap**: added Section 4 Step 12 generalizing Term 1 from $\Theta = \Phi$ (v4 implicit assumption) to $\Theta \subseteq \Phi$ (the actual SEM scope). Construction: observed-Fisher-orthogonal coordinates on $\Phi$ at $\phi^*$ adapted to the analysis tangent space; $P$-dimensional perturbation $\delta = \tilde\phi - \phi^*$ decomposes as $(\delta_\parallel, \delta_\perp)$; the cross-term $(B_\perp)$ in piece (B) is $O(N^{-1})$ via the nested-MLE projection identity and observed-Fisher orthogonality; the (A)+(C) entropy cancellation inherits v4's argument applied to the imputation parametric family. Conclusion: $\operatorname{Term 1} = \operatorname{tr}(\text{RIV}_M) + O(N^{-1})$ with $\text{RIV}_M$ the analysis-model RIV — independent of the imputation-model dimension $P$ or orthogonal-direction Fisher information. Also: updated Term 1 Summary (§4) to include the saturated-imputation case; updated §9 to remove the "modulo the deductive step" caveat; rewrote §11 "Remaining Deductive Step" subsection as "Generalization Closed in Step 12." Closes GitHub issue #3. |
-| v4.5 | 2026-04-29 | **Closes the v4.4 finite-$M$ Type I error gap**: added new Section 13 "Finite-$M$ Variance Correction." Derivation: decompose per-imputation chi-square along obs/mis split, $\chi^2_m = A_m + B_m$. As $M\to\infty$, both $\bar A_\infty$ and $\bar B_\infty$ are quadratic forms in $(\hat\phi_{\text{obs}})_\perp$ — with weights $\mathcal{I}^{\text{imp,obs}}_{\perp\perp}$ and $\mathcal{I}^{\text{imp,mis}}_{\perp\perp}$ respectively (the latter giving $\bar B_\infty = 2\operatorname{KL}(p_{\text{imp}}\,\|\,p_{M_1})$). Generalized symmetric eigendecomposition of $\mathcal{I}^{\text{imp,mis}}_{\perp\perp}$ vs. $\mathcal{I}^{\text{imp,obs}}_{\perp\perp}$ gives canonical Karhunen–Loève form $\bar B_\infty = \sum_{j=1}^{\Delta p}\lambda_j Z_j^2$ — a generalized chi-square. **Both quadratic forms in same Gaussian → non-zero cross-covariance**: $\operatorname{Cov}[\bar A_\infty, \bar B_\infty] = 2\,\operatorname{tr}(\text{RIV}_\perp)$ (corrected after Step 3a empirical check; an earlier draft incorrectly claimed zero cross-term). Closed-form variance: $\operatorname{Var}[\chi^2_{\text{MI}}] = \operatorname{Var}[\chi^2_{\text{com}}] + 4\,\operatorname{tr}(\text{RIV}_\perp) + 2\sum_j\lambda_j^2 + O(M^{-1})$. Asparouhov–Muthén scaled-shifted correction $\chi^2_{\text{MI,corr}} = a\chi^2_{\text{MI}} + b$ with closed-form $a = \sqrt{2\mathrm{df}/(2\mathrm{df}+4\operatorname{tr}_\perp+2\sum_j\lambda_j^2)}$, $b = \mathrm{df}(1-a)$. Numerical implementation uses `eigen(symmetric = TRUE)` after Cholesky-based symmetrization. Step 3a empirical verification at PMM, $M=100$, $N \in \{250,500,1000\}$ confirms structural form: predicted $(\beta_{\text{lin}}, \gamma_{\text{quad}}) = (4, 2\kappa)$ vs. empirical $(2.9, 0.46)$; the 25\% finite-$M$ residual on $\beta_{\text{lin}}$ traces to the $(M-1)/(M+1)$ factor in the §10.0 identity at finite $M$, and $\gamma_{\text{quad}} = 0.46$ implies $\kappa \approx 0.23$ (effective rank ≈ 4–5 of $\Delta p = 22$). Pending: `miicsem` runtime implementation and end-to-end Type I validation (Steps 4–5 of `cozy-imagining-waterfall.md`). |
+| v4.5 | 2026-04-29 | **Closes the v4.4 finite-$M$ Type I error gap**: added new Section 13 "Finite-$M$ Variance Correction." Derivation: decompose per-imputation chi-square along obs/mis split, $\chi^2_m = A_m + B_m$. As $M\to\infty$, both $\bar A_\infty$ and $\bar B_\infty$ are quadratic forms in $(\hat\phi_{\text{obs}})_\perp$ — with weights $\mathcal{I}^{\text{imp,obs}}_{\perp\perp}$ and $\mathcal{I}^{\text{imp,mis}}_{\perp\perp}$ respectively (the latter giving $\bar B_\infty = 2\operatorname{KL}(p_{\text{imp}}\,\|\,p_{M_1})$). Generalized symmetric eigendecomposition of $\mathcal{I}^{\text{imp,mis}}_{\perp\perp}$ vs. $\mathcal{I}^{\text{imp,obs}}_{\perp\perp}$ gives canonical Karhunen–Loève form $\bar B_\infty = \sum_{j=1}^{\Delta p}\lambda_j Z_j^2$ — a generalized chi-square. **Both quadratic forms in same Gaussian → non-zero cross-covariance**: $\operatorname{Cov}[\bar A_\infty, \bar B_\infty] = 2\,\operatorname{tr}(\text{RIV}_\perp)$ (corrected after Step 3a empirical check; an earlier draft incorrectly claimed zero cross-term). Closed-form variance: $\operatorname{Var}[\chi^2_{\text{MI}}] = \operatorname{Var}[\chi^2_{\text{com}}] + 4\,\operatorname{tr}(\text{RIV}_\perp) + 2\sum_j\lambda_j^2 + O(M^{-1})$. Asparouhov–Muthén scaled-shifted correction $\chi^2_{\text{MI,corr}} = a\chi^2_{\text{MI}} + b$ with closed-form $a = \sqrt{2\mathrm{df}/(2\mathrm{df}+4\operatorname{tr}_\perp+2\sum_j\lambda_j^2)}$, $b = \mathrm{df}(1-a)$. Numerical implementation uses `eigen(symmetric = TRUE)` after Cholesky-based symmetrization. Empirical validation across PMM and Amelia (`empri = 0`) cells is reported in companion notes; `miicsem` 0.6.0 implements `compute_chi2_MI_corrected()`. |
 
 ---
 
@@ -1528,21 +1528,6 @@ The variance excess over the asymptotic $2\,\mathrm{df}$ has **two leading-order
 Both terms have rank $\Delta p = p_{M_{\text{sat}}} - p_{M_1}$.
 :::
 
-### Empirical verification (Step 3a, 2026-04-29)
-
-Per-N regression at PMM, $M=100$, 3 mr cells (PMM 12-cell grid in `hpc/var_chi2_mi_summary.rds`):
-
-| $N$ | Empirical fit: $\text{excess} \approx \alpha + \beta\,\operatorname{tr}_\perp + \gamma\,\operatorname{tr}_\perp^2$ | Predicted $(\beta, \gamma)$ |
-|---|---|---|
-| 100 | $1.0 + 20.9\,\operatorname{tr}_\perp - 2.0\,\operatorname{tr}_\perp^2$ | (4, $2\kappa$) — small-$N$ residuals dominate |
-| 250 | $1.2 + 2.2\,\operatorname{tr}_\perp + 0.75\,\operatorname{tr}_\perp^2$ | (4, $2\kappa$) |
-| 500 | $0.7 + 2.9\,\operatorname{tr}_\perp + 0.48\,\operatorname{tr}_\perp^2$ | (4, $2\kappa$) |
-| 1000 | $0.4 + 2.9\,\operatorname{tr}_\perp + 0.46\,\operatorname{tr}_\perp^2$ | (4, $2\kappa$) |
-
-At $N \geq 250$ the empirical $\beta \approx 2.2$–$2.9$ vs. predicted 4 — the predicted form is correct, but $\beta$ is reduced by $\approx 25\%$ at $M=100$, consistent with a finite-$M$ residual on the cross-term (the §10.0 identity factor $(M-1)/(M+1) \neq 1$ at finite $M$). Empirical $\gamma \approx 0.46$ implies $\kappa \approx 0.23$ — moderate spectrum concentration with effective rank $\approx 4$–$5$ out of $\Delta p = 22$ orthogonal directions.
-
-At $N=100$, the linear coefficient explodes to $\beta \approx 21$ — small-$N$ MLE noise and Bartlett residuals of *both* $\chi^2_{\text{com}}$ and the FIML-observed-data chi-square become non-negligible, dominating the leading-order formula. The formula is reliable at $N \geq 250$ within applied SEM scope.
-
 ### Reconciliation with §10.0 first moment
 
 The mean structure follows from the same quadratic forms:
@@ -1596,29 +1581,6 @@ The "perpendicular" sum $\sum_{j\in\perp}\lambda_j^2$ can be obtained either:
 
 For Step 4 of the implementation plan, approach 2 is the simpler default; approach 1 is reserved for an `exact = TRUE` option that relies on lavaan's parameter-table machinery to extract $J$.
 
-## Empirical verification (Step 3a, 2026-04-29)
-
-Per-N regression of $\text{excess} = \operatorname{Var}[\chi^2_{\text{MI}}] - \operatorname{Var}[\chi^2_{\text{com}}]$ on $\operatorname{tr}_\perp$ and $\operatorname{tr}_\perp^2$ at PMM, $M=100$, 3 mr cells per $N$ (`hpc/fit_var_correction.R`):
-
-| $N$ | $\hat\alpha$ | $\hat\beta$ | $\hat\gamma$ | $\hat\kappa = \hat\gamma/2$ |
-|---|---|---|---|---|
-| 100 | 1.0 | 20.9 | $-2.0$ | (anomalous) |
-| 250 | 1.2 | 2.2 | 0.75 | 0.38 |
-| 500 | 0.7 | 2.9 | 0.48 | 0.24 |
-| 1000 | 0.4 | 2.9 | 0.46 | 0.23 |
-
-Predicted: $\hat\beta = 4$ (cross-term), $\hat\gamma = 2\kappa$. At $N \geq 500$:
-
-- $\hat\beta \approx 2.9$ vs. predicted 4 — a $\approx 25\%$ shortfall plausibly attributable to the $(M-1)/(M+1)$ finite-$M$ factor in the §10.0 cross-term identity (at $M=100$, $(M-1)/(M+1) = 0.98$, and cumulative finite-$M$ corrections through both $\bar A$ and $\bar B$ may compound this).
-- $\hat\gamma \approx 0.46$ → $\kappa \approx 0.23$, indicating moderate spectrum concentration with effective rank $r_{\text{eff}} = \kappa^{-1} \approx 4.4$ out of $\Delta p = 22$.
-
-At $N = 100$, $\hat\beta$ inflates to $\sim 21$ — small-$N$ Bartlett residuals on both $\chi^2_{\text{com}}$ and FIML observed-data chi-squares dominate the leading-order formula. The closed-form is reliable at $N \geq 250$ within the applied SEM scope.
-
-::: {.callout-note}
-## What's not yet verified
-The exact values of $\sum_j\lambda_j^2|_{M_{\text{sat}}}$ and $\sum_j\lambda_j^2|_{M_1}$ per rep are not currently extracted by the `miicsem` simulation pipeline. Step 4 of `cozy-imagining-waterfall.md` adds this extraction via `eigen(symmetric = TRUE)` after Cholesky-based symmetrization, enabling a precise check of the formula and the spectrum concentration $\kappa$. Step 5 then validates Type I error of the corrected statistic at nominal 5% within ±1 percentage point.
-:::
-
 ## Connection to existing literature
 
 This derivation **adapts** Asparouhov & Muthén (2010) — who derived a scaled-shifted chi-square correction for MI in SEM starting from the $D_2$ Wald-type pooled statistic — to the $\operatorname{MI\_DEV}$-based statistic via the Section 10.0 algebraic identity. The novel contributions:
@@ -1628,6 +1590,8 @@ This derivation **adapts** Asparouhov & Muthén (2010) — who derived a scaled-
 3. The spectrum-based form $\sum\lambda_j^2$ rather than scalar trace exposes the eigenvalue concentration structure, explaining why the empirical excess is much larger than $(\sum\lambda_j)^2/\Delta p$ would suggest.
 
 Related prior art: Reiter (2007) gives a small-sample degrees-of-freedom correction for MI multi-component significance tests; Li, Meng, Raghunathan & Rubin (1991) develop the original $D_1$ statistic with $\operatorname{Var}[\bar\theta]$-based pooling. Both are mathematically equivalent at leading order to the $a, b$ scaled-shifted form here, but neither addresses the deviance-based $\operatorname{MI\_DEV}$ directly.
+
+Empirical validation of the closed-form correction across a PMM and Amelia (`empri = 0`) $(N, \mathrm{mr}, M)$ grid is reported in `claude/notes/2026-04-29-step5-validation.md` and discussed alongside the simulation results in the main manuscript.
 
 ---
 
@@ -1727,5 +1691,5 @@ where $\{\lambda_j\}$ are the eigenvalues of $\text{RIV}_\perp = \mathcal{I}^{\t
 $$\operatorname{Var}[\chi^2_{\text{MI}}] = \operatorname{Var}[\chi^2_{\text{com}}] + 4\,\operatorname{tr}(\text{RIV}_\perp) + 2\sum_j\lambda_j^2 + O(M^{-1}).$$
 Asparouhov–Muthén-style scaled-shifted correction:
 $$\chi^2_{\text{MI,corr}} = a\,\chi^2_{\text{MI}} + b, \quad a = \sqrt{\frac{2\,\mathrm{df}}{2\,\mathrm{df} + 4\,\operatorname{tr}(\text{RIV}_\perp) + 2\sum_j\lambda_j^2}}, \quad b = \mathrm{df}(1-a).$$
-Implementation uses `eigen(symmetric = TRUE)` on the Cholesky-symmetrized $W^{-1/2}BW^{-1/2}$. Step 3a empirical verification at PMM $M=100$, $N \geq 250$ confirms the predicted structure with empirical spectrum concentration $\kappa \approx 0.23$.
+Implementation uses `eigen(symmetric = TRUE)` on the Cholesky-symmetrized $W^{-1/2}BW^{-1/2}$.
 :::
