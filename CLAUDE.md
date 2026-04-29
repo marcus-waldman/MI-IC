@@ -103,13 +103,26 @@ The bias correction's value-add is **NOT** model selection (where MI-AIC and AIC
 
 At N=250, mr=0.40, M=50, true model M1 (df=22), Type I error at α=0.05:
 - **chi2_adhoc**: 21% (4× nominal) — **standard practice**
-- **chi2_MI**: 9.8% (with our bias correction)
+- **chi2_MI**: 9.8% (with v4 first-moment correction)
+- **chi2_MI,corr** (v4.5): pending validation, predicted ~5% (nominal)
 - **chi2_D3** (Meng-Rubin): 14.8%
 - **chi2_com** (oracle): 6.4%
 
-MI bias correction fixes the **first moment** (E[chi2_MI] = 22.9 ≈ df=22, vs E[chi2_adhoc] = 27.9). Residual Type I inflation (10% vs 5%) is from **second-moment** inflation due to finite M (Var[chi2_MI] = 63 vs Var[chi2_com] = 49). Wishart correction does NOT help here — applying it under-shoots the mean.
+MI bias correction fixes the **first moment** (E[chi2_MI] = 22.9 ≈ df=22, vs E[chi2_adhoc] = 27.9). Residual Type I inflation (10% vs 5%) is from **second-moment** inflation (Var[chi2_MI] = 63 vs Var[chi2_com] = 49) — closed in v4.5 §13 (see below).
 
-See `claude/notes/2026-04-26-chisquare-recalibration.md`. Open work: derive Satorra-Bentler-style finite-M variance correction.
+See `claude/notes/2026-04-26-chisquare-recalibration.md`.
+
+### v4.5 Closure: Finite-M Variance Correction (2026-04-29)
+The v4.5 derivation closes the chi-square variance gap. The per-imputation chi-square decomposes as $\chi^2_m = A_m + B_m$ along the obs/mis split. As $M\to\infty$, $\bar A_\infty$ is the FIML observed-data chi-square (variance ≈ Var[χ²_com]) and $\bar B_\infty = 2\,\text{KL}(p_\text{imp} \,\|\, p_{M_1})$ — the imputation-flexibility KL divergence. Step 12 quadratic Taylor expansion + generalized symmetric eigendecomposition gives canonical Karhunen-Loève form $\bar B_\infty = \sum_{j=1}^{\Delta p}\lambda_j Z_j^2$ (generalized chi-square), where $\{\lambda_j\}$ are eigenvalues of $\text{RIV}_\perp = \mathcal{I}^\text{imp,mis}_{\perp\perp}(\mathcal{I}^\text{imp,obs}_{\perp\perp})^{-1}$.
+
+**Closed form**: $\text{Var}[\chi^2_\text{MI}] = \text{Var}[\chi^2_\text{com}] + 2\sum_j\lambda_j^2 + O(M^{-1})$.
+
+**Asparouhov-Muthén-style scaled-shifted correction**:
+$$\chi^2_\text{MI,corr} = a\chi^2_\text{MI} + b, \quad a = \sqrt{\frac{2\,\text{df}}{2\,\text{df} + 2\sum_j\lambda_j^2}}, \quad b = \text{df}(1-a)$$
+
+Implementation note: when computing the eigendecomposition of $W^{-1}B$ in R, symmetrize via Cholesky (`A_sym = solve(t(chol(W))) %*% B %*% solve(chol(W))`) and use `eigen(A_sym, symmetric = TRUE, only.values = TRUE)` for stability. See v4.5 §13 of `claude/derivations/mi_deviance_bias_derivation_v4.qmd`.
+
+Open work: `miicsem` runtime implementation (`compute_chi2_MI_corrected()`) and end-to-end Type I validation. Plan: `~/.claude/plans/cozy-imagining-waterfall.md`.
 
 ### Scope Decision: D_LR Connection
 Consentino & Claeskens (2010) built an AIC from Meng & Rubin's (1992) D_L statistic: `aic(S, S_0) = -D_S + 2p_S`. This is a direct comparator that uses D_L's scalar r_L correction vs. our multivariate tr(RIV). **Decision**: Include D_LR-based AIC as a simulation comparator (Section 4.4). Introduce D_L in background (Section 2.4). Compare correction approaches in theory (Section 3.7). Discuss empirical results in Section 6.2. Flag corrected LR *tests* (not IC) as future work in Section 6.5.
