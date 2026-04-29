@@ -78,6 +78,10 @@ compute_chi_squares <- function(complete_fits, mi_fits, dev_df) {
     stop("compute_chi_squares: dev_df must include a 'Msat' row.")
   }
 
+  # Compute chi-squares for every non-Msat row, including Mnull if present
+  # (its chi-square is needed for CFI/TLI denominators). The IC pipeline
+  # filters out Mnull separately (compute_all_models_ic operates only on
+  # the candidate model list).
   candidates <- setdiff(rownames(dev_df), sat_name)
 
   sat_mi <- mi_fits[[sat_name]]
@@ -94,9 +98,10 @@ compute_chi_squares <- function(complete_fits, mi_fits, dev_df) {
 
   dev_df[sat_name, "MR_DEVIANCE"] <- mr_sat
 
-  npar_sat    <- dev_df[sat_name, "npar"]
-  dev_com_sat <- dev_df[sat_name, "DEV_com"]
-  mi_dev_sat  <- dev_df[sat_name, "MI_DEVIANCE"]
+  npar_sat       <- dev_df[sat_name, "npar"]
+  dev_com_sat    <- dev_df[sat_name, "DEV_com"]
+  dev_adhoc_sat  <- dev_df[sat_name, "DEV_adhoc"]
+  mi_dev_sat     <- dev_df[sat_name, "MI_DEVIANCE"]
 
   chi2_rows <- lapply(candidates, function(mname) {
     mf_j   <- mi_fits[[mname]]
@@ -105,6 +110,10 @@ compute_chi_squares <- function(complete_fits, mi_fits, dev_df) {
 
     chi2_com_j <- if (!is.na(dev_com_sat) && !is.na(dev_df[mname, "DEV_com"])) {
       dev_df[mname, "DEV_com"] - dev_com_sat
+    } else NA_real_
+
+    chi2_adhoc_j <- if (!is.na(dev_adhoc_sat) && !is.na(dev_df[mname, "DEV_adhoc"])) {
+      dev_df[mname, "DEV_adhoc"] - dev_adhoc_sat
     } else NA_real_
 
     chi2_MI_j <- if (!is.na(mi_dev_sat) && !is.na(dev_df[mname, "MI_DEVIANCE"])) {
@@ -124,8 +133,8 @@ compute_chi_squares <- function(complete_fits, mi_fits, dev_df) {
       chi2_D3_j <- d3$chi2_D3
     }
 
-    data.frame(chi2_com = chi2_com_j, chi2_MI = chi2_MI_j,
-               chi2_D3 = chi2_D3_j, df = k,
+    data.frame(chi2_com = chi2_com_j, chi2_adhoc = chi2_adhoc_j,
+               chi2_MI = chi2_MI_j, chi2_D3 = chi2_D3_j, df = k,
                stringsAsFactors = FALSE)
   })
 

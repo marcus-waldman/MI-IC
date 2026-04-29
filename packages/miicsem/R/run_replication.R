@@ -14,15 +14,24 @@
 #' @param pop_starts Optional named list of warm-start coefficient
 #'   vectors covering all entries in \code{models_with_sat} (see
 #'   \code{\link{compute_pop_starts}}).
-#' @return List with \code{ic_df}, \code{selections},
-#'   \code{convergence}, \code{tr_RIVs}; or NULL on imputation failure.
+#' @return List with \code{ic_df}, \code{dev_df}, \code{chi2_df},
+#'   \code{fit_indices_df}, \code{selections}, \code{convergence},
+#'   \code{tr_RIVs}; or NULL on imputation failure.
 #' @export
 run_one_rep <- function(rep_id, n, miss_rate, config,
                         seed_data, seed_ampute, seed_impute,
                         pop_starts = NULL) {
 
   models <- get_sim1_models()
-  models_with_sat <- c(models, list(Msat = get_saturated_model(config$var_names)))
+  # Includes the candidate models, the saturated reference (for chi-square),
+  # and the null/independence reference (for CFI / TLI). The downstream
+  # consumers (compute_chi_squares, compute_fit_indices) treat Msat and
+  # Mnull as baselines, not candidates.
+  models_with_sat <- c(
+    models,
+    list(Msat  = get_saturated_model(config$var_names),
+         Mnull = get_null_model(config$var_names))
+  )
 
   data_complete <- generate_complete_data(n, config, seed_data)
 
@@ -141,13 +150,19 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
   dev_df <- compute_deviances(complete_fits, mi_fits, observed_fits, n,
                               decomp_logliks = decomp_logliks)
 
-  # Chi-squares (candidate models only) vs saturated reference; fills in
-  # MR_DEVIANCE column of dev_df.
+  # Chi-squares (candidate models + Mnull, all vs saturated reference);
+  # fills in MR_DEVIANCE column of dev_df.
   chi2_res <- compute_chi_squares(complete_fits, mi_fits, dev_df)
   chi2_df  <- chi2_res$chi2_df
   dev_df   <- chi2_res$dev_df
 
-  # Seven IC methods for candidate models only
+  # MI-corrected fit indices (CFI, TLI, RMSEA) for each candidate, in three
+  # variants (com / adhoc / MI). Uses the Mnull row of chi2_df for CFI/TLI
+  # baselines. See claude/derivations/mi_deviance_bias_derivation_v4.qmd
+  # Sections 9-10.
+  fit_indices_df <- compute_fit_indices(chi2_df, n)
+
+  # Seven IC methods for candidate models only (excludes Msat and Mnull)
   ic_df <- compute_all_models_ic(complete_fits[names(models)],
                                  mi_fits[names(models)], n)
 
@@ -164,14 +179,15 @@ run_one_rep <- function(rep_id, n, miss_rate, config,
   }, numeric(1))
 
   list(
-    rep_id      = rep_id,
-    n           = n,
-    miss_rate   = miss_rate,
-    ic_df       = ic_df,
-    dev_df      = dev_df,
-    chi2_df     = chi2_df,
-    selections  = selections,
-    convergence = convergence,
-    tr_RIVs     = tr_RIVs
+    rep_id         = rep_id,
+    n              = n,
+    miss_rate      = miss_rate,
+    ic_df          = ic_df,
+    dev_df         = dev_df,
+    chi2_df        = chi2_df,
+    fit_indices_df = fit_indices_df,
+    selections     = selections,
+    convergence    = convergence,
+    tr_RIVs        = tr_RIVs
   )
 }

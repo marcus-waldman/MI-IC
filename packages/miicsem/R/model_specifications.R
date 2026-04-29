@@ -163,3 +163,23 @@ get_saturated_model <- function(var_names = paste0("y", 1:9)) {
   }
   paste(lines, collapse = "\n")
 }
+
+
+#' Generate Null (Independence) Model Syntax
+#'
+#' Builds lavaan syntax for the independence model over \code{var_names}:
+#' each variable gets its own free variance, all covariances fixed to zero,
+#' and (with \code{meanstructure = TRUE} at fit time) each variable gets a
+#' free intercept. For \code{q} variables: \code{p_M0 = 2*q} (q variances +
+#' q intercepts), and against the saturated reference \code{df_0 = q*(q-1)/2}.
+#'
+#' This is the standard baseline model for incremental fit indices CFI and
+#' TLI; it represents the case where all observed variables are mutually
+#' independent.
+#'
+#' @param var_names Character vector of variable names (default y1..y9).
+#' @return A character string of lavaan syntax.
+#' @export
+get_null_model <- function(var_names = paste0("y", 1:9)) {
+  paste(sprintf("%s ~~ %s", var_names, var_names), collapse = "\n")
+}
