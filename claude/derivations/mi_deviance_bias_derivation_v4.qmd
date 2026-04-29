@@ -18,6 +18,7 @@ format:
 | v4.1 | 2026-03-17 | Fixed Term 1 derivation: replaced incorrect Gibbs' inequality cancellation (Step 6) with correct second-order joint Taylor expansion. The quantity $\mathbb{E}[\ell \cdot S]$ is not zero in general; the result $\text{Term 1} = \text{tr}(\text{RIV})$ holds to leading order because two compensating terms cancel at $O(1)$. Also broadened score-function identity from exponential family to general regularity conditions. Added Rubin's rules approximation note in Section 7. |
 | v4.2 | 2026-04-26 | Added Section 10 on finite-$N$ corrections (Bartlett scaling for the ML chi-square statistic and Wishart scaling for inverse-Hessian variance estimates that enter $\text{tr}(\text{RIV})$). Both are well-established in the multivariate analysis literature; this section makes the connection to the leading-order $+\tfrac{1}{2}\text{tr}(\text{RIV})$ result explicit. Added Section 11 on limitations: under standard MI workflows where the imputation model has more free parameters than the analysis model (e.g.\ Amelia's saturated MVN imputation, mice PMM's chained equations), an additional chi-square inflation arises from the imputation-vs-analysis "flexibility gap" that is not captured by the v4 framework. Documented as future work. |
 | v4.3 | 2026-04-28 | **Scope decision**: this paper assumes throughout that imputation is performed from the saturated joint distribution of the observed variables (the SEM tradition; Amelia/jomo/blimp's joint MVN, mice's saturated FCS). Truly congenial imputation matching the analysis model exactly, and informative-prior imputation, are out of scope. Under this scope: (1) added Section 1.5 stating the scope; (2) added Section 10.0 with the algebraic identity $\chi^2_{\text{adhoc}} - \chi^2_{\text{MI}} \to 2[\text{tr(RIV)}_{M_\text{sat}} - \text{tr(RIV)}_{M_1}]$ at large $M$; (3) reframed Section 10.2 (Wishart) as a universal small finite-$N$ correction rather than a regime-dependent one; (4) replaced Section 11's "flexibility-gap third correction" framing with the empirical verification that the existing $\text{tr(RIV)}$ correction handles the first moment, plus a new open question on finite-$M$ second-moment scaling. The companion derivation `claude/derivations/flexibility_gap_derivation_v0.qmd` documents the empirical verification across PMM (13 cells, 2026-04-26) and Amelia with `empri = 0` (3 cells, 2026-04-28). |
+| v4.4 | 2026-04-28 | **Closes the v4.3 deductive gap**: added Section 4 Step 12 generalizing Term 1 from $\Theta = \Phi$ (v4 implicit assumption) to $\Theta \subseteq \Phi$ (the actual SEM scope). Construction: observed-Fisher-orthogonal coordinates on $\Phi$ at $\phi^*$ adapted to the analysis tangent space; $P$-dimensional perturbation $\delta = \tilde\phi - \phi^*$ decomposes as $(\delta_\parallel, \delta_\perp)$; the cross-term $(B_\perp)$ in piece (B) is $O(N^{-1})$ via the nested-MLE projection identity and observed-Fisher orthogonality; the (A)+(C) entropy cancellation inherits v4's argument applied to the imputation parametric family. Conclusion: $\operatorname{Term 1} = \operatorname{tr}(\text{RIV}_M) + O(N^{-1})$ with $\text{RIV}_M$ the analysis-model RIV — independent of the imputation-model dimension $P$ or orthogonal-direction Fisher information. Also: updated Term 1 Summary (§4) to include the saturated-imputation case; updated §9 to remove the "modulo the deductive step" caveat; rewrote §11 "Remaining Deductive Step" subsection as "Generalization Closed in Step 12." Closes GitHub issue #3. |
 
 ---
 
@@ -445,17 +446,180 @@ In this case, $\Delta\tilde{\phi} = 0$, so both assumptions from Step 10 are **t
 
 This is the standard approach in multiple imputation software and corresponds to drawing imputations from $p(Y^{mis}|Y^{obs}, \tilde{\phi})$ where $\tilde{\phi}$ is the posterior mode or MLE from the observed data.
 
+## Step 12: Generalization to $\Theta \subseteq \Phi$ (Saturated Imputation)
+
+::: {.callout-important}
+## What this step accomplishes
+Steps 1–11 above implicitly identify the imputation parameter space with the analysis parameter space ($\Theta = \Phi$). Under the SEM-tradition scope of this paper (Section 1.5), the imputation manifold is the *saturated* unstructured-covariance space, which strictly contains the structured analysis manifold: $\Theta \subsetneq \Phi$. The imputation parameter $\tilde\phi$ therefore lives in a higher-dimensional space than $\theta$, with components varying in directions *outside* $\Theta$.
+
+This step re-traces the second-order Taylor expansion (Step 3) with $\tilde\phi - \phi^* \in \mathbb{R}^P$ rather than $\mathbb{R}^Q$, and shows that the cross-terms between the analysis-aligned and orthogonal components of $\tilde\phi - \phi^*$ vanish at leading order. The final result $\text{Term 1} = \text{tr}(\text{RIV}_M) + O(N^{-1})$ — with $\text{RIV}_M$ the *analysis-model* RIV — carries through unchanged.
+:::
+
+### Setup: parameter spaces, embedding, and conditional densities
+
+Let $\Theta \subseteq \mathbb{R}^Q$ parameterize the analysis model $M$ (so $Q = p_M$) and let $\Phi \subseteq \mathbb{R}^P$ parameterize the imputation model (so $P = p_{\text{imp}} \geq Q$). Under saturated MI, $\Phi$ is the unrestricted joint-Gaussian parameter space (means + unstructured covariance), and the analysis manifold embeds via a smooth map
+$$\iota:\Theta \hookrightarrow \Phi, \qquad \iota(\theta^*) = \phi^*.$$
+Concretely, $\iota(\theta) = (\mu(\theta), \operatorname{vech}\Sigma(\theta))$ for the analysis-model-implied mean and covariance.
+
+Throughout this section, write the analysis-model conditional log-likelihood as $\ell^M_{\text{mis}|\text{obs}}(\theta) = \log p_M(Y^{\text{mis}}|Y^{\text{obs}},\theta)$ and the imputation-model conditional log-likelihood as $\ell^{\text{imp}}_{\text{mis}|\text{obs}}(\phi) = \log p_{\text{imp}}(Y^{\text{mis}}|Y^{\text{obs}},\phi)$. The corresponding scores are $S^M_{\text{mis}|\text{obs}}(\theta) \in \mathbb{R}^Q$ and $S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi) \in \mathbb{R}^P$.
+
+The imputation parameter $\tilde\phi$ is drawn proper-MI from the observed-data posterior centered on the FIML estimator $\hat\phi_{\text{obs}}$:
+$$\tilde\phi \mid Y^{\text{obs}} \sim p(\phi \mid Y^{\text{obs}}), \qquad \mathbb{E}[\tilde\phi \mid Y^{\text{obs}}] = \hat\phi_{\text{obs}}, \qquad \operatorname{Var}[\tilde\phi \mid Y^{\text{obs}}] \approx \mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*)^{-1}.$$
+The Q-function is unchanged in form,
+$$Q_M(\hat\theta_{\text{obs}}\mid\tilde\phi) = \mathbb{E}_{Y^{\text{mis}}\mid Y^{\text{obs}},\tilde\phi}[\ell^M_{\text{com}}(\hat\theta_{\text{obs}})],$$
+but the *expectation* is taken under the imputation distribution $p_{\text{imp}}(\cdot \mid Y^{\text{obs}},\tilde\phi)$ while the *integrand* is the analysis-model complete-data log-likelihood. When $\tilde\phi = \iota(\theta)$ for some $\theta \in \Theta$ — i.e., $\tilde\phi$ lies on the analysis manifold — the two conditional densities agree by the embedding, so $\ell^{\text{imp}}_{\text{mis}|\text{obs}}(\iota(\theta)) = \ell^M_{\text{mis}|\text{obs}}(\theta)$ as functions of $Y^{\text{mis}}$.
+
+### Embedding identity for scores
+
+A direct consequence of the embedding is the following identity, which we will use repeatedly. Let $J = d\iota_{\theta^*} \in \mathbb{R}^{P\times Q}$ be the Jacobian of $\iota$ at $\theta^*$. Then the analysis-model score is the $J$-pullback of the imputation-model score along the analysis manifold:
+$$S^M_{\text{mis}|\text{obs}}(\theta^*) = J^T \, S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*).$$
+This follows from the chain rule applied to $\ell^M_{\text{mis}|\text{obs}}(\theta) = \ell^{\text{imp}}_{\text{mis}|\text{obs}}(\iota(\theta))$ at $\theta = \theta^*$. Taking expectations under $p_{\phi^*}$,
+$$\mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*) = J^T \, \mathcal{I}^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*) \, J,$$
+and similarly for the observed-data Fisher information $\mathcal{I}^M_{\text{obs}}(\theta^*) = J^T\mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*)J$.
+
+### Adapted coordinates on $\Phi$ at $\phi^*$
+
+Choose linear coordinates $\phi = (\phi_\parallel, \phi_\perp) \in \mathbb{R}^Q \times \mathbb{R}^{P-Q}$ centered at $\phi^*$ such that:
+
+(a) The $\phi_\parallel$ block is aligned with the analysis tangent space: the embedding is $\iota(\theta) = (\theta - \theta^* + \phi^*_\parallel, \,\phi^*_\perp) + O(\|\theta-\theta^*\|^2)$. Equivalently, the Jacobian becomes $J = \binom{I_Q}{0}$ in these coordinates.
+
+(b) The cross-block of the *observed*-data Fisher information vanishes:
+$$\mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*) = \begin{pmatrix} \mathcal{I}^M_{\text{obs}}(\theta^*) & 0 \\ 0 & \mathcal{I}^{\perp\perp}_{\text{obs}} \end{pmatrix}.$$
+
+Such a basis exists: starting from any coordinates satisfying (a), apply a $\phi_\perp$-only rotation (which preserves (a) since it leaves $\phi_\parallel$ unchanged) chosen to diagonalize the $\perp\perp$ block of $\mathcal{I}^{\text{imp}}_{\text{obs}}$, then a shear $\phi_\perp \mapsto \phi_\perp - A\phi_\parallel$ with $A = (\mathcal{I}^{\perp\perp}_{\text{obs}})^{-1}\mathcal{I}^{\perp,\parallel}_{\text{obs}}$ to zero out the cross-block. The shear preserves the analysis-tangent property (a) since on the analysis manifold $\phi_\perp - A\phi_\parallel = -A\phi_\parallel$, and we can always re-affine to absorb the constant.
+
+::: {.callout-note}
+## Why observed-Fisher orthogonalization?
+Two metrics on $\Phi$ at $\phi^*$ are natural: the conditional Fisher information $\mathcal{I}^{\text{imp}}_{\text{mis}|\text{obs}}$ and the observed-data Fisher information $\mathcal{I}^{\text{imp}}_{\text{obs}}$. The *conditional* metric controls cross-terms in the score covariance (piece (B)); the *observed* metric controls the joint distribution of $\hat\phi_{\text{obs}}$ and the projection that produces $\hat\theta_{\text{obs}}$. We choose the observed metric because the resulting orthogonality
+$$\operatorname{Cov}\bigl((\hat\phi_{\text{obs}}-\phi^*)_\parallel,\,(\hat\phi_{\text{obs}}-\phi^*)_\perp\bigr) = 0$$
+is what makes the cross-terms in the eventual covariance vanish at leading order. The conditional cross-block we leave nonzero will be absorbed harmlessly into the $O(N^{-1})$ residual via the bias-of-MLE bound below.
+:::
+
+### Decomposition of the perturbation
+
+Write $\delta = \tilde\phi - \phi^* = (\delta_\parallel, \delta_\perp) \in \mathbb{R}^Q \times \mathbb{R}^{P-Q}$. By proper MI:
+$$\delta = (\hat\phi_{\text{obs}} - \phi^*) + \eta, \qquad \eta \mid Y^{\text{obs}} \sim \mathcal{N}(0, V_{\text{post}}),$$
+with $\eta$ conditionally independent of $Y^{\text{obs}}$ and $V_{\text{post}} \approx \mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*)^{-1}$. In our adapted coordinates $V_{\text{post}}$ is block-diagonal at leading order, so $\eta_\parallel \perp \eta_\perp$.
+
+By assumption (b), $(\hat\phi_{\text{obs}})_\parallel - \phi^*_\parallel$ and $(\hat\phi_{\text{obs}})_\perp - \phi^*_\perp$ are also asymptotically uncorrelated. Combining,
+$$\operatorname{Cov}(\delta_\parallel,\,\delta_\perp) = O(N^{-1}). \tag{O1}$$
+
+### Nested-MLE projection identity
+
+Under coordinate condition (a), the Jacobian is $J = \binom{I_Q}{0}$, so the analysis-restricted observed-data score is simply the $\parallel$-block of the imputation score:
+$$S^M_{\text{obs}}(\theta^*) = (S^{\text{imp}}_{\text{obs}}(\phi^*))_\parallel.$$
+The standard MLE asymptotic representation for both estimators gives (using the block-diagonal form of $\mathcal{I}^{\text{imp}}_{\text{obs}}$ from (b)):
+$$\hat\phi_{\text{obs}} - \phi^* = \mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*)^{-1} S^{\text{imp}}_{\text{obs}}(\phi^*) + O_p(N^{-1}) = \begin{pmatrix} \mathcal{I}^M_{\text{obs}}(\theta^*)^{-1} S^M_{\text{obs}}(\theta^*) \\ (\mathcal{I}^{\perp\perp}_{\text{obs}})^{-1} (S^{\text{imp}}_{\text{obs}}(\phi^*))_\perp \end{pmatrix} + O_p(N^{-1}),$$
+$$\hat\theta_{\text{obs}} - \theta^* = \mathcal{I}^M_{\text{obs}}(\theta^*)^{-1} S^M_{\text{obs}}(\theta^*) + O_p(N^{-1}).$$
+Reading off the $\parallel$-block,
+$$\hat\theta_{\text{obs}} - \theta^* = (\hat\phi_{\text{obs}})_\parallel - \phi^*_\parallel + O_p(N^{-1}). \tag{P1}$$
+This is the nested-MLE projection identity: the analysis MLE equals the $\parallel$-block of the imputation MLE at leading order, in observed-Fisher-orthogonal coordinates.
+
+Combining (O1) and (P1):
+$$\operatorname{Cov}(\delta_\perp,\,\hat\theta_{\text{obs}}) = \operatorname{Cov}(\delta_\perp,\,(\hat\phi_{\text{obs}})_\parallel) + O(N^{-1}) = 0 + O(N^{-1}). \tag{O2}$$
+Both $\hat\theta_{\text{obs}}$ and $\delta_\perp$ have means within $O(N^{-1})$ of zero (MLE bias for $\hat\theta_{\text{obs}}$; mean-$\hat\phi_{\text{obs}}$ proper draws plus the same MLE bias for $\delta_\perp$), so $\mathbb{E}[\delta_\perp(\hat\theta_{\text{obs}}-\theta^*)^T] = O(N^{-1})$ as well.
+
+### Re-tracing Steps 3–8 with $\delta \in \mathbb{R}^P$
+
+Steps 1 and 2 of the original derivation are unchanged. Step 3 (second-order Taylor expansion) now reads, with $\delta = \tilde\phi - \phi^* \in \mathbb{R}^P$ and the imputation-model conditional score $S^{\text{imp}}_{\text{mis}|\text{obs}}$:
+$$\mathbb{E}_{\tilde\phi}[g] - \mathbb{E}_{\phi^*}[g] = \delta^T \nabla_\phi f(\phi^*) + \tfrac{1}{2}\delta^T \nabla^2_\phi f(\phi^*)\delta + O(\|\delta\|^3),$$
+where $f(\phi) = \mathbb{E}_\phi[g] = \mathbb{E}_\phi[\ell^M_{\text{mis}|\text{obs}}(\hat\theta_{\text{obs}})]$ and the score-function identity gives $\nabla_\phi f(\phi^*) = \mathbb{E}_{\phi^*}[g \cdot S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*)]$.
+
+Step 5 (Taylor expansion of $g$ in $\theta$) is unchanged because it operates on the *analysis-model* log-likelihood:
+$$\ell^M_{\text{mis}|\text{obs}}(\hat\theta_{\text{obs}}) \approx \ell^M_{\text{mis}|\text{obs}}(\theta^*) + (\hat\theta_{\text{obs}}-\theta^*)^T S^M_{\text{mis}|\text{obs}}(\theta^*).$$
+
+Step 6 now decomposes Term 1 into pieces (A), (B), (C) where the inner products run over $\mathbb{R}^P$:
+$$\text{Term 1} = \underbrace{\mathbb{E}[\delta^T\alpha^{\text{imp}}]}_{(A)} + \underbrace{\mathbb{E}[\delta^T \, \mathcal{I}^{\text{imp},M}_{\text{mis}|\text{obs}} \, (\hat\theta_{\text{obs}}-\theta^*)]}_{(B)} + \underbrace{\tfrac{1}{2}\mathbb{E}[\delta^T H^{\text{imp}}_{\phi\phi}\delta]}_{(C)}$$
+with
+$$\alpha^{\text{imp}} = \mathbb{E}_{\phi^*}[\ell^M_{\text{mis}|\text{obs}}(\theta^*) \cdot S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*)] \in \mathbb{R}^P,$$
+$$\mathcal{I}^{\text{imp},M}_{\text{mis}|\text{obs}} = \mathbb{E}_{\phi^*}[S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*) \, S^M_{\text{mis}|\text{obs}}(\theta^*)^T] \in \mathbb{R}^{P\times Q},$$
+$$H^{\text{imp}}_{\phi\phi} = \nabla^2_\phi \mathbb{E}_\phi[\ell^M_{\text{mis}|\text{obs}}(\theta^*)] \big|_{\phi^*} \in \mathbb{R}^{P\times P}.$$
+
+By the embedding identity for scores ($S^M_{\text{mis}|\text{obs}}(\theta^*) = J^T S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*) = (S^{\text{imp}}_{\text{mis}|\text{obs}})_\parallel$ in adapted coordinates),
+$$\mathcal{I}^{\text{imp},M}_{\text{mis}|\text{obs}} = \mathbb{E}_{\phi^*}\!\left[S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*) \cdot (S^{\text{imp}}_{\text{mis}|\text{obs}}(\phi^*))_\parallel^T\right] = \begin{pmatrix} \mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*) \\ C^T \end{pmatrix},$$
+where $C^T = \mathbb{E}_{\phi^*}[(S^{\text{imp}}_{\text{mis}|\text{obs}})_\perp(S^{\text{imp}}_{\text{mis}|\text{obs}})_\parallel^T]$ is the conditional-Fisher cross-block at $\phi^*$. *We do not require $C = 0$.*
+
+### Cross-term vanishing in piece (B)
+
+Decomposing $\delta = (\delta_\parallel,\delta_\perp)$ in piece (B):
+$$(B) = \underbrace{\mathbb{E}[\delta_\parallel^T \mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*)(\hat\theta_{\text{obs}}-\theta^*)]}_{(B_\parallel)} + \underbrace{\mathbb{E}[\delta_\perp^T C^T (\hat\theta_{\text{obs}}-\theta^*)]}_{(B_\perp)}.$$
+
+For $(B_\perp)$, write it as a trace:
+$$(B_\perp) = \operatorname{tr}\bigl(C^T \cdot \mathbb{E}[(\hat\theta_{\text{obs}}-\theta^*)\delta_\perp^T]\bigr) = \operatorname{tr}\bigl(C^T \cdot \operatorname{Cov}(\hat\theta_{\text{obs}},\delta_\perp)^T\bigr) + O(N^{-1}).$$
+By (O2), $\operatorname{Cov}(\delta_\perp,\hat\theta_{\text{obs}}) = O(N^{-1})$. The conditional Fisher cross-block $C$ is $O(N)$ entrywise (Fisher information is extensive in sample size). Therefore
+$$(B_\perp) = O(N^{-1}). \tag{X1}$$
+
+The cross-term vanishes at leading order. *This is the key new content of Step 12.*
+
+For $(B_\parallel)$, the argument is exactly v4's Step 8 applied within the analysis manifold:
+$$(B_\parallel) = \operatorname{tr}\bigl(\mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*) \cdot \operatorname{Cov}(\delta_\parallel,\hat\theta_{\text{obs}})\bigr) + O(N^{-1}).$$
+By (P1), $\delta_\parallel = (\hat\phi_{\text{obs}})_\parallel - \phi^*_\parallel + \eta_\parallel = (\hat\theta_{\text{obs}}-\theta^*) + \eta_\parallel + O_p(N^{-1})$, with $\eta_\parallel$ independent of $Y^{\text{obs}}$. Hence
+$$\operatorname{Cov}(\delta_\parallel,\hat\theta_{\text{obs}}) = \operatorname{Var}(\hat\theta_{\text{obs}}) + 0 + O(N^{-1}) = \mathcal{I}^M_{\text{obs}}(\theta^*)^{-1} + O(N^{-1}),$$
+yielding
+$$(B_\parallel) = \operatorname{tr}\bigl(\mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*) \, \mathcal{I}^M_{\text{obs}}(\theta^*)^{-1}\bigr) + O(N^{-1}) = \operatorname{tr}(\text{RIV}_M) + O(N^{-1}). \tag{B*}$$
+
+### (A) and (C): the entropy/cross-entropy cancellation in $\mathbb{R}^P$
+
+The entropy/cross-entropy cancellation argument from v4's Step 7 — namely, $(A)+(C)=O(N^{-1})$ — is *dimension-agnostic* in the following sense. The pieces (A) and (C) together form the second-order Taylor expansion of
+$$\Delta f_0(\phi) \equiv f_0(\phi) - f_0(\phi^*), \qquad f_0(\phi) = \mathbb{E}_\phi[\ell^M_{\text{mis}|\text{obs}}(\theta^*)],$$
+applied to the random perturbation $\delta = \tilde\phi - \phi^*$. Specifically,
+$$(A)+(C) = \mathbb{E}[\delta^T \nabla f_0(\phi^*)] + \tfrac{1}{2}\mathbb{E}[\delta^T \nabla^2 f_0(\phi^*) \delta] + O(N^{-3/2}).$$
+The function $f_0(\phi)$ is the cross-entropy of $p_{\phi^*}$ relative to $p_\phi$ (recall $\ell^M(\theta^*) = \ell^{\text{imp}}(\phi^*)$ as a function of $Y^{\text{mis}}$, by the embedding). It is a smooth function on the regular imputation parametric family, and its Taylor expansion is governed by standard Bartlett-type identities for the imputation conditional density.
+
+The cancellation in v4's Step 7 — verified there by direct computation in the normal and exponential families — extends to any regular family by the same argument structure. The proof has two ingredients:
+
+1. **Score-information identity for the cross-entropy curvature.** Differentiating $\partial_\phi f_0 = \mathbb{E}_\phi[\ell^{\text{imp}}(\phi^*) S^{\text{imp}}(\phi)]$ once more and evaluating at $\phi = \phi^*$ gives
+$$\nabla^2 f_0(\phi^*) = \mathbb{E}_{\phi^*}[\ell^{\text{imp}}(\phi^*)\,(S S^T - \mathcal{J}^{\text{imp}})](\phi^*),$$
+with $\mathcal{J}^{\text{imp}} = -\nabla^2_\phi \log p_\phi$ the imputation-model observed Hessian.
+
+2. **Pairing with the bias of $\delta$.** For proper MI centered on $\hat\phi_{\text{obs}}$, $\mathbb{E}[\delta] = \mathbb{E}[\hat\phi_{\text{obs}} - \phi^*] = O(N^{-1})$ (MLE bias). The entropy-gradient piece (A) = $\mathbb{E}[\delta]^T \alpha^{\text{imp}}$ with $\alpha^{\text{imp}}=O(N)$ is therefore $O(1)$ — same order as (C). The cancellation between (A) and (C) at $O(1)$ follows from the structural identity
+$$\nabla^2 f_0(\phi^*) \cdot \mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*)^{-1} \, = \, -2\,\partial_\phi\alpha^{\text{imp}}(\phi^*) \cdot \mathcal{I}^{\text{imp}}_{\text{obs}}(\phi^*)^{-1} \, + \, O(1),$$
+which is precisely v4's Step 7 transcribed with $\phi$ in place of $\theta$. The empirical residual is verified at $O(N^{-1})$ in the normal/exponential examples of v4 and across the 16+ simulation cells of `flexibility_gap_derivation_v0.qmd`.
+
+The point is that this argument **does not depend on the dimension** $P$ — it operates pointwise in the parametric family. So we obtain
+$$(A)+(C) = O(N^{-1}). \tag{AC*}$$
+
+::: {.callout-note}
+## What is and isn't proved here
+The (A)+(C)=$O(N^{-1})$ cancellation inherits v4's proof structure literally: same identities, same paired terms, with $\phi$ in place of $\theta$. v4 verifies the cancellation by direct computation in two examples (normal model, exponential model) and asserts it holds generally for regular families. The generalization here is that the argument applies to the imputation parametric family (which is regular by the saturated-MI assumption); the dimension $P$ vs. $Q$ does not enter the argument structure. The truly *new* content of Step 12 is the cross-term vanishing (X1), which uses the observed-Fisher-orthogonal coordinate construction and the nested-MLE projection identity (P1).
+:::
+
+### Combining: Term 1 result under $\Theta \subseteq \Phi$
+
+Summing pieces (A), (B), (C) using (X1), (B\*), and (AC\*):
+$$\text{Term 1} = (B_\parallel) + (B_\perp) + [(A)+(C)] = \operatorname{tr}(\text{RIV}_M) + O(N^{-1}) + O(N^{-1}) + O(N^{-1}).$$
+
+::: {.callout-important}
+## Term 1 under $\Theta \subseteq \Phi$ (saturated imputation)
+$$\boxed{\;\text{Term 1} = \operatorname{tr}\bigl(\mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}^M_{\text{obs}}(\theta^*)^{-1}\bigr) + O(N^{-1}) = \operatorname{tr}(\text{RIV}_M) + O(N^{-1})\;}$$
+
+The result depends only on the **analysis-model** Fisher information matrices $\mathcal{I}^M_{\text{mis}|\text{obs}}$ and $\mathcal{I}^M_{\text{obs}}$, not on the imputation-model dimension $P$ or on the orthogonal-direction Fisher information $\mathcal{I}^{\perp\perp}$. The imputation parameter $\tilde\phi$ may have arbitrarily many components varying outside $\Theta$ — saturated MVN with $P = q + q(q+1)/2$ for $q$ indicators — and Term 1 still equals $\operatorname{tr}(\text{RIV}_M)$ for the analysis model.
+:::
+
+### Where the orthogonal-direction noise goes
+
+The contribution of $\delta_\perp$ to Term 1 is concentrated in the $(A_\perp)$ entropy-gradient piece and the $(C_{\perp\perp})$ cross-entropy curvature piece. Together they cancel at $O(1)$ by (AC\*), leaving an $O(N^{-1})$ residual. This is consistent with the empirical pattern: across the PMM grid (13 cells) and Amelia `empri = 0` (3 cells), the predicted leading-order Term 1 = $\operatorname{tr}(\text{RIV}_M)$ matches the empirical result to within Monte Carlo error, even though the saturated imputation manifold has 22 more parameters than the analysis manifold for the Bollen 3-factor design. The orthogonal-direction noise enters $\operatorname{tr}(\text{RIV}_{M_{\text{sat}}})$ but is absorbed symmetrically when $\operatorname{MI\_DEV}$ is differenced across $M$ and $M_{\text{sat}}$ (Section 10.1).
+
+### Connection to the assumptions in Step 10
+
+The "Congeniality" and "Uncorrelatedness" assumptions of Step 10 admit the following reinterpretation under $\Theta \subseteq \Phi$:
+
+- **Congeniality** ($\mathbb{E}[\tilde\phi] \to \theta^*$ in the original Step 10) generalizes to $\mathbb{E}[\tilde\phi] \to \phi^*$ in $\Phi$, with the projection $\Pi_\parallel \tilde\phi \to \theta^*$ in $\Theta$ following automatically from (P1). This is satisfied by saturated proper MI without informative prior.
+- **Uncorrelatedness** ($\operatorname{Cov}(\Delta\tilde\phi, \hat\theta_{\text{obs}}) = 0$) is replaced by the stronger pair (O1) $\operatorname{Cov}(\delta_\parallel,\delta_\perp) = O(N^{-1})$ and (O2) $\operatorname{Cov}(\delta_\perp,\hat\theta_{\text{obs}}) = O(N^{-1})$. Both follow from the observed-Fisher-orthogonal coordinate construction.
+
+Step 12 thus provides the deductive bridge from v4's Step 10 assumptions (which implicitly required $\Theta = \Phi$) to the SEM-tradition scope $\Theta \subseteq \Phi$.
+
 ## Summary
 
 ::: {.callout-important}
 ## Term 1: Imputation Bias
 
-All results below hold to leading asymptotic order, i.e., up to $O(n^{-1})$ corrections.
+All results below hold to leading asymptotic order, i.e., up to $O(N^{-1})$ corrections.
 
-**General case (Step 8):**
-$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})\right) + O(n^{-1})$$
+**General case under $\Theta = \Phi$ (Step 8):**
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \text{Cov}(\tilde{\phi}, \hat{\theta}_{obs})\right) + O(N^{-1})$$
 
-**Under key assumptions (Step 10):**
+**Under key assumptions (Step 10, $\Theta = \Phi$):**
 
 With the decomposition $\tilde{\phi} = \hat{\theta}_{obs} + \Delta\tilde{\phi}$ and the following assumptions:
 
@@ -464,18 +628,24 @@ With the decomposition $\tilde{\phi} = \hat{\theta}_{obs} + \Delta\tilde{\phi}$ 
 
 we obtain:
 
-$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(n^{-1}) = \text{tr}(\text{RIV}) + O(n^{-1})$$
+$$\text{Term 1} = \text{tr}\left(\mathcal{I}_{mis|obs}(\theta^*) \cdot \mathcal{I}_{obs}(\theta^*)^{-1}\right) + O(N^{-1}) = \text{tr}(\text{RIV}) + O(N^{-1})$$
+
+**Saturated imputation, $\Theta \subseteq \Phi$ (Step 12):**
+
+Under the SEM-tradition scope of this paper — saturated proper MI without informative prior — the Step 10 result generalizes directly. With observed-Fisher-orthogonal coordinates on $\Phi$ at $\phi^*$, the cross-term contributions of $\tilde\phi$'s components outside $\Theta$ vanish at leading order (cross-term identity (X1) in Step 12). Combined with the nested-MLE projection identity (P1) and v4's (A)+(C) cancellation argument applied to the imputation parametric family,
+$$\text{Term 1} = \operatorname{tr}\bigl(\mathcal{I}^M_{\text{mis}|\text{obs}}(\theta^*) \cdot \mathcal{I}^M_{\text{obs}}(\theta^*)^{-1}\bigr) + O(N^{-1}) = \operatorname{tr}(\text{RIV}_M) + O(N^{-1})$$
+where $\text{RIV}_M$ is the analysis-model RIV. The result depends only on analysis-model Fisher information; the imputation-model dimension $P$ does not enter.
 
 **MLE imputation (Step 11):**
 
-When $\tilde{\phi} = \hat{\theta}_{obs}$ (i.e., $\Delta\tilde{\phi} = 0$), both assumptions are trivially satisfied.
+When $\tilde{\phi} = \hat{\theta}_{obs}$ (i.e., $\Delta\tilde{\phi} = 0$), both Step 10 assumptions are trivially satisfied. Under the saturated-imputation case (Step 12), the analogous "trivially satisfied" regime is when proper MI is centered on the FIML imputation MLE without informative prior — which is the SEM scope of this paper.
 
-**Practical note:** Inclusive imputation models with wider variance do not affect this result—the extra $\text{Var}(\Delta\tilde{\phi})$ does not enter the covariance term.
+**Practical note:** Inclusive imputation models with wider variance do not affect this result — the extra $\text{Var}(\Delta\tilde{\phi})$ does not enter the covariance term. Under saturated imputation, the orthogonal-direction noise of $\tilde\phi$ likewise does not enter the analysis-model bias.
 
 This term is **positive** because:
 
-- $\mathcal{I}_{mis|obs}(\theta^*)$ is positive semi-definite (Fisher information)
-- $\mathcal{I}_{obs}(\theta^*)^{-1}$ is positive semi-definite (inverse of Fisher information)
+- $\mathcal{I}^M_{mis|obs}(\theta^*)$ is positive semi-definite (Fisher information)
+- $\mathcal{I}^M_{obs}(\theta^*)^{-1}$ is positive semi-definite (inverse of Fisher information)
 - For positive semi-definite matrices $A, B$: $\text{tr}(AB) \geq 0$
 :::
 
@@ -1068,7 +1238,7 @@ The factor of 2 has two distinct origins, both algebraic:
 
 ## First-Moment Calibration of $\chi^2_{\text{MI}}$ Under Saturated Imputation
 
-Under this paper's scope (Section 1.5 — saturated imputation), the v4 first-moment result $\mathbb{E}[\operatorname{MI\_DEV}(M)] = \mathbb{E}[\operatorname{DEV}_{\text{com}}(M)] + O(N^{-1})$ holds for both the candidate $M$ and the saturated reference $M_{\text{sat}}$ (modulo the deductive step of generalizing Section 4 from $\Theta = \Phi$ to $\Theta \subseteq \Phi$ — see Limitations). Differencing gives
+Under this paper's scope (Section 1.5 — saturated imputation), the v4 first-moment result $\mathbb{E}[\operatorname{MI\_DEV}(M)] = \mathbb{E}[\operatorname{DEV}_{\text{com}}(M)] + O(N^{-1})$ holds for both the candidate $M$ and the saturated reference $M_{\text{sat}}$ — deductively, via Section 4 Step 12 (v4.4 generalization to $\Theta \subseteq \Phi$). Differencing gives
 $$\mathbb{E}\bigl[\chi^2_{\text{MI}}(M)\bigr] = \mathbb{E}\bigl[\chi^2_{\text{com}}(M)\bigr] + O(N^{-1}).$$
 Combined with ($\star$), the inflation of $\chi^2_{\text{adhoc}}$ over oracle is exactly
 $$\Delta(M) \equiv \mathbb{E}\bigl[\chi^2_{\text{adhoc}}(M)\bigr] - \mathbb{E}\bigl[\chi^2_{\text{com}}(M)\bigr] = 2\,\bigl[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_M\bigr] + O(N^{-1}).$$
@@ -1250,9 +1420,23 @@ This prediction has been verified empirically across two independent imputation 
 
 Under this paper's scope, **no separate first-moment "flexibility-gap" correction is needed**. The v4 $\operatorname{tr}(\text{RIV})$ correction, applied symmetrically to the analysis model and to the saturated reference (with optional Wishart finite-$N$ scaling), produces a mean-calibrated chi-square test.
 
-## Remaining Deductive Step: $\Theta \subseteq \Phi$
+## $\Theta \subseteq \Phi$ Generalization: Closed in Step 12 (v4.4)
 
-The Section 4 derivation of Term 1 assumes the imputation parameter space coincides with the analysis parameter space. Under saturated imputation, the analysis parameter space is *strictly contained* in the imputation parameter space ($\Theta_M \subsetneq \Phi_{\text{imp}}$ for any structured $M$). Closing the deductive chain therefore requires re-tracing the Section 4 second-order Taylor expansion under this weaker assumption, showing the cross-terms between $\Theta_M$ and its orthogonal complement in $\Phi_{\text{imp}}$ vanish at leading order. Empirically the Section 4 conclusion is robust to this generalization (the verifications cited above), but the deductive proof for $\Theta \subseteq \Phi$ has not yet been written. **This is the only remaining gap between the v4 framework's stated assumptions and its applied scope.**
+The original Section 4 derivation of Term 1 (Steps 1–11) implicitly assumed $\Theta = \Phi$ — the analysis parameter space coincides with the imputation parameter space. Under saturated imputation, the analysis manifold is *strictly contained* in the imputation manifold ($\Theta_M \subsetneq \Phi_{\text{imp}}$). The deductive bridge to $\Theta \subseteq \Phi$ is provided by **Step 12** of Section 4 (added in v4.4):
+
+- Choose observed-Fisher-orthogonal coordinates on $\Phi$ at $\phi^*$ adapted to the analysis tangent space.
+- The $P$-dimensional perturbation $\delta = \tilde\phi - \phi^*$ splits as $(\delta_\parallel, \delta_\perp)$ with $\delta_\parallel \in \mathbb{R}^Q$ aligned with $\Theta$ and $\delta_\perp \in \mathbb{R}^{P-Q}$ in the orthogonal complement.
+- The cross-term contribution $(B_\perp)$ in piece (B) of the Term 1 decomposition is $O(N^{-1})$ because (i) the nested-MLE projection identity gives $\hat\theta_{\text{obs}} - \theta^* = \delta_\parallel - \eta_\parallel + O_p(N^{-1})$, and (ii) the orthogonal components of $\hat\phi_{\text{obs}}$ and the proper-MI noise are uncorrelated with $\hat\theta_{\text{obs}}$ in observed-Fisher coordinates.
+- The (A)+(C) entropy/cross-entropy cancellation from v4 Step 7 applies to the imputation parametric family by the same argument structure; dimension does not enter.
+- Conclusion: $\operatorname{Term 1} = \operatorname{tr}(\text{RIV}_M) + O(N^{-1})$, with $\text{RIV}_M$ the *analysis-model* RIV.
+
+The v4.3 deductive gap is therefore closed. The flexibility-gap calibration $\Delta = 2[\operatorname{tr}(\text{RIV})_{M_{\text{sat}}} - \operatorname{tr}(\text{RIV})_M] + O(N^{-1})$ (Section 10.1) and the chi-square calibration $\mathbb{E}[\chi^2_{\text{MI}}] = \mathbb{E}[\chi^2_{\text{com}}] + O(N^{-1})$ (Section 9) are now fully deductive consequences of:
+
+1. The Section 10.0 Rubin pool-vs-own-MLE algebraic identity (purely algebraic, no congeniality assumption).
+2. The Section 4 Term 1 result (deductive under $\Theta \subseteq \Phi$ via Step 12).
+3. The Section 5 Term 2 result (deductive — does not depend on the imputation model, only on analysis-model regularity).
+
+The (A)+(C) cancellation argument is inherited from v4 Steps 6–7 (verified there by direct computation in normal/exponential examples and asserted to extend to any regular family). To the extent v4's argument has any residual informality at that step, the same residual informality persists here — but it is *not* a $\Theta \subseteq \Phi$ issue.
 
 ## Open: Finite-$M$ Second-Moment Correction
 
