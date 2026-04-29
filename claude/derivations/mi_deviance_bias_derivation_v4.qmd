@@ -1595,6 +1595,65 @@ Empirical validation of the closed-form correction across a PMM and Amelia (`emp
 
 ---
 
+# Practical Application: Which Corrections to Apply
+
+The derivation produces **four corrections** that act on different quantities and compose unambiguously. The table below catalogs which to apply for each SEM statistic typically reported in applied analyses.
+
+## The four corrections
+
+| Tag | Correction | Form | Section | When |
+|---|---|---|---|---|
+| **A** | v4 first-moment $+\operatorname{tr}(\text{RIV})$ | $\operatorname{MI\_DEV} = -2\bar Q + \operatorname{tr}(\text{RIV})$ per model | §4 (Term 1) + §4 Step 12 | Required for any MI-corrected deviance / chi-square |
+| **B** | Wishart finite-$N$ on $\operatorname{tr}(\text{RIV})$ | $\widehat{\operatorname{tr}(\text{RIV})}\cdot\frac{N-p-1}{N}$ | §12 | Optional small-$N$ improvement; magnitude $\sim 5$–$13\%$ at $N \leq 500$ |
+| **C** | v4.5 scaled-shifted | $\chi^2_{\text{MI,corr}} = a\,\chi^2_{\text{MI}} + b$ with $a = \sqrt{2\mathrm{df}/(2\mathrm{df}+4\,\operatorname{tr}_\perp+2\sum_j\lambda_j^2)}$, $b = \mathrm{df}(1-a)$ | §13 | Required for chi-square Type I calibration |
+| **D** | Bartlett finite-$N$ on chi-square | $\chi^2 \cdot (1 + c(p)/N)^{-1}$ | §12 | Optional small-$N$ improvement; closes $\sim 1$–$2$ pp Type I residual at $N \leq 250$. Independent of MI — applies to $\chi^2_{\text{com}}$ too. |
+
+## Application by statistic
+
+| SEM statistic | A | B | C | D | Order |
+|---|:-:|:-:|:-:|:-:|---|
+| **MI-AIC** | ✓ required | ◯ optional | — | — | A → (B) → form penalty $2Q + \operatorname{tr}(\text{RIV})$ |
+| **MI-BIC** | ✓ required | ◯ optional | — | — | A → (B) → form penalty $Q\log N + \operatorname{tr}(\text{RIV})$ |
+| **Pooled deviance / $\operatorname{MI\_DEV}$** | ✓ required | ◯ optional | — | — | A → (B) |
+| **GoF chi-square ($M$ vs $M_{\text{sat}}$)** | ✓ required | ◯ optional | ✓ required | ◯ at $N \leq 250$ | A → (B) → C → (D); reference $\chi^2_{\mathrm{df}}$ |
+| **LR test ($\Delta\chi^2$)** | ✓ required | ◯ optional | ✓ required | ◯ at $N \leq 250$ | Same stack on numerator and denominator; or use Meng–Rubin $D_3$ |
+| **CFI (incremental ratio)** | ✓ required | ◯ self-cancels | ◯ self-cancels | ◯ self-cancels | A in *both* $\chi^2(M)$ and $\chi^2(M_0)$; ratio absorbs $\sim 95\%$ of B/C/D residuals |
+| **TLI** | ✓ required | ◯ self-cancels | ◯ self-cancels | ◯ self-cancels | Same as CFI |
+| **RMSEA** | ✓ required | ◯ optional | ✓ required | ✓ required at finite $N$ | Stack identical to GoF chi-square; RMSEA is sensitive to $\chi^2-\mathrm{df}$, *not* the ratio, so finite-$N$ corrections matter |
+
+**Legend**: ✓ required, ◯ optional / situational, — not applicable.
+
+## Practical recipes
+
+::: {.callout-tip}
+## Quick decisions
+
+- **$N \geq 500$** (most applied SEM): apply only **A** for ICs, and **A + C** for chi-square / RMSEA. Skip B and D.
+- **$N \leq 250$**: apply **A + B + C + D** for chi-square / RMSEA.
+- **CFI / TLI**: apply only **A** in both the analysis-model and null-model chi-squares; the ratio structure handles the rest.
+- **AIC / BIC**: only **A** is theoretically required. **B** is a small-$N$ improvement.
+:::
+
+## Why the stack composes
+
+A, B, C, D act on **different quantities**:
+
+- A acts on **deviances** (per model).
+- B acts on $\operatorname{tr}(\text{RIV})$ **estimates** (per model).
+- C acts on the **chi-square mean and variance** (combined across $M$ and $M_{\text{sat}}$).
+- D acts on the **chi-square reference distribution** (independent of MI).
+
+There is no double-correction. C requires A applied first — its derivation assumes the input $\chi^2_{\text{MI}}$ is mean-calibrated. Step 5 validation (`claude/notes/2026-04-29-step5-validation.md`) confirmed C delivers oracle-level Type I when A is in place; B and D close the residual at small $N$.
+
+## Implementation pointers
+
+- **A**: built into `miicsem`'s `compute_deviances()` via `MI_DEVIANCE = -2*bar_Q + tr_RIV`.
+- **B**: post-hoc multiplication of `tr_RIV` by `(N - p - 1) / N`. See `hpc/check_wishart_chi2.R`.
+- **C**: `miicsem::compute_chi2_MI_corrected()` in v0.6.0; output column `chi2_MI_corr` in `chi2_df`.
+- **D**: post-hoc multiplication of $\chi^2$ by $(1 + c(p)/N)^{-1}$. The $c(p)$ coefficient depends on third-order log-likelihood derivatives — for Gaussian SEM see Yuan & Bentler (1997).
+
+---
+
 # Limitations and Future Work
 
 ## First-Moment Calibration Under Saturated Imputation: Verified
